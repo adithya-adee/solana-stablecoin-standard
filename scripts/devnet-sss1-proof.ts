@@ -12,7 +12,7 @@
  * 8. Unpause operations
  *
  * Usage: npx ts-node scripts/devnet-sss1-proof.ts
- * Requires: Funded devnet keypair (ANCHOR_WALLET > KEYPAIR_PATH > ~/Documents/secret/sss-devnet-keypair.json)
+ * Requires: Funded devnet keypair (ANCHOR_WALLET > KEYPAIR_PATH > ~/.config/solana/sss-devnet-keypair.json)
  */
 
 import * as fs from "fs";
