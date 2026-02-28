@@ -1,0 +1,48 @@
+{
+  "name": "@stbr/sss-token",
+  "version": "0.1.0",
+  "description": "Solana Stablecoin Standard SDK",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/esm/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    },
+    "./types": {
+      "types": "./dist/esm/types.d.ts",
+      "import": "./dist/esm/types.js",
+      "require": "./dist/cjs/types.js"
+    },
+    "./instructions": {
+      "types": "./dist/esm/instructions/index.d.ts",
+      "import": "./dist/esm/instructions/index.js",
+      "require": "./dist/cjs/instructions/index.js"
+    },
+    "./pda": {
+      "types": "./dist/esm/pda.d.ts",
+      "import": "./dist/esm/pda.js",
+      "require": "./dist/cjs/pda.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.cjs.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.32.0",
+    "@solana/web3.js": "^1.98",
+    "@solana/spl-token": "^0.4",
+    "@solana/spl-token-metadata": "^0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5.7",
+    "vitest": "^3"
+  }
+}
