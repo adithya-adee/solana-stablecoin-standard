@@ -1,0 +1,7 @@
+packages:
+  - "solana-stablecoin-sdk"
+  - "solana-stablecoin-backend"
+  - "solana-stablecoin-frontend"
+  - "tests"
+  - "scripts"
+  - 'solana-stablecoin-cli'

@@ -1,0 +1,29 @@
+[toolchain]
+anchor_version = "0.32.1"
+
+[workspace]
+members = [
+    "sss-programs/*"
+]
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+sss_core = "SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP"
+sss_transfer_hook = "HookFvKFaoF9KL8TUXUnQK5r2mJoMYdBENu549seRyXW"
+
+[programs.devnet]
+sss_core = "SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP"
+sss_transfer_hook = "HookFvKFaoF9KL8TUXUnQK5r2mJoMYdBENu549seRyXW"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "./tests/node_modules/.bin/ts-mocha -p ./tests/tsconfig.json -t 120000 ./tests/**/*.test.ts"

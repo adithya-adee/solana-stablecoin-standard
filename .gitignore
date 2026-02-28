@@ -1,0 +1,22 @@
+# Plans
+plans/
+
+# Claude
+.claude/
+
+# Anchor
+.anchor/
+target/
+
+# Node
+node_modules/
+dist/
+*.tgz
+
+# Solana
+*.so
+
+# Environment
+.env
+.env.*
+!.env.example
