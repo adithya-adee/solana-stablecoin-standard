@@ -92,6 +92,7 @@ pub fn handler_initialize(ctx: Context<Initialize>, args: InitializeArgs) -> Res
         .unwrap_or(default_perm_delegate);
     config.enable_transfer_hook = args.enable_transfer_hook.unwrap_or(default_hook);
     config.default_account_frozen = args.default_account_frozen.unwrap_or(default_frozen);
+    config.admin_count = 1;
 
     let admin_role = &mut ctx.accounts.admin_role;
     admin_role.config = config.key();

@@ -36,4 +36,6 @@ pub enum SssError {
     SymbolTooLong,
     #[msg("URI exceeds maximum length of 200 characters")]
     UriTooLong,
+    #[msg("Oracle price is stale")]
+    OraclePriceStale,
 }

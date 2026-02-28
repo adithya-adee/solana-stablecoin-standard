@@ -11,6 +11,7 @@ pub struct GrantRole<'info> {
     pub admin: Signer<'info>,
 
     #[account(
+        mut,
         seeds = [StablecoinConfig::SSS_CONFIG_SEED, config.mint.as_ref()],
         bump = config.bump,
     )]
@@ -61,6 +62,15 @@ pub fn handler_grant(ctx: Context<GrantRole>, role: u8) -> Result<()> {
         _ => return Err(error!(crate::error::SssError::InvalidRole)),
     };
 
+    if role_enum == Role::Admin {
+        ctx.accounts.config.admin_count = ctx
+            .accounts
+            .config
+            .admin_count
+            .checked_add(1)
+            .ok_or(error!(crate::error::SssError::ArithmeticOverflow))?;
+    }
+
     let role_account = &mut ctx.accounts.role_account;
     role_account.config = ctx.accounts.config.key();
     role_account.address = ctx.accounts.grantee.key();
@@ -88,6 +98,7 @@ pub struct RevokeRole<'info> {
     pub admin: Signer<'info>,
 
     #[account(
+        mut,
         seeds = [StablecoinConfig::SSS_CONFIG_SEED, config.mint.as_ref()],
         bump = config.bump,
     )]
@@ -122,8 +133,17 @@ pub fn handler_revoke(ctx: Context<RevokeRole>) -> Result<()> {
     // Recommended: always maintain 2+ admins via multisig.
     // To transfer admin: grant new admin first, then new admin revokes old admin.
     let role_account = &ctx.accounts.role_account;
-    if role_account.role == Role::Admin && role_account.address == ctx.accounts.admin.key() {
-        return Err(error!(crate::error::SssError::LastAdmin));
+    if role_account.role == Role::Admin {
+        require!(
+            ctx.accounts.config.admin_count > 1,
+            crate::error::SssError::LastAdmin
+        );
+        ctx.accounts.config.admin_count = ctx
+            .accounts
+            .config
+            .admin_count
+            .checked_sub(1)
+            .ok_or(error!(crate::error::SssError::ArithmeticOverflow))?;
     }
 
     emit!(RoleRevoked {

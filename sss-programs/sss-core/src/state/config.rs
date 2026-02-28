@@ -24,6 +24,8 @@ pub struct StablecoinConfig {
     pub enable_transfer_hook: bool,
     /// Whether new token accounts are frozen by default (requires explicit thaw).
     pub default_account_frozen: bool,
+    /// Number of active admins. Used to prevent revoking the last admin.
+    pub admin_count: u32,
 }
 
 impl StablecoinConfig {
@@ -44,7 +46,8 @@ impl StablecoinConfig {
         1 +  // decimals
         1 +  // enable_permanent_delegate
         1 +  // enable_transfer_hook
-        1;   // default_account_frozen
+        1 +  // default_account_frozen
+        4;   // admin_count
 
     /// Returns the current circulating supply (minted minus burned).
     pub fn current_supply(&self) -> u64 {
@@ -90,6 +93,7 @@ mod tests {
             enable_permanent_delegate: true,
             enable_transfer_hook: false,
             default_account_frozen: false,
+            admin_count: 1,
         }
     }
 

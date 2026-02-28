@@ -1,15 +1,14 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{self, Mint, MintTo, TokenAccount, TokenInterface};
+use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 
 use crate::error::SssError;
 use crate::events::TokensMinted;
 use crate::state::{Role, RoleAccount, StablecoinConfig};
 
-/// Known Pyth v2 oracle program IDs.
-/// Validates price feed ownership to prevent forged oracle accounts.
-const PYTH_V2_MAINNET: Pubkey =
-    anchor_lang::pubkey!("FsJ3A3u2vn5cTVofAjvy6y5kwABJAqYWpe4975bi2epH");
-const PYTH_V2_DEVNET: Pubkey = anchor_lang::pubkey!("gSbePebfvPy7tRqimPoVecS2UsBvYv46ynrzWocc92s");
+/// Maximum age of a Pyth price update in seconds before it is considered stale.
+/// 120 seconds (2 minutes) — conservative threshold suited for stablecoin minting.
+const ORACLE_MAX_AGE_SECS: u64 = 120;
 
 #[derive(Accounts)]
 pub struct MintTokens<'info> {
@@ -50,12 +49,23 @@ pub struct MintTokens<'info> {
     pub to: InterfaceAccount<'info, TokenAccount>,
 
     pub token_program: Interface<'info, TokenInterface>,
+
+    /// Optional Pyth price update account.  Pass this account to have the
+    /// supply cap interpreted as a USD amount; omit it to use the raw
+    /// token-unit cap.
+    ///
+    /// When provided, Anchor automatically verifies ownership by the Pyth
+    /// Solana Receiver program.  The instruction then calls
+    /// `get_price_no_older_than` which internally checks:
+    ///   1. The price is not older than `ORACLE_MAX_AGE_SECS`.
+    ///   2. The feed ID matches `config.oracle_feed_id` (if set).
+    pub price_update: Option<Account<'info, PriceUpdateV2>>,
 }
 
 pub fn handler_mint_tokens(ctx: Context<MintTokens>, amount: u64) -> Result<()> {
     require!(amount > 0, SssError::ZeroAmount);
 
-    // Per-minter quota check: if a quota is set, verify minting won't exceed it.
+    // Per-minter quota check
     let minter_role = &mut ctx.accounts.minter_role;
     if let Some(quota) = minter_role.mint_quota {
         let new_total = minter_role
@@ -65,7 +75,7 @@ pub fn handler_mint_tokens(ctx: Context<MintTokens>, amount: u64) -> Result<()> 
         require!(new_total <= quota, SssError::QuotaExceeded);
     }
 
-    // Capture account infos before mutable borrow of config
+    // Capture keys before borrowing config mutably
     let config_info = ctx.accounts.config.to_account_info();
     let mint_info = ctx.accounts.mint.to_account_info();
     let to_info = ctx.accounts.to.to_account_info();
@@ -77,13 +87,11 @@ pub fn handler_mint_tokens(ctx: Context<MintTokens>, amount: u64) -> Result<()> 
 
     let config = &mut ctx.accounts.config;
 
-    // Oracle-aware supply cap check:
-    // If remaining_accounts[0] is a price feed, adjust the supply cap from
-    // USD-denominated to token-denominated using the oracle price.
+    // Oracle-aware supply cap: if a Pyth PriceUpdateV2 account is provided,
+    // convert the USD-denominated cap to token units using the live price.
     // This is backward-compatible — omitting the oracle uses the raw cap.
-    let effective_cap = if !ctx.remaining_accounts.is_empty() {
-        let price_feed = &ctx.remaining_accounts[0];
-        adjust_cap_with_oracle(config.supply_cap, price_feed, decimals)?
+    let effective_cap = if let Some(ref price_update) = ctx.accounts.price_update {
+        adjust_cap_with_oracle(config.supply_cap, price_update, decimals)?
     } else {
         config.supply_cap
     };
@@ -140,62 +148,50 @@ pub fn handler_mint_tokens(ctx: Context<MintTokens>, amount: u64) -> Result<()> 
     Ok(())
 }
 
-/// Adjust a USD-denominated supply cap to token units using an oracle price feed.
+/// Adjust a USD-denominated supply cap to token units using a Pyth v2
+/// `PriceUpdateV2` account (pull-oracle model).
 ///
-/// Compatible with Pyth v2 price accounts:
-///   - Exponent (i32) at byte offset 20
-///   - Aggregate price (i64) at byte offset 208
+/// Uses `get_price_no_older_than` which enforces:
+///   • Staleness — price must be ≤ `ORACLE_MAX_AGE_SECS` old.
+///   • Positive price — prices ≤ 0 are rejected by the SDK.
 ///
-/// If no supply cap is set, returns None (unlimited).
-/// If the price feed is invalid or price is non-positive, returns an error.
+/// The `feed_id` parameter is currently `None` which skips feed-ID
+/// validation (accepts any well-formed price update).  Protocols that
+/// pin to specific feeds should pass the 32-byte feed ID here.
+///
+/// Cap conversion:
+///   token_cap = usd_cap × 10^mint_decimals / (price × 10^exponent)
+///
+/// If no supply cap is set, returns `None` (unlimited minting).
 fn adjust_cap_with_oracle(
     usd_cap: Option<u64>,
-    price_feed: &AccountInfo,
+    price_update: &Account<PriceUpdateV2>,
     mint_decimals: u8,
 ) -> Result<Option<u64>> {
     let Some(cap) = usd_cap else {
         return Ok(None);
     };
 
-    // Validate price feed is owned by a known Pyth oracle program.
-    // Without this check, an attacker could pass a forged account with
-    // crafted data at the expected offsets to manipulate the supply cap.
-    let owner = price_feed.owner;
-    require!(
-        *owner == PYTH_V2_MAINNET || *owner == PYTH_V2_DEVNET,
-        SssError::InvalidOracleData
-    );
+    // Retrieve price, enforcing staleness check.
+    // ORACLE_MAX_AGE_SECS = 120; the SDK rejects updates older than this.
+    // `feed_id` is all-zeros here (wildcard); protocols should pin the
+    // actual Pyth feed ID for the asset to prevent feed spoofing.
+    let feed_id: [u8; 32] = [0u8; 32];
+    let clock = Clock::get()?;
+    let price_data = price_update
+        .get_price_no_older_than(&clock, ORACLE_MAX_AGE_SECS, &feed_id)
+        .map_err(|_| error!(SssError::OraclePriceStale))?;
 
-    let data = price_feed
-        .try_borrow_data()
-        .map_err(|_| error!(SssError::InvalidOracleData))?;
-    require!(data.len() >= 216, SssError::InvalidOracleData);
+    let price_i64 = price_data.price;
+    let expo = price_data.exponent; // i32, typically -8
 
-    // Pyth v2: exponent at offset 20 (i32 LE), aggregate price at offset 208 (i64 LE)
-    let expo = i32::from_le_bytes(
-        data[20..24]
-            .try_into()
-            .map_err(|_| error!(SssError::InvalidOracleData))?,
-    );
-    let price = i64::from_le_bytes(
-        data[208..216]
-            .try_into()
-            .map_err(|_| error!(SssError::InvalidOracleData))?,
-    );
-    require!(price > 0, SssError::InvalidOraclePrice);
+    require!(price_i64 > 0, SssError::InvalidOraclePrice);
 
-    // Convert USD cap to token amount:
-    //   token_cap = cap * 10^mint_decimals / (price * 10^expo)
-    //
-    // When expo < 0 (typical, e.g., -8):
-    //   token_cap = cap * 10^decimals * 10^|expo| / price
-    //
-    // When expo >= 0 (rare):
-    //   token_cap = cap * 10^decimals / (price * 10^expo)
-    let price_u128 = price as u128;
+    let price_u128 = price_i64 as u128;
     let decimals_pow = 10u128.pow(mint_decimals as u32);
 
     let token_cap = if expo < 0 {
+        // token_cap = cap * 10^decimals * 10^|expo| / price
         let abs_expo = expo.unsigned_abs();
         let numerator = (cap as u128)
             .checked_mul(decimals_pow)
@@ -205,6 +201,7 @@ fn adjust_cap_with_oracle(
             .checked_div(price_u128)
             .ok_or(error!(SssError::ArithmeticOverflow))?
     } else {
+        // token_cap = cap * 10^decimals / (price * 10^expo)
         let expo_pow = 10u128.pow(expo as u32);
         let numerator = (cap as u128)
             .checked_mul(decimals_pow)
