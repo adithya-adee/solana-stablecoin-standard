@@ -1,0 +1,26 @@
+{
+  "name": "sss-tests",
+  "private": true,
+  "scripts": {
+    "test": "ts-mocha -p ./tsconfig.json -t 120000 ./**/*.test.ts"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.32.0",
+    "@solana/spl-token": "^0.4",
+    "@solana/spl-token-metadata": "^0.1",
+    "@solana/web3.js": "^1.98",
+    "chai": "^4"
+  },
+  "devDependencies": {
+    "@types/chai": "^4",
+    "@types/mocha": "^10",
+    "@types/node": "^25.3.0",
+    "anchor-bankrun": "^0.5.0",
+    "mocha": "^10",
+    "solana-bankrun": "^0.4.0",
+    "ts-mocha": "^10",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7"
+  }
+}
