@@ -5,7 +5,7 @@ import { PublicKey } from '@solana/web3.js';
 import { Header, Spinner, Success, Err, Card, Table } from '../components/ui.js';
 import { loadProvider } from '../utils/config.js';
 
-type MinterAction = 'list' | 'add' | 'remove';
+type MinterAction = 'check' | 'add' | 'remove';
 
 interface MintersOptions {
   mint: string;
@@ -26,7 +26,7 @@ export default function Minters({ options }: { options: MintersOptions }) {
         const mint = new PublicKey(options.mint);
         const sss = await SSS.load(provider, mint as any);
 
-        if (options.action === 'list') {
+        if (options.action === 'check') {
           if (!options.address) {
             throw new Error('--address is required for this action');
           }
@@ -74,14 +74,14 @@ export default function Minters({ options }: { options: MintersOptions }) {
       <Header />
       {phase === 'running' && <Spinner label={`Minters: ${options.action}...`} />}
       {phase === 'confirming' && <Spinner label="Confirming transaction..." />}
-      {phase === 'done' && options.action === 'list' && (
+      {phase === 'done' && options.action === 'check' && (
         <Card title="Minter Check">
           <Text>
             {options.address} {isMinter ? 'is' : 'is not'} a minter.
           </Text>
         </Card>
       )}
-      {phase === 'done' && options.action !== 'list' && (
+      {phase === 'done' && options.action !== 'check' && (
         <Success label={`Minter ${options.action}ed`} value={sig} />
       )}
       {phase === 'error' && <Err message={error} />}

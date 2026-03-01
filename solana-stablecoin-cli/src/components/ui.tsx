@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Box, Text, Newline } from 'ink';
 import Link from 'ink-link';
 import { formatExplorerUrl } from '../utils/config.js';
+import { Theme, Icons } from '../utils/theme.js';
 
 // ─── Brand bar ──────────────────────────────────────────────────────────────
 
@@ -9,13 +10,13 @@ export function Header() {
   return (
     <Box flexDirection="column" marginBottom={1}>
       <Box>
-        <Text bold color="white">
-          SSS
+        <Text bold color={Theme.highlight as any}>
+          {Icons.sparkle} SSS
         </Text>
-        <Text color="gray"> · Solana Stablecoin Standard</Text>
+        <Text color={Theme.dim as any}> · Solana Stablecoin Standard</Text>
       </Box>
       <Box>
-        <Text color="gray">{'─'.repeat(46)}</Text>
+        <Text color={Theme.dim as any}>{'─'.repeat(46)}</Text>
       </Box>
     </Box>
   );
@@ -36,8 +37,8 @@ export function Spinner({ label }: SpinnerProps) {
   }, []);
   return (
     <Box>
-      <Text color="cyanBright">{FRAMES[frame]} </Text>
-      <Text color="gray">{label}</Text>
+      <Text color={Theme.primary as any}>{FRAMES[frame]} </Text>
+      <Text color={Theme.dim as any}>{label}</Text>
     </Box>
   );
 }
@@ -52,14 +53,14 @@ export function Success({ label = 'Success', value }: ResultProps) {
   return (
     <Box flexDirection="column" marginTop={1}>
       <Box>
-        <Text color="greenBright" bold>
-          {label}
+        <Text color={Theme.success as any} bold>
+          {Icons.checkmark} {label}
         </Text>
       </Box>
       <Box marginLeft={2}>
-        <Text color="gray">tx: </Text>
+        <Text color={Theme.dim as any}>tx: </Text>
         <Link url={formatExplorerUrl(value)}>
-          <Text color="white">{value}</Text>
+          <Text color={Theme.text as any}>{value}</Text>
         </Link>
       </Box>
     </Box>
@@ -69,10 +70,10 @@ export function Success({ label = 'Success', value }: ResultProps) {
 export function Err({ message }: { message: string }) {
   return (
     <Box marginTop={1}>
-      <Text color="redBright" bold>
-        Error:{' '}
+      <Text color={Theme.error as any} bold>
+        {Icons.cross} Error:{' '}
       </Text>
-      <Text color="red">{message}</Text>
+      <Text color={Theme.error as any}>{message}</Text>
     </Box>
   );
 }
@@ -84,11 +85,11 @@ interface RowProps {
   value: string;
   color?: string;
 }
-export function Row({ label, value, color = 'white' }: RowProps) {
+export function Row({ label, value, color = Theme.text }: RowProps) {
   const padded = label.padEnd(16, ' ');
   return (
     <Box>
-      <Text color="gray">{padded}</Text>
+      <Text color={Theme.dim as any}>{padded}</Text>
       <Text color={color as any} bold>
         {value}
       </Text>
@@ -106,8 +107,8 @@ export function Card({ title, children }: CardProps) {
   return (
     <Box flexDirection="column" marginTop={1}>
       <Box marginBottom={0}>
-        <Text color="white" bold>
-          {title}
+        <Text color={Theme.primary as any} bold>
+          {Icons.dot} {title}
         </Text>
       </Box>
       <Box flexDirection="column" paddingLeft={2} marginBottom={1}>
@@ -128,8 +129,12 @@ export function Table({ rows }: TableProps) {
     <Box flexDirection="column">
       {rows.map((r, i) => (
         <Box key={i}>
-          <Text color="gray">{r.key.padEnd(maxKey + 2, ' ')}</Text>
-          {typeof r.value === 'string' ? <Text color={r.highlight ? 'yellowBright' : 'white'}>{r.value}</Text> : r.value}
+          <Text color={Theme.dim as any}>{r.key.padEnd(maxKey + 2, ' ')}</Text>
+          {typeof r.value === 'string' ? (
+            <Text color={(r.highlight ? Theme.warning : Theme.text) as any}>{r.value}</Text>
+          ) : (
+            r.value
+          )}
         </Box>
       ))}
     </Box>
@@ -140,11 +145,11 @@ export function Table({ rows }: TableProps) {
 
 type BadgeVariant = 'success' | 'warning' | 'error' | 'info' | 'confidential';
 const BADGE_COLORS: Record<BadgeVariant, string> = {
-  success: 'greenBright',
-  warning: 'yellowBright',
-  error: 'redBright',
-  info: 'cyanBright',
-  confidential: 'magentaBright',
+  success: Theme.success,
+  warning: Theme.warning,
+  error: Theme.error,
+  info: Theme.primary,
+  confidential: Theme.highlight,
 };
 
 export function Badge({ label, variant }: { label: string; variant: BadgeVariant }) {
@@ -155,4 +160,3 @@ export function Badge({ label, variant }: { label: string; variant: BadgeVariant
     </Text>
   );
 }
-

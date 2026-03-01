@@ -73,11 +73,19 @@ program
 program
   .command('status')
   .description('Fetch on-chain stablecoin status')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
+  .option(
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
+  )
   .action((opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     r(<Status options={{ mint }} />);
@@ -87,11 +95,19 @@ program
 program
   .command('supply')
   .description('Show circulating supply and cap utilisation')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
+  .option(
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
+  )
   .action((opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     r(<Supply options={{ mint }} />);
@@ -103,13 +119,21 @@ program
   .description('Mint tokens to a recipient (requires minter role)')
   .argument('[recipient]', 'Recipient wallet address')
   .argument('[amount]', 'Human-readable amount (e.g. 100.5)')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
+  .option(
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
+  )
   .option('-r, --recipient <address>', 'Recipient wallet address')
   .option('-a, --amount <amount>', 'Human-readable amount (e.g. 100.5)')
   .action((recipient, amount, opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     const finalRecipient = recipient || opts.recipient;
@@ -130,12 +154,20 @@ program
   .command('burn')
   .description('Burn tokens from the signer ATA (requires burner role)')
   .argument('[amount]', 'Amount to burn')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
+  .option(
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
+  )
   .option('-a, --amount <amount>', 'Amount to burn')
   .action((amount, opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     const finalAmount = amount || opts.amount;
@@ -151,12 +183,20 @@ program
   .command('freeze')
   .description('Freeze a token account (requires freezer role)')
   .argument('[address]', 'Wallet to freeze')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
+  .option(
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
+  )
   .option('-a, --address <address>', 'Wallet to freeze')
   .action((address, opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     const finalAddress = address || opts.address;
@@ -172,12 +212,20 @@ program
   .command('thaw')
   .description('Thaw a frozen token account (requires freezer role)')
   .argument('[address]', 'Wallet to thaw')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
+  .option(
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
+  )
   .option('-a, --address <address>', 'Wallet to thaw')
   .action((address, opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     const finalAddress = address || opts.address;
@@ -192,11 +240,19 @@ program
 program
   .command('pause')
   .description('Pause all transfers (requires pauser role)')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
+  .option(
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
+  )
   .action((opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     r(<Pause options={{ mint }} />);
@@ -205,11 +261,19 @@ program
 program
   .command('unpause')
   .description('Unpause transfers (requires pauser role)')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
+  .option(
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
+  )
   .action((opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     r(<Pause options={{ mint, unpause: true }} />);
@@ -222,14 +286,22 @@ program
   .argument('[from]', 'Wallet to seize from')
   .argument('[to]', 'Treasury wallet to seize to')
   .argument('[amount]', 'Amount to seize')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
+  .option(
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
+  )
   .option('-f, --from <address>', 'Wallet to seize from')
   .option('-t, --to <address>', 'Treasury wallet to seize to')
   .option('-a, --amount <amount>', 'Amount to seize')
   .action((from, to, amount, opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     const finalFrom = from || opts.from;
@@ -257,12 +329,20 @@ rolesCmd
   .command('list')
   .description('List active roles for an address')
   .argument('[address]', 'Wallet to check')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
+  .option(
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
+  )
   .option('-a, --address <address>', 'Wallet to check')
   .action((address, opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     const finalAddress = address || opts.address;
@@ -278,16 +358,21 @@ rolesCmd
   .description('Grant a role to an address (admin only)')
   .argument('[address]', 'Recipient wallet')
   .argument('[role]', 'admin | minter | freezer | pauser | burner | blacklister | seizer')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
-  .option('-a, --address <address>', 'Recipient wallet')
   .option(
-    '-r, --role <role>',
-    'admin | minter | freezer | pauser | burner | blacklister | seizer',
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
   )
+  .option('-a, --address <address>', 'Recipient wallet')
+  .option('-r, --role <role>', 'admin | minter | freezer | pauser | burner | blacklister | seizer')
   .action((address, role, opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     const finalAddress = address || opts.address;
@@ -300,11 +385,7 @@ rolesCmd
       r(<Text color="red">Error: Role is required.</Text>);
       return;
     }
-    r(
-      <Roles
-        options={{ mint, action: 'grant', address: finalAddress, role: finalRole }}
-      />,
-    );
+    r(<Roles options={{ mint, action: 'grant', address: finalAddress, role: finalRole }} />);
   });
 
 rolesCmd
@@ -312,13 +393,21 @@ rolesCmd
   .description('Revoke a role from an address (admin only)')
   .argument('[address]', 'Wallet to revoke from')
   .argument('[role]', 'Role to revoke')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
+  .option(
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
+  )
   .option('-a, --address <address>', 'Wallet to revoke from')
   .option('-r, --role <role>', 'Role to revoke')
   .action((address, role, opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     const finalAddress = address || opts.address;
@@ -331,11 +420,7 @@ rolesCmd
       r(<Text color="red">Error: Role is required.</Text>);
       return;
     }
-    r(
-      <Roles
-        options={{ mint, action: 'revoke', address: finalAddress, role: finalRole }}
-      />,
-    );
+    r(<Roles options={{ mint, action: 'revoke', address: finalAddress, role: finalRole }} />);
   });
 
 // ─── Blacklist (SSS-2 / SSS-3) ────────────────────────────────────────────────
@@ -345,12 +430,20 @@ blCmd
   .command('check')
   .description('Check if an address is blacklisted')
   .argument('[address]', 'Address to check')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
+  .option(
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
+  )
   .option('-a, --address <address>', 'Address to check')
   .action((address, opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     const finalAddress = address || opts.address;
@@ -365,13 +458,21 @@ blCmd
   .command('add')
   .description('Add an address to the blacklist (blacklister role required)')
   .argument('[address]', 'Address to blacklist')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
+  .option(
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
+  )
   .option('-a, --address <address>', 'Address to blacklist')
   .option('--reason <string>', 'Reason for blacklisting (e.g. "OFAC match")', '')
   .action((address, opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     const finalAddress = address || opts.address;
@@ -379,23 +480,27 @@ blCmd
       r(<Text color="red">Error: Address is required.</Text>);
       return;
     }
-    r(
-      <Blacklist
-        options={{ mint, action: 'add', address: finalAddress, reason: opts.reason }}
-      />,
-    );
+    r(<Blacklist options={{ mint, action: 'add', address: finalAddress, reason: opts.reason }} />);
   });
 
 blCmd
   .command('remove')
   .description('Remove an address from the blacklist (blacklister role required)')
   .argument('[address]', 'Address to remove')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
+  .option(
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
+  )
   .option('-a, --address <address>', 'Address to remove')
   .action((address, opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     const finalAddress = address || opts.address;
@@ -410,15 +515,23 @@ blCmd
 const mintersCmd = program.command('minters').description('Minter management');
 
 mintersCmd
-  .command('list')
+  .command('check')
   .description('Check if an address has the minter role')
   .argument('[address]', 'Address to check')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
+  .option(
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
+  )
   .option('-a, --address <address>', 'Address to check')
   .action((address, opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     const finalAddress = address || opts.address;
@@ -426,19 +539,27 @@ mintersCmd
       r(<Text color="red">Error: Address is required.</Text>);
       return;
     }
-    r(<Minters options={{ mint, action: 'list', address: finalAddress }} />);
+    r(<Minters options={{ mint, action: 'check', address: finalAddress }} />);
   });
 
 mintersCmd
   .command('add')
   .description('Grant the minter role to an address')
   .argument('[address]', 'Recipient wallet')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
+  .option(
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
+  )
   .option('-a, --address <address>', 'Recipient wallet')
   .action((address, opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     const finalAddress = address || opts.address;
@@ -453,12 +574,20 @@ mintersCmd
   .command('remove')
   .description('Revoke the minter role from an address')
   .argument('[address]', 'Wallet to revoke from')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
+  .option(
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
+  )
   .option('-a, --address <address>', 'Wallet to revoke from')
   .action((address, opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     const finalAddress = address || opts.address;
@@ -472,12 +601,20 @@ mintersCmd
 program
   .command('holders')
   .description('Scan for token holders')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
+  .option(
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
+  )
   .option('--min-balance <amount>', 'Minimum balance to include')
   .action((opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     r(<Holders options={{ mint, minBalance: opts.minBalance }} />);
@@ -486,12 +623,20 @@ program
 program
   .command('audit-log')
   .description('Parse transaction logs for audit trail')
-  .option('-m, --mint <address>', 'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)')
+  .option(
+    '-m, --mint <address>',
+    'Mint address (falls back to SSS_CONFIG, .sss-config.json or SSS_MINT env var)',
+  )
   .option('--limit <limit>', 'Number of transactions to fetch', '20')
   .action((opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
     if (!mint) {
-      r(<Text color="red">Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must be set.</Text>);
+      r(
+        <Text color="red">
+          Error: --mint option, SSS_CONFIG, .sss-config.json, or SSS_MINT environment variable must
+          be set.
+        </Text>,
+      );
       return;
     }
     r(<AuditLog options={{ mint, limit: opts.limit }} />);

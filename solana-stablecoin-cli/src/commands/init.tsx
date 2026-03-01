@@ -134,4 +134,3 @@ export default function Init({ options }: { options: InitOptions }) {
     </Box>
   );
 }
-

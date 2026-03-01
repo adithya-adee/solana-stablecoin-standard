@@ -54,9 +54,7 @@ export default function Mint({ options }: { options: MintOptions }) {
           label={`Minting ${options.amount} tokens to ${options.recipient.slice(0, 8)}...`}
         />
       )}
-      {phase === 'confirming' && (
-        <Spinner label="Confirming transaction..." />
-      )}
+      {phase === 'confirming' && <Spinner label="Confirming transaction..." />}
       {phase === 'done' && <Success label="Minted" value={sig} />}
       {phase === 'error' && <Err message={error} />}
     </Box>

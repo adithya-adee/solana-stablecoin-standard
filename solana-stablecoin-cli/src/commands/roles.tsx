@@ -77,7 +77,8 @@ export default function Roles({ options }: { options: RolesOptions }) {
               lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
               signature: txSig,
             });
-          } else { // check
+          } else {
+            // check
             const has = await sss.roles.check(addr, role);
             setSig(has ? 'Yes — role is active' : 'No — role not found');
           }
@@ -110,7 +111,10 @@ export default function Roles({ options }: { options: RolesOptions }) {
         </Card>
       )}
       {phase === 'done' && options.action !== 'list' && (
-        <Success label={`Role ${options.action}d`} value={sig} />
+        <Success
+          label={`Role ${options.action === 'grant' ? 'granted' : options.action === 'check' ? 'checked' : options.action + 'd'}`}
+          value={sig}
+        />
       )}
       {phase === 'error' && <Err message={error} />}
     </Box>

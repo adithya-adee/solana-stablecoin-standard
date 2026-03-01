@@ -63,6 +63,7 @@ export {
 } from './instructions';
 export type { SssCore } from './idl/sss_core';
 export type { SssTransferHook } from './idl/sss_transfer_hook';
+export { SssCoreIdl, SssTransferHookIdl } from './idl/index';
 export {
   parsePythPrice,
   fetchPythPrice,

@@ -29,25 +29,29 @@ export default function Holders({ options }: { options: HoldersOptions }) {
         const mint = new PublicKey(options.mint);
         const minBalance = BigInt(options.minBalance ?? '0');
 
-        const accounts = await provider.connection.getProgramAccounts(TOKEN_2022_PROGRAM_ID, {
-          filters: [{ memcmp: { offset: 0, bytes: mint.toBase58() } }],
-        });
+        const largestAccounts = await provider.connection.getTokenLargestAccounts(mint);
 
-        setTotal(accounts.length);
+        setTotal(largestAccounts.value.length);
 
-        const parsed = accounts.map(acc => {
-          const layout = AccountLayout.decode(acc.account.data);
-          return {
+        const validAccounts = largestAccounts.value.filter((a) => BigInt(a.amount) > minBalance);
+
+        const accountPubkeys = validAccounts.map((a) => a.address);
+        const accountInfos = await provider.connection.getMultipleAccountsInfo(accountPubkeys);
+
+        const parsed: HolderInfo[] = [];
+
+        for (let i = 0; i < validAccounts.length; i++) {
+          const info = accountInfos[i];
+          if (!info) continue;
+          const layout = AccountLayout.decode(info.data);
+          parsed.push({
             address: layout.owner.toBase58(),
             amount: layout.amount,
             isFrozen: layout.state === 2, // 2 = Frozen
-          };
-        });
+          });
+        }
 
-        const filtered = parsed.filter(p => p.amount > minBalance);
-        const sorted = filtered.sort((a, b) => (b.amount > a.amount ? 1 : -1));
-
-        setHolders(sorted.slice(0, 50));
+        setHolders(parsed);
         setPhase('done');
       } catch (e: any) {
         setError(e.message ?? String(e));
@@ -66,7 +70,7 @@ export default function Holders({ options }: { options: HoldersOptions }) {
             Showing {holders.length} of {total} total holders.
           </Text>
           <Table
-            rows={holders.map(h => ({
+            rows={holders.map((h) => ({
               key: h.address,
               value: `${formatAmount(h.amount)} ${h.isFrozen ? '(Frozen)' : ''}`,
             }))}

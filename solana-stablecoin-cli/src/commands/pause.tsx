@@ -22,7 +22,7 @@ export default function Pause({ options }: { options: PauseOptions }) {
         const provider = loadProvider();
         const mint = new PublicKey(options.mint);
         const sss = await SSS.load(provider, mint as any);
-        
+
         const txSig = options.unpause ? await sss.unpause() : await sss.pause();
         setSig(txSig);
         setPhase('confirming');
