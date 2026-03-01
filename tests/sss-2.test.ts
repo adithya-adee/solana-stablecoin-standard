@@ -1,20 +1,15 @@
-import * as anchor from "@coral-xyz/anchor";
-import { Program, BN } from "@coral-xyz/anchor";
-import {
-  Keypair,
-  PublicKey,
-  SystemProgram,
-  Transaction,
-} from "@solana/web3.js";
+import * as anchor from '@coral-xyz/anchor';
+import { Program, BN } from '@coral-xyz/anchor';
+import { Keypair, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import {
   TOKEN_2022_PROGRAM_ID,
   getAssociatedTokenAddressSync,
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createTransferCheckedWithTransferHookInstruction,
-} from "@solana/spl-token";
-import { expect } from "chai";
-import { SssCore } from "../target/types/sss_core";
-import { SssTransferHook } from "../target/types/sss_transfer_hook";
+} from '@solana/spl-token';
+import { expect } from 'chai';
+import { SssCore } from '../target/types/sss_core';
+import { SssTransferHook } from '../target/types/sss_transfer_hook';
 import {
   createSss2Mint,
   createTokenAccount,
@@ -33,16 +28,15 @@ import {
   ROLE_BLACKLISTER,
   ROLE_SEIZER,
   CreateSss2MintResult,
-} from "./helpers";
+} from './helpers';
 
-describe("SSS-2: Compliant Stablecoin", () => {
+describe('SSS-2: Compliant Stablecoin', () => {
   const provider = anchor.AnchorProvider.env();
-  provider.opts.commitment = "confirmed";
+  provider.opts.commitment = 'confirmed';
   anchor.setProvider(provider);
 
   const coreProgram = anchor.workspace.SssCore as Program<SssCore>;
-  const hookProgram = anchor.workspace
-    .SssTransferHook as Program<SssTransferHook>;
+  const hookProgram = anchor.workspace.SssTransferHook as Program<SssTransferHook>;
 
   let mintResult: CreateSss2MintResult;
   let senderAta: PublicKey;
@@ -68,11 +62,11 @@ describe("SSS-2: Compliant Stablecoin", () => {
     await airdropSol(provider.connection, blacklisted.publicKey, 5);
   });
 
-  it("initializes SSS-2 with transfer hook and default frozen state", async () => {
+  it('initializes SSS-2 with transfer hook and default frozen state', async () => {
     mintResult = await createSss2Mint(provider, coreProgram, hookProgram, {
-      name: "Compliant USD",
-      symbol: "cUSD",
-      uri: "https://example.com/cusd.json",
+      name: 'Compliant USD',
+      symbol: 'cUSD',
+      uri: 'https://example.com/cusd.json',
       decimals: 6,
       supplyCap: null,
     });
@@ -81,9 +75,7 @@ describe("SSS-2: Compliant Stablecoin", () => {
 
     expect(config.preset).to.equal(2);
     expect(config.paused).to.equal(false);
-    expect(config.mint.toBase58()).to.equal(
-      mintResult.mint.publicKey.toBase58(),
-    );
+    expect(config.mint.toBase58()).to.equal(mintResult.mint.publicKey.toBase58());
 
     // Verify extra account metas was initialized
     const extraMetasInfo = await provider.connection.getAccountInfo(
@@ -92,7 +84,7 @@ describe("SSS-2: Compliant Stablecoin", () => {
     expect(extraMetasInfo).to.not.be.null;
   });
 
-  it("transfers tokens between non-blacklisted accounts", async () => {
+  it('transfers tokens between non-blacklisted accounts', async () => {
     // Grant minter and freezer roles
     minterRolePda = await grantRole(
       coreProgram,
@@ -110,16 +102,8 @@ describe("SSS-2: Compliant Stablecoin", () => {
     );
 
     // Create token accounts (they start frozen due to DefaultAccountState)
-    senderAta = await createTokenAccount(
-      provider,
-      mintResult.mint.publicKey,
-      sender.publicKey,
-    );
-    receiverAta = await createTokenAccount(
-      provider,
-      mintResult.mint.publicKey,
-      receiver.publicKey,
-    );
+    senderAta = await createTokenAccount(provider, mintResult.mint.publicKey, sender.publicKey);
+    receiverAta = await createTokenAccount(provider, mintResult.mint.publicKey, receiver.publicKey);
 
     // Thaw sender and receiver accounts (they start frozen)
     await coreProgram.methods
@@ -165,36 +149,29 @@ describe("SSS-2: Compliant Stablecoin", () => {
 
     // Transfer tokens from sender to receiver using transferChecked with hook
     const transferAmount = BigInt(1_000_000);
-    const transferIx =
-      await createTransferCheckedWithTransferHookInstruction(
-        provider.connection,
-        senderAta,
-        mintResult.mint.publicKey,
-        receiverAta,
-        sender.publicKey,
-        transferAmount,
-        6, // decimals
-        undefined, // multiSigners
-        "confirmed",
-        TOKEN_2022_PROGRAM_ID,
-      );
+    const transferIx = await createTransferCheckedWithTransferHookInstruction(
+      provider.connection,
+      senderAta,
+      mintResult.mint.publicKey,
+      receiverAta,
+      sender.publicKey,
+      transferAmount,
+      6, // decimals
+      undefined, // multiSigners
+      'confirmed',
+      TOKEN_2022_PROGRAM_ID,
+    );
 
     const tx = new Transaction().add(transferIx);
     await provider.sendAndConfirm(tx, [sender]);
 
-    const senderBalance = await getTokenBalance(
-      provider.connection,
-      senderAta,
-    );
-    const receiverBalance = await getTokenBalance(
-      provider.connection,
-      receiverAta,
-    );
-    expect(senderBalance.toString()).to.equal("9000000");
-    expect(receiverBalance.toString()).to.equal("1000000");
+    const senderBalance = await getTokenBalance(provider.connection, senderAta);
+    const receiverBalance = await getTokenBalance(provider.connection, receiverAta);
+    expect(senderBalance.toString()).to.equal('9000000');
+    expect(receiverBalance.toString()).to.equal('1000000');
   });
 
-  it("blacklists an address", async () => {
+  it('blacklists an address', async () => {
     // Grant blacklister role to the provider wallet
     blacklisterRolePda = await grantRole(
       coreProgram,
@@ -246,7 +223,7 @@ describe("SSS-2: Compliant Stablecoin", () => {
     );
 
     await hookProgram.methods
-      .addToBlacklist("Suspicious activity")
+      .addToBlacklist('Suspicious activity')
       .accountsPartial({
         blacklister: provider.wallet.publicKey,
         blacklisterRole: blacklisterRolePda,
@@ -258,18 +235,13 @@ describe("SSS-2: Compliant Stablecoin", () => {
       .rpc();
 
     // Verify blacklist entry
-    const entry =
-      await hookProgram.account.blacklistEntry.fetch(blacklistPda);
-    expect(entry.mint.toBase58()).to.equal(
-      mintResult.mint.publicKey.toBase58(),
-    );
-    expect(entry.address.toBase58()).to.equal(
-      blacklisted.publicKey.toBase58(),
-    );
-    expect(entry.reason).to.equal("Suspicious activity");
+    const entry = await hookProgram.account.blacklistEntry.fetch(blacklistPda);
+    expect(entry.mint.toBase58()).to.equal(mintResult.mint.publicKey.toBase58());
+    expect(entry.address.toBase58()).to.equal(blacklisted.publicKey.toBase58());
+    expect(entry.reason).to.equal('Suspicious activity');
   });
 
-  it("blocks transfer FROM blacklisted address", async () => {
+  it('blocks transfer FROM blacklisted address', async () => {
     const blacklistedAta = getAssociatedTokenAddressSync(
       mintResult.mint.publicKey,
       blacklisted.publicKey,
@@ -279,30 +251,29 @@ describe("SSS-2: Compliant Stablecoin", () => {
     );
 
     try {
-      const transferIx =
-        await createTransferCheckedWithTransferHookInstruction(
-          provider.connection,
-          blacklistedAta,
-          mintResult.mint.publicKey,
-          receiverAta,
-          blacklisted.publicKey,
-          BigInt(100_000),
-          6,
-          undefined,
-          "confirmed",
-          TOKEN_2022_PROGRAM_ID,
-        );
+      const transferIx = await createTransferCheckedWithTransferHookInstruction(
+        provider.connection,
+        blacklistedAta,
+        mintResult.mint.publicKey,
+        receiverAta,
+        blacklisted.publicKey,
+        BigInt(100_000),
+        6,
+        undefined,
+        'confirmed',
+        TOKEN_2022_PROGRAM_ID,
+      );
 
       const tx = new Transaction().add(transferIx);
       await provider.sendAndConfirm(tx, [blacklisted]);
-      expect.fail("Should have blocked transfer from blacklisted sender");
+      expect.fail('Should have blocked transfer from blacklisted sender');
     } catch (err: any) {
       // The transfer hook rejects with SenderBlacklisted (custom error 0x1770 / 6000)
-      expect(err.toString()).to.include("0x1770");
+      expect(err.toString()).to.include('0x1770');
     }
   });
 
-  it("blocks transfer TO blacklisted address", async () => {
+  it('blocks transfer TO blacklisted address', async () => {
     const blacklistedAta = getAssociatedTokenAddressSync(
       mintResult.mint.publicKey,
       blacklisted.publicKey,
@@ -312,30 +283,29 @@ describe("SSS-2: Compliant Stablecoin", () => {
     );
 
     try {
-      const transferIx =
-        await createTransferCheckedWithTransferHookInstruction(
-          provider.connection,
-          senderAta,
-          mintResult.mint.publicKey,
-          blacklistedAta,
-          sender.publicKey,
-          BigInt(100_000),
-          6,
-          undefined,
-          "confirmed",
-          TOKEN_2022_PROGRAM_ID,
-        );
+      const transferIx = await createTransferCheckedWithTransferHookInstruction(
+        provider.connection,
+        senderAta,
+        mintResult.mint.publicKey,
+        blacklistedAta,
+        sender.publicKey,
+        BigInt(100_000),
+        6,
+        undefined,
+        'confirmed',
+        TOKEN_2022_PROGRAM_ID,
+      );
 
       const tx = new Transaction().add(transferIx);
       await provider.sendAndConfirm(tx, [sender]);
-      expect.fail("Should have blocked transfer to blacklisted receiver");
+      expect.fail('Should have blocked transfer to blacklisted receiver');
     } catch (err: any) {
       // The transfer hook rejects with ReceiverBlacklisted (custom error 0x1771 / 6001)
-      expect(err.toString()).to.include("0x1771");
+      expect(err.toString()).to.include('0x1771');
     }
   });
 
-  it("removes address from blacklist", async () => {
+  it('removes address from blacklist', async () => {
     const [blacklistPda] = deriveBlacklistPda(
       mintResult.mint.publicKey,
       blacklisted.publicKey,
@@ -365,31 +335,27 @@ describe("SSS-2: Compliant Stablecoin", () => {
       ASSOCIATED_TOKEN_PROGRAM_ID,
     );
 
-    const transferIx =
-      await createTransferCheckedWithTransferHookInstruction(
-        provider.connection,
-        blacklistedAta,
-        mintResult.mint.publicKey,
-        receiverAta,
-        blacklisted.publicKey,
-        BigInt(100_000),
-        6,
-        undefined,
-        "confirmed",
-        TOKEN_2022_PROGRAM_ID,
-      );
+    const transferIx = await createTransferCheckedWithTransferHookInstruction(
+      provider.connection,
+      blacklistedAta,
+      mintResult.mint.publicKey,
+      receiverAta,
+      blacklisted.publicKey,
+      BigInt(100_000),
+      6,
+      undefined,
+      'confirmed',
+      TOKEN_2022_PROGRAM_ID,
+    );
 
     const tx = new Transaction().add(transferIx);
     await provider.sendAndConfirm(tx, [blacklisted]);
 
-    const receiverBalance = await getTokenBalance(
-      provider.connection,
-      receiverAta,
-    );
-    expect(receiverBalance.toString()).to.equal("1100000");
+    const receiverBalance = await getTokenBalance(provider.connection, receiverAta);
+    expect(receiverBalance.toString()).to.equal('1100000');
   });
 
-  it("seizes tokens via permanent delegate", async () => {
+  it('seizes tokens via permanent delegate', async () => {
     // NOTE: SSS-2 mints have a transfer hook. The sss-core seize instruction
     // uses a standard TransferChecked CPI which does not forward the extra
     // accounts required by the transfer hook. This is a known program
@@ -441,13 +407,11 @@ describe("SSS-2: Compliant Stablecoin", () => {
           priceUpdate: null,
         })
         .rpc();
-      expect.fail(
-        "Seize on SSS-2 should fail: transfer hook accounts not forwarded",
-      );
+      expect.fail('Seize on SSS-2 should fail: transfer hook accounts not forwarded');
     } catch (err: any) {
       // Seize CPI uses TransferChecked without forwarding transfer hook
       // extra accounts — Token-2022 rejects with a missing account error.
-      expect(err.toString()).to.include("missing");
+      expect(err.toString()).to.include('missing');
     }
   });
 });

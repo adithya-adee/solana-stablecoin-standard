@@ -2,7 +2,9 @@
   "name": "sss-tests",
   "private": true,
   "scripts": {
-    "test": "ts-mocha -p ./tsconfig.json -t 120000 ./**/*.test.ts"
+    "test": "ts-mocha -p ./tsconfig.json -t 120000 ./**/*.test.ts",
+    "format": "prettier --write \"**/*.ts\"",
+    "format:check": "prettier --check \"**/*.ts\""
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.0",

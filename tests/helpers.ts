@@ -1,5 +1,5 @@
-import * as anchor from "@coral-xyz/anchor";
-import { Program, BN } from "@coral-xyz/anchor";
+import * as anchor from '@coral-xyz/anchor';
+import { Program, BN } from '@coral-xyz/anchor';
 import {
   Keypair,
   PublicKey,
@@ -7,7 +7,7 @@ import {
   Transaction,
   LAMPORTS_PER_SOL,
   Connection,
-} from "@solana/web3.js";
+} from '@solana/web3.js';
 import {
   TOKEN_2022_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -24,23 +24,17 @@ import {
   getAccount,
   createSetAuthorityInstruction,
   AuthorityType,
-} from "@solana/spl-token";
-import { SssCore } from "../target/types/sss_core";
-import { SssTransferHook } from "../target/types/sss_transfer_hook";
-import { createInitializeConfidentialTransferMintInstruction } from "../solana-stablecoin-sdk/src/presets/sss3";
+} from '@solana/spl-token';
+import { SssCore } from '../target/types/sss_core';
+import { SssTransferHook } from '../target/types/sss_transfer_hook';
+import { createInitializeConfidentialTransferMintInstruction } from '../solana-stablecoin-sdk/src/presets/sss3';
 
 // ─────────────────────────────────────────────────────────────
 // PDA Derivation
 // ─────────────────────────────────────────────────────────────
 
-export function deriveConfigPda(
-  mint: PublicKey,
-  programId: PublicKey,
-): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from("sss-config"), mint.toBuffer()],
-    programId,
-  );
+export function deriveConfigPda(mint: PublicKey, programId: PublicKey): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync([Buffer.from('sss-config'), mint.toBuffer()], programId);
 }
 
 export function deriveRolePda(
@@ -50,12 +44,7 @@ export function deriveRolePda(
   programId: PublicKey,
 ): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [
-      Buffer.from("sss-role"),
-      config.toBuffer(),
-      address.toBuffer(),
-      Buffer.from([role]),
-    ],
+    [Buffer.from('sss-role'), config.toBuffer(), address.toBuffer(), Buffer.from([role])],
     programId,
   );
 }
@@ -66,7 +55,7 @@ export function deriveBlacklistPda(
   programId: PublicKey,
 ): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from("blacklist"), mint.toBuffer(), address.toBuffer()],
+    [Buffer.from('blacklist'), mint.toBuffer(), address.toBuffer()],
     programId,
   );
 }
@@ -76,7 +65,7 @@ export function deriveExtraAccountMetasPda(
   programId: PublicKey,
 ): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from("extra-account-metas"), mint.toBuffer()],
+    [Buffer.from('extra-account-metas'), mint.toBuffer()],
     programId,
   );
 }
@@ -99,11 +88,8 @@ export async function airdropSol(
   pubkey: PublicKey,
   amount: number = 10,
 ): Promise<void> {
-  const sig = await connection.requestAirdrop(
-    pubkey,
-    amount * LAMPORTS_PER_SOL,
-  );
-  await connection.confirmTransaction(sig, "confirmed");
+  const sig = await connection.requestAirdrop(pubkey, amount * LAMPORTS_PER_SOL);
+  await connection.confirmTransaction(sig, 'confirmed');
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -175,29 +161,16 @@ export async function createSss1Mint(
   const mint = Keypair.generate();
   const authority = provider.wallet.publicKey;
 
-  const [configPda, configBump] = deriveConfigPda(
-    mint.publicKey,
-    coreProgram.programId,
-  );
-  const [adminRolePda] = deriveRolePda(
-    configPda,
-    authority,
-    ROLE_ADMIN,
-    coreProgram.programId,
-  );
+  const [configPda, configBump] = deriveConfigPda(mint.publicKey, coreProgram.programId);
+  const [adminRolePda] = deriveRolePda(configPda, authority, ROLE_ADMIN, coreProgram.programId);
 
   // SSS-1 extensions: MetadataPointer + PermanentDelegate.
   // PermanentDelegate is needed so the config PDA can burn tokens
   // from any account (the burn instruction uses config PDA as authority).
   // Metadata is skipped in tests to avoid Token-2022 realloc issues.
-  const extensions = [
-    ExtensionType.MetadataPointer,
-    ExtensionType.PermanentDelegate,
-  ];
+  const extensions = [ExtensionType.MetadataPointer, ExtensionType.PermanentDelegate];
   const mintLen = getMintLen(extensions);
-  const lamports = await provider.connection.getMinimumBalanceForRentExemption(
-    mintLen,
-  );
+  const lamports = await provider.connection.getMinimumBalanceForRentExemption(mintLen);
 
   // Transaction 1: Create mint account, init extensions, init mint.
   const tx1 = new Transaction();
@@ -222,11 +195,7 @@ export async function createSss1Mint(
   );
 
   tx1.add(
-    createInitializePermanentDelegateInstruction(
-      mint.publicKey,
-      configPda,
-      TOKEN_2022_PROGRAM_ID,
-    ),
+    createInitializePermanentDelegateInstruction(mint.publicKey, configPda, TOKEN_2022_PROGRAM_ID),
   );
 
   tx1.add(
@@ -326,20 +295,9 @@ export async function createSss2Mint(
   const mint = Keypair.generate();
   const authority = provider.wallet.publicKey;
 
-  const [configPda, configBump] = deriveConfigPda(
-    mint.publicKey,
-    coreProgram.programId,
-  );
-  const [adminRolePda] = deriveRolePda(
-    configPda,
-    authority,
-    ROLE_ADMIN,
-    coreProgram.programId,
-  );
-  const [extraAccountMetasPda] = deriveExtraAccountMetasPda(
-    mint.publicKey,
-    hookProgram.programId,
-  );
+  const [configPda, configBump] = deriveConfigPda(mint.publicKey, coreProgram.programId);
+  const [adminRolePda] = deriveRolePda(configPda, authority, ROLE_ADMIN, coreProgram.programId);
+  const [extraAccountMetasPda] = deriveExtraAccountMetasPda(mint.publicKey, hookProgram.programId);
 
   // All SSS-2 extensions
   const extensions = [
@@ -349,9 +307,7 @@ export async function createSss2Mint(
     ExtensionType.DefaultAccountState,
   ];
   const mintLen = getMintLen(extensions);
-  const lamports = await provider.connection.getMinimumBalanceForRentExemption(
-    mintLen,
-  );
+  const lamports = await provider.connection.getMinimumBalanceForRentExemption(mintLen);
 
   // Transaction 1: Create mint with all extensions (no metadata yet).
   const tx1 = new Transaction();
@@ -386,11 +342,7 @@ export async function createSss2Mint(
   );
 
   tx1.add(
-    createInitializePermanentDelegateInstruction(
-      mint.publicKey,
-      configPda,
-      TOKEN_2022_PROGRAM_ID,
-    ),
+    createInitializePermanentDelegateInstruction(mint.publicKey, configPda, TOKEN_2022_PROGRAM_ID),
   );
 
   tx1.add(
@@ -508,16 +460,8 @@ export async function createSss3Mint(
   const mint = Keypair.generate();
   const authority = provider.wallet.publicKey;
 
-  const [configPda, configBump] = deriveConfigPda(
-    mint.publicKey,
-    coreProgram.programId,
-  );
-  const [adminRolePda] = deriveRolePda(
-    configPda,
-    authority,
-    ROLE_ADMIN,
-    coreProgram.programId,
-  );
+  const [configPda, configBump] = deriveConfigPda(mint.publicKey, coreProgram.programId);
+  const [adminRolePda] = deriveRolePda(configPda, authority, ROLE_ADMIN, coreProgram.programId);
 
   const autoApprove = args.autoApproveNewAccounts ?? true;
   const auditorKey = args.auditorElGamalPubkey ?? new Uint8Array(32);
@@ -529,9 +473,7 @@ export async function createSss3Mint(
     ExtensionType.ConfidentialTransferMint,
   ];
   const mintLen = getMintLen(extensions);
-  const lamports = await provider.connection.getMinimumBalanceForRentExemption(
-    mintLen,
-  );
+  const lamports = await provider.connection.getMinimumBalanceForRentExemption(mintLen);
 
   const initConfidentialIx = createInitializeConfidentialTransferMintInstruction(
     mint.publicKey,
@@ -563,11 +505,7 @@ export async function createSss3Mint(
   );
 
   tx1.add(
-    createInitializePermanentDelegateInstruction(
-      mint.publicKey,
-      configPda,
-      TOKEN_2022_PROGRAM_ID,
-    ),
+    createInitializePermanentDelegateInstruction(mint.publicKey, configPda, TOKEN_2022_PROGRAM_ID),
   );
 
   tx1.add(initConfidentialIx);
@@ -648,12 +586,7 @@ export async function grantRole(
   grantee: PublicKey,
   role: number,
 ): Promise<PublicKey> {
-  const [rolePda] = deriveRolePda(
-    configPda,
-    grantee,
-    role,
-    coreProgram.programId,
-  );
+  const [rolePda] = deriveRolePda(configPda, grantee, role, coreProgram.programId);
 
   await coreProgram.methods
     .grantRole(role)
@@ -674,10 +607,7 @@ export async function grantRole(
 // Fetch Config Helper
 // ─────────────────────────────────────────────────────────────
 
-export async function fetchConfig(
-  coreProgram: Program<SssCore>,
-  configPda: PublicKey,
-) {
+export async function fetchConfig(coreProgram: Program<SssCore>, configPda: PublicKey) {
   return coreProgram.account.stablecoinConfig.fetch(configPda);
 }
 

@@ -1,9 +1,9 @@
-import * as anchor from "@coral-xyz/anchor";
-import { Program, BN } from "@coral-xyz/anchor";
-import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
-import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
-import { expect } from "chai";
-import { SssCore } from "../target/types/sss_core";
+import * as anchor from '@coral-xyz/anchor';
+import { Program, BN } from '@coral-xyz/anchor';
+import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
+import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
+import { expect } from 'chai';
+import { SssCore } from '../target/types/sss_core';
 import {
   createSss1Mint,
   createTokenAccount,
@@ -19,11 +19,11 @@ import {
   ROLE_BURNER,
   ROLE_SEIZER,
   CreateSss1MintResult,
-} from "./helpers";
+} from './helpers';
 
-describe("Edge Cases", () => {
+describe('Edge Cases', () => {
   const provider = anchor.AnchorProvider.env();
-  provider.opts.commitment = "confirmed";
+  provider.opts.commitment = 'confirmed';
   anchor.setProvider(provider);
 
   const coreProgram = anchor.workspace.SssCore as Program<SssCore>;
@@ -49,9 +49,9 @@ describe("Edge Cases", () => {
     await airdropSol(provider.connection, recipient.publicKey, 2);
 
     mintResult = await createSss1Mint(provider, coreProgram, {
-      name: "Edge Test USD",
-      symbol: "EUSD",
-      uri: "https://example.com/eusd.json",
+      name: 'Edge Test USD',
+      symbol: 'EUSD',
+      uri: 'https://example.com/eusd.json',
       decimals: 6,
       supplyCap: new BN(10_000_000),
     });
@@ -104,7 +104,7 @@ describe("Edge Cases", () => {
     );
   });
 
-  it("rejects zero amount mint", async () => {
+  it('rejects zero amount mint', async () => {
     try {
       await coreProgram.methods
         .mintTokens(new BN(0))
@@ -119,13 +119,13 @@ describe("Edge Cases", () => {
         })
         .signers([minter])
         .rpc();
-      expect.fail("Should have thrown ZeroAmount");
+      expect.fail('Should have thrown ZeroAmount');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("ZeroAmount");
+      expect(err.error.errorCode.code).to.equal('ZeroAmount');
     }
   });
 
-  it("rejects zero amount burn", async () => {
+  it('rejects zero amount burn', async () => {
     // First mint some tokens so we have something to burn
     await coreProgram.methods
       .mintTokens(new BN(1_000_000))
@@ -154,13 +154,13 @@ describe("Edge Cases", () => {
         })
         .signers([minter])
         .rpc();
-      expect.fail("Should have thrown ZeroAmount");
+      expect.fail('Should have thrown ZeroAmount');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("ZeroAmount");
+      expect(err.error.errorCode.code).to.equal('ZeroAmount');
     }
   });
 
-  it("rejects zero amount seize", async () => {
+  it('rejects zero amount seize', async () => {
     try {
       await coreProgram.methods
         .seize(new BN(0))
@@ -174,18 +174,18 @@ describe("Edge Cases", () => {
           tokenProgram: TOKEN_2022_PROGRAM_ID,
         })
         .rpc();
-      expect.fail("Should have thrown ZeroAmount");
+      expect.fail('Should have thrown ZeroAmount');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("ZeroAmount");
+      expect(err.error.errorCode.code).to.equal('ZeroAmount');
     }
   });
 
-  it("allows mint at exactly supply cap", async () => {
+  it('allows mint at exactly supply cap', async () => {
     // Create a new mint with known supply cap for clean testing
     const cappedMint = await createSss1Mint(provider, coreProgram, {
-      name: "Cap Exact",
-      symbol: "CEXACT",
-      uri: "https://example.com/cexact.json",
+      name: 'Cap Exact',
+      symbol: 'CEXACT',
+      uri: 'https://example.com/cexact.json',
       decimals: 6,
       supplyCap: new BN(1_000_000),
     });
@@ -208,11 +208,7 @@ describe("Edge Cases", () => {
       })
       .rpc();
 
-    const ata = await createTokenAccount(
-      provider,
-      cappedMint.mint.publicKey,
-      recipient.publicKey,
-    );
+    const ata = await createTokenAccount(provider, cappedMint.mint.publicKey, recipient.publicKey);
 
     // Mint exactly at cap
     await coreProgram.methods
@@ -230,18 +226,18 @@ describe("Edge Cases", () => {
       .rpc();
 
     const balance = await getTokenBalance(provider.connection, ata);
-    expect(balance.toString()).to.equal("1000000");
+    expect(balance.toString()).to.equal('1000000');
 
     const config = await fetchConfig(coreProgram, cappedMint.configPda);
     expect(config.totalMinted.toNumber()).to.equal(1_000_000);
   });
 
-  it("rejects mint one over supply cap", async () => {
+  it('rejects mint one over supply cap', async () => {
     // Create another capped mint
     const cappedMint = await createSss1Mint(provider, coreProgram, {
-      name: "Cap Over",
-      symbol: "COVER",
-      uri: "https://example.com/cover.json",
+      name: 'Cap Over',
+      symbol: 'COVER',
+      uri: 'https://example.com/cover.json',
       decimals: 6,
       supplyCap: new BN(500_000),
     });
@@ -264,11 +260,7 @@ describe("Edge Cases", () => {
       })
       .rpc();
 
-    const ata = await createTokenAccount(
-      provider,
-      cappedMint.mint.publicKey,
-      recipient.publicKey,
-    );
+    const ata = await createTokenAccount(provider, cappedMint.mint.publicKey, recipient.publicKey);
 
     try {
       await coreProgram.methods
@@ -284,13 +276,13 @@ describe("Edge Cases", () => {
         })
         .signers([minter])
         .rpc();
-      expect.fail("Should have thrown SupplyCapExceeded");
+      expect.fail('Should have thrown SupplyCapExceeded');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("SupplyCapExceeded");
+      expect(err.error.errorCode.code).to.equal('SupplyCapExceeded');
     }
   });
 
-  it("rejects double pause", async () => {
+  it('rejects double pause', async () => {
     await coreProgram.methods
       .pause()
       .accountsPartial({
@@ -311,13 +303,13 @@ describe("Edge Cases", () => {
         })
         .signers([pauser])
         .rpc();
-      expect.fail("Should have thrown Paused (already paused)");
+      expect.fail('Should have thrown Paused (already paused)');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("Paused");
+      expect(err.error.errorCode.code).to.equal('Paused');
     }
   });
 
-  it("rejects double unpause", async () => {
+  it('rejects double unpause', async () => {
     // Unpause first
     await coreProgram.methods
       .unpause()
@@ -340,16 +332,15 @@ describe("Edge Cases", () => {
         })
         .signers([pauser])
         .rpc();
-      expect.fail("Should have thrown NotPaused");
+      expect.fail('Should have thrown NotPaused');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("NotPaused");
+      expect(err.error.errorCode.code).to.equal('NotPaused');
     }
   });
 
-  it("update supply cap to new value", async () => {
+  it('update supply cap to new value', async () => {
     const config = await fetchConfig(coreProgram, mintResult.configPda);
-    const currentSupply =
-      config.totalMinted.toNumber() - config.totalBurned.toNumber();
+    const currentSupply = config.totalMinted.toNumber() - config.totalBurned.toNumber();
 
     // Update cap to something above current supply
     const newCap = new BN(currentSupply + 5_000_000);
@@ -363,12 +354,10 @@ describe("Edge Cases", () => {
       .rpc();
 
     const updatedConfig = await fetchConfig(coreProgram, mintResult.configPda);
-    expect(updatedConfig.supplyCap!.toNumber()).to.equal(
-      currentSupply + 5_000_000,
-    );
+    expect(updatedConfig.supplyCap!.toNumber()).to.equal(currentSupply + 5_000_000);
   });
 
-  it("rejects supply cap below current supply", async () => {
+  it('rejects supply cap below current supply', async () => {
     // Current supply is > 0, so setting cap to 0 should fail
     try {
       await coreProgram.methods
@@ -379,13 +368,13 @@ describe("Edge Cases", () => {
           adminRole: mintResult.adminRolePda,
         })
         .rpc();
-      expect.fail("Should have thrown InvalidSupplyCap");
+      expect.fail('Should have thrown InvalidSupplyCap');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("InvalidSupplyCap");
+      expect(err.error.errorCode.code).to.equal('InvalidSupplyCap');
     }
   });
 
-  it("removes supply cap (set to None)", async () => {
+  it('removes supply cap (set to None)', async () => {
     await coreProgram.methods
       .updateSupplyCap(null)
       .accountsPartial({
@@ -399,7 +388,7 @@ describe("Edge Cases", () => {
     expect(config.supplyCap).to.be.null;
   });
 
-  it("allows revoking an admin if there are multiple, but prevents revoking the last admin", async () => {
+  it('allows revoking an admin if there are multiple, but prevents revoking the last admin', async () => {
     // 1. Grant a new admin role to `recipient`
     const [recipientAdminRolePda] = deriveRolePda(
       mintResult.configPda,
@@ -452,11 +441,11 @@ describe("Edge Cases", () => {
         })
         .signers([recipient])
         .rpc();
-      expect.fail("Should have thrown LastAdmin");
+      expect.fail('Should have thrown LastAdmin');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("LastAdmin");
+      expect(err.error.errorCode.code).to.equal('LastAdmin');
     }
-    
+
     // 4. Grant back the original admin so other tests pass downstream if they rely on it
     await coreProgram.methods
       .grantRole(ROLE_ADMIN)

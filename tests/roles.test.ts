@@ -1,9 +1,9 @@
-import * as anchor from "@coral-xyz/anchor";
-import { Program, BN } from "@coral-xyz/anchor";
-import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
-import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
-import { expect } from "chai";
-import { SssCore } from "../target/types/sss_core";
+import * as anchor from '@coral-xyz/anchor';
+import { Program, BN } from '@coral-xyz/anchor';
+import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
+import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
+import { expect } from 'chai';
+import { SssCore } from '../target/types/sss_core';
 import {
   createSss1Mint,
   createTokenAccount,
@@ -18,11 +18,11 @@ import {
   ROLE_BLACKLISTER,
   ROLE_SEIZER,
   CreateSss1MintResult,
-} from "./helpers";
+} from './helpers';
 
-describe("Role Management", () => {
+describe('Role Management', () => {
   const provider = anchor.AnchorProvider.env();
-  provider.opts.commitment = "confirmed";
+  provider.opts.commitment = 'confirmed';
   anchor.setProvider(provider);
 
   const coreProgram = anchor.workspace.SssCore as Program<SssCore>;
@@ -46,9 +46,9 @@ describe("Role Management", () => {
     await airdropSol(provider.connection, nonAdmin.publicKey, 5);
 
     mintResult = await createSss1Mint(provider, coreProgram, {
-      name: "Role Test USD",
-      symbol: "RUSD",
-      uri: "https://example.com/rusd.json",
+      name: 'Role Test USD',
+      symbol: 'RUSD',
+      uri: 'https://example.com/rusd.json',
       decimals: 6,
       supplyCap: null,
     });
@@ -60,7 +60,7 @@ describe("Role Management", () => {
     );
   });
 
-  it("admin can grant all role types", async () => {
+  it('admin can grant all role types', async () => {
     const minterPda = await grantRole(
       coreProgram,
       mintResult.configPda,
@@ -84,8 +84,7 @@ describe("Role Management", () => {
     );
 
     const minterRole = await coreProgram.account.roleAccount.fetch(minterPda);
-    const freezerRole =
-      await coreProgram.account.roleAccount.fetch(freezerPda);
+    const freezerRole = await coreProgram.account.roleAccount.fetch(freezerPda);
     const pauserRole = await coreProgram.account.roleAccount.fetch(pauserPda);
 
     expect(minterRole.role).to.deep.equal({ minter: {} });
@@ -93,7 +92,7 @@ describe("Role Management", () => {
     expect(pauserRole.role).to.deep.equal({ pauser: {} });
   });
 
-  it("admin can grant burner, blacklister, and seizer roles", async () => {
+  it('admin can grant burner, blacklister, and seizer roles', async () => {
     const burnerPda = await grantRole(
       coreProgram,
       mintResult.configPda,
@@ -117,8 +116,7 @@ describe("Role Management", () => {
     );
 
     const burnerRole = await coreProgram.account.roleAccount.fetch(burnerPda);
-    const blacklisterRole =
-      await coreProgram.account.roleAccount.fetch(blacklisterPda);
+    const blacklisterRole = await coreProgram.account.roleAccount.fetch(blacklisterPda);
     const seizerRole = await coreProgram.account.roleAccount.fetch(seizerPda);
 
     expect(burnerRole.role).to.deep.equal({ burner: {} });
@@ -126,7 +124,7 @@ describe("Role Management", () => {
     expect(seizerRole.role).to.deep.equal({ seizer: {} });
   });
 
-  it("admin can grant another admin", async () => {
+  it('admin can grant another admin', async () => {
     const admin2Pda = await grantRole(
       coreProgram,
       mintResult.configPda,
@@ -137,12 +135,10 @@ describe("Role Management", () => {
 
     const adminRole = await coreProgram.account.roleAccount.fetch(admin2Pda);
     expect(adminRole.role).to.deep.equal({ admin: {} });
-    expect(adminRole.address.toBase58()).to.equal(
-      admin2.publicKey.toBase58(),
-    );
+    expect(adminRole.address.toBase58()).to.equal(admin2.publicKey.toBase58());
   });
 
-  it("non-admin cannot grant roles", async () => {
+  it('non-admin cannot grant roles', async () => {
     const someUser = Keypair.generate();
     await airdropSol(provider.connection, someUser.publicKey, 2);
 
@@ -173,19 +169,19 @@ describe("Role Management", () => {
         })
         .signers([nonAdmin])
         .rpc();
-      expect.fail("Non-admin should not be able to grant roles");
+      expect.fail('Non-admin should not be able to grant roles');
     } catch (err: any) {
       // Admin role PDA doesn't exist for the non-admin
-      expect(err.error.errorCode.code).to.equal("AccountNotInitialized");
+      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
     }
   });
 
-  it("admin cannot self-revoke (last admin protection)", async () => {
+  it('admin cannot self-revoke (last admin protection)', async () => {
     // Create a fresh stablecoin with a single admin
     const freshMint = await createSss1Mint(provider, coreProgram, {
-      name: "Fresh Test",
-      symbol: "FRESH",
-      uri: "https://example.com/fresh.json",
+      name: 'Fresh Test',
+      symbol: 'FRESH',
+      uri: 'https://example.com/fresh.json',
       decimals: 6,
       supplyCap: null,
     });
@@ -200,9 +196,9 @@ describe("Role Management", () => {
           roleAccount: freshMint.adminRolePda,
         })
         .rpc();
-      expect.fail("Should have thrown LastAdmin");
+      expect.fail('Should have thrown LastAdmin');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("LastAdmin");
+      expect(err.error.errorCode.code).to.equal('LastAdmin');
     }
   });
 
@@ -230,7 +226,7 @@ describe("Role Management", () => {
     expect(roleInfo).to.be.null;
   });
 
-  it("minter can only mint, not freeze/pause/seize", async () => {
+  it('minter can only mint, not freeze/pause/seize', async () => {
     // Minter tries to freeze
     const [minterRolePda] = deriveRolePda(
       mintResult.configPda,
@@ -275,10 +271,10 @@ describe("Role Management", () => {
         })
         .signers([minter])
         .rpc();
-      expect.fail("Minter should not be able to freeze");
+      expect.fail('Minter should not be able to freeze');
     } catch (err: any) {
       // Freezer role PDA doesn't exist for the minter
-      expect(err.error.errorCode.code).to.equal("AccountNotInitialized");
+      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
     }
 
     // Pausing with minter role should fail
@@ -299,14 +295,14 @@ describe("Role Management", () => {
         })
         .signers([minter])
         .rpc();
-      expect.fail("Minter should not be able to pause");
+      expect.fail('Minter should not be able to pause');
     } catch (err: any) {
       // Pauser role PDA doesn't exist for the minter
-      expect(err.error.errorCode.code).to.equal("AccountNotInitialized");
+      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
     }
   });
 
-  it("freezer can only freeze/thaw", async () => {
+  it('freezer can only freeze/thaw', async () => {
     const [freezerRolePda] = deriveRolePda(
       mintResult.configPda,
       freezer.publicKey,
@@ -364,14 +360,14 @@ describe("Role Management", () => {
         })
         .signers([freezer])
         .rpc();
-      expect.fail("Freezer should not be able to mint");
+      expect.fail('Freezer should not be able to mint');
     } catch (err: any) {
       // Minter role PDA doesn't exist for the freezer
-      expect(err.error.errorCode.code).to.equal("AccountNotInitialized");
+      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
     }
   });
 
-  it("pauser can only pause/unpause", async () => {
+  it('pauser can only pause/unpause', async () => {
     const [pauserRolePda] = deriveRolePda(
       mintResult.configPda,
       pauser.publicKey,
@@ -423,10 +419,10 @@ describe("Role Management", () => {
         })
         .signers([pauser])
         .rpc();
-      expect.fail("Pauser should not be able to mint");
+      expect.fail('Pauser should not be able to mint');
     } catch (err: any) {
       // Minter role PDA doesn't exist for the pauser
-      expect(err.error.errorCode.code).to.equal("AccountNotInitialized");
+      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
     }
   });
 });

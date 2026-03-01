@@ -1,10 +1,10 @@
-import * as anchor from "@coral-xyz/anchor";
-import { Program, BN } from "@coral-xyz/anchor";
-import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
-import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
-import { expect } from "chai";
-import { SssCore } from "../target/types/sss_core";
-import { SssTransferHook } from "../target/types/sss_transfer_hook";
+import * as anchor from '@coral-xyz/anchor';
+import { Program, BN } from '@coral-xyz/anchor';
+import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
+import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
+import { expect } from 'chai';
+import { SssCore } from '../target/types/sss_core';
+import { SssTransferHook } from '../target/types/sss_transfer_hook';
 import {
   createSss1Mint,
   createTokenAccount,
@@ -21,11 +21,11 @@ import {
   ROLE_BURNER,
   ROLE_SEIZER,
   CreateSss1MintResult,
-} from "./helpers";
+} from './helpers';
 
-describe("SSS-1: Minimal Stablecoin", () => {
+describe('SSS-1: Minimal Stablecoin', () => {
   const provider = anchor.AnchorProvider.env();
-  provider.opts.commitment = "confirmed";
+  provider.opts.commitment = 'confirmed';
   anchor.setProvider(provider);
 
   const coreProgram = anchor.workspace.SssCore as Program<SssCore>;
@@ -51,23 +51,19 @@ describe("SSS-1: Minimal Stablecoin", () => {
     await airdropSol(provider.connection, recipient.publicKey, 2);
   });
 
-  it("initializes SSS-1 stablecoin with correct config", async () => {
+  it('initializes SSS-1 stablecoin with correct config', async () => {
     mintResult = await createSss1Mint(provider, coreProgram, {
-      name: "Test USD",
-      symbol: "TUSD",
-      uri: "https://example.com/tusd.json",
+      name: 'Test USD',
+      symbol: 'TUSD',
+      uri: 'https://example.com/tusd.json',
       decimals: 6,
       supplyCap: null,
     });
 
     const config = await fetchConfig(coreProgram, mintResult.configPda);
 
-    expect(config.authority.toBase58()).to.equal(
-      provider.wallet.publicKey.toBase58(),
-    );
-    expect(config.mint.toBase58()).to.equal(
-      mintResult.mint.publicKey.toBase58(),
-    );
+    expect(config.authority.toBase58()).to.equal(provider.wallet.publicKey.toBase58());
+    expect(config.mint.toBase58()).to.equal(mintResult.mint.publicKey.toBase58());
     expect(config.preset).to.equal(1);
     expect(config.paused).to.equal(false);
     expect(config.supplyCap).to.be.null;
@@ -75,7 +71,7 @@ describe("SSS-1: Minimal Stablecoin", () => {
     expect(config.totalBurned.toNumber()).to.equal(0);
   });
 
-  it("grants minter role", async () => {
+  it('grants minter role', async () => {
     minterRolePda = await grantRole(
       coreProgram,
       mintResult.configPda,
@@ -84,19 +80,13 @@ describe("SSS-1: Minimal Stablecoin", () => {
       ROLE_MINTER,
     );
 
-    const roleAccount = await coreProgram.account.roleAccount.fetch(
-      minterRolePda,
-    );
-    expect(roleAccount.config.toBase58()).to.equal(
-      mintResult.configPda.toBase58(),
-    );
-    expect(roleAccount.address.toBase58()).to.equal(
-      minter.publicKey.toBase58(),
-    );
+    const roleAccount = await coreProgram.account.roleAccount.fetch(minterRolePda);
+    expect(roleAccount.config.toBase58()).to.equal(mintResult.configPda.toBase58());
+    expect(roleAccount.address.toBase58()).to.equal(minter.publicKey.toBase58());
     expect(roleAccount.role).to.deep.equal({ minter: {} });
   });
 
-  it("mints tokens to recipient", async () => {
+  it('mints tokens to recipient', async () => {
     // Create recipient token account
     recipientAta = await createTokenAccount(
       provider,
@@ -121,18 +111,18 @@ describe("SSS-1: Minimal Stablecoin", () => {
       .rpc();
 
     const balance = await getTokenBalance(provider.connection, recipientAta);
-    expect(balance.toString()).to.equal("1000000");
+    expect(balance.toString()).to.equal('1000000');
 
     const config = await fetchConfig(coreProgram, mintResult.configPda);
     expect(config.totalMinted.toNumber()).to.equal(1_000_000);
   });
 
-  it("enforces supply cap", async () => {
+  it('enforces supply cap', async () => {
     // Create a new mint with supply cap
     const cappedMint = await createSss1Mint(provider, coreProgram, {
-      name: "Capped USD",
-      symbol: "CUSD",
-      uri: "https://example.com/cusd.json",
+      name: 'Capped USD',
+      symbol: 'CUSD',
+      uri: 'https://example.com/cusd.json',
       decimals: 6,
       supplyCap: new BN(500_000),
     });
@@ -160,11 +150,7 @@ describe("SSS-1: Minimal Stablecoin", () => {
       .rpc();
 
     // Create ATA for recipient
-    const ata = await createTokenAccount(
-      provider,
-      cappedMint.mint.publicKey,
-      recipient.publicKey,
-    );
+    const ata = await createTokenAccount(provider, cappedMint.mint.publicKey, recipient.publicKey);
 
     // Mint over the cap should fail
     try {
@@ -181,9 +167,9 @@ describe("SSS-1: Minimal Stablecoin", () => {
         })
         .signers([minter])
         .rpc();
-      expect.fail("Should have thrown SupplyCapExceeded");
+      expect.fail('Should have thrown SupplyCapExceeded');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("SupplyCapExceeded");
+      expect(err.error.errorCode.code).to.equal('SupplyCapExceeded');
     }
 
     // Mint exactly at cap should succeed
@@ -202,10 +188,10 @@ describe("SSS-1: Minimal Stablecoin", () => {
       .rpc();
 
     const balance = await getTokenBalance(provider.connection, ata);
-    expect(balance.toString()).to.equal("500000");
+    expect(balance.toString()).to.equal('500000');
   });
 
-  it("burns tokens", async () => {
+  it('burns tokens', async () => {
     // Grant burner role to the minter keypair (separate from minter role)
     burnerRolePda = await grantRole(
       coreProgram,
@@ -218,10 +204,7 @@ describe("SSS-1: Minimal Stablecoin", () => {
     const burnAmount = new BN(200_000);
 
     const configBefore = await fetchConfig(coreProgram, mintResult.configPda);
-    const balanceBefore = await getTokenBalance(
-      provider.connection,
-      recipientAta,
-    );
+    const balanceBefore = await getTokenBalance(provider.connection, recipientAta);
 
     await coreProgram.methods
       .burnTokens(burnAmount)
@@ -236,13 +219,10 @@ describe("SSS-1: Minimal Stablecoin", () => {
       .signers([minter])
       .rpc();
 
-    const balanceAfter = await getTokenBalance(
-      provider.connection,
-      recipientAta,
-    );
+    const balanceAfter = await getTokenBalance(provider.connection, recipientAta);
     expect(
       (BigInt(balanceBefore.toString()) - BigInt(balanceAfter.toString())).toString(),
-    ).to.equal("200000");
+    ).to.equal('200000');
 
     const configAfter = await fetchConfig(coreProgram, mintResult.configPda);
     expect(configAfter.totalBurned.toNumber()).to.equal(
@@ -250,7 +230,7 @@ describe("SSS-1: Minimal Stablecoin", () => {
     );
   });
 
-  it("freezes token account", async () => {
+  it('freezes token account', async () => {
     // Grant freezer role
     freezerRolePda = await grantRole(
       coreProgram,
@@ -288,14 +268,14 @@ describe("SSS-1: Minimal Stablecoin", () => {
         })
         .signers([minter])
         .rpc();
-      expect.fail("Should have failed because account is frozen");
+      expect.fail('Should have failed because account is frozen');
     } catch (err: any) {
       // Token-2022 rejects operations on frozen accounts
-      expect(err.toString()).to.include("frozen");
+      expect(err.toString()).to.include('frozen');
     }
   });
 
-  it("thaws frozen account", async () => {
+  it('thaws frozen account', async () => {
     await coreProgram.methods
       .thawAccount()
       .accountsPartial({
@@ -326,10 +306,10 @@ describe("SSS-1: Minimal Stablecoin", () => {
 
     const balance = await getTokenBalance(provider.connection, recipientAta);
     // 1_000_000 - 200_000 + 100 = 800_100
-    expect(balance.toString()).to.equal("800100");
+    expect(balance.toString()).to.equal('800100');
   });
 
-  it("pauses all operations", async () => {
+  it('pauses all operations', async () => {
     // Grant pauser role
     pauserRolePda = await grantRole(
       coreProgram,
@@ -353,7 +333,7 @@ describe("SSS-1: Minimal Stablecoin", () => {
     expect(config.paused).to.equal(true);
   });
 
-  it("rejects mint when paused", async () => {
+  it('rejects mint when paused', async () => {
     try {
       await coreProgram.methods
         .mintTokens(new BN(100))
@@ -368,13 +348,13 @@ describe("SSS-1: Minimal Stablecoin", () => {
         })
         .signers([minter])
         .rpc();
-      expect.fail("Should have thrown Paused");
+      expect.fail('Should have thrown Paused');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("Paused");
+      expect(err.error.errorCode.code).to.equal('Paused');
     }
   });
 
-  it("unpauses operations", async () => {
+  it('unpauses operations', async () => {
     await coreProgram.methods
       .unpause()
       .accountsPartial({
@@ -404,7 +384,7 @@ describe("SSS-1: Minimal Stablecoin", () => {
       .rpc();
   });
 
-  it("rejects mint from unauthorized address", async () => {
+  it('rejects mint from unauthorized address', async () => {
     const unauthorized = Keypair.generate();
     await airdropSol(provider.connection, unauthorized.publicKey, 2);
 
@@ -430,14 +410,14 @@ describe("SSS-1: Minimal Stablecoin", () => {
         })
         .signers([unauthorized])
         .rpc();
-      expect.fail("Should have failed for unauthorized minter");
+      expect.fail('Should have failed for unauthorized minter');
     } catch (err: any) {
       // Minter role PDA does not exist for the unauthorized user
-      expect(err.error.errorCode.code).to.equal("AccountNotInitialized");
+      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
     }
   });
 
-  it("seizes tokens via permanent delegate", async () => {
+  it('seizes tokens via permanent delegate', async () => {
     // Grant seizer role to the provider wallet
     seizerRolePda = await grantRole(
       coreProgram,
@@ -453,10 +433,7 @@ describe("SSS-1: Minimal Stablecoin", () => {
       provider.wallet.publicKey,
     );
 
-    const recipientBalBefore = await getTokenBalance(
-      provider.connection,
-      recipientAta,
-    );
+    const recipientBalBefore = await getTokenBalance(provider.connection, recipientAta);
 
     const seizeAmount = new BN(100_000);
     await coreProgram.methods
@@ -473,25 +450,16 @@ describe("SSS-1: Minimal Stablecoin", () => {
       })
       .rpc();
 
-    const recipientBalAfter = await getTokenBalance(
-      provider.connection,
-      recipientAta,
-    );
-    const treasuryBal = await getTokenBalance(
-      provider.connection,
-      treasuryAta,
-    );
+    const recipientBalAfter = await getTokenBalance(provider.connection, recipientAta);
+    const treasuryBal = await getTokenBalance(provider.connection, treasuryAta);
 
     expect(
-      (
-        BigInt(recipientBalBefore.toString()) -
-        BigInt(recipientBalAfter.toString())
-      ).toString(),
-    ).to.equal("100000");
-    expect(treasuryBal.toString()).to.equal("100000");
+      (BigInt(recipientBalBefore.toString()) - BigInt(recipientBalAfter.toString())).toString(),
+    ).to.equal('100000');
+    expect(treasuryBal.toString()).to.equal('100000');
   });
 
-  it("revokes minter role", async () => {
+  it('revokes minter role', async () => {
     await coreProgram.methods
       .revokeRole()
       .accountsPartial({
@@ -521,10 +489,10 @@ describe("SSS-1: Minimal Stablecoin", () => {
         })
         .signers([minter])
         .rpc();
-      expect.fail("Should have failed after minter role revoked");
+      expect.fail('Should have failed after minter role revoked');
     } catch (err: any) {
       // Minter role PDA was closed by revocation
-      expect(err.error.errorCode.code).to.equal("AccountNotInitialized");
+      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
     }
   });
 });

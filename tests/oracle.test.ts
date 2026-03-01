@@ -1,15 +1,10 @@
-import * as anchor from "@coral-xyz/anchor";
-import { Program, BN } from "@coral-xyz/anchor";
-import {
-  Keypair,
-  LAMPORTS_PER_SOL,
-  PublicKey,
-  SystemProgram,
-} from "@solana/web3.js";
-import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
-import { expect } from "chai";
-import { startAnchor, BankrunProvider } from "anchor-bankrun";
-import { SssCore } from "../target/types/sss_core";
+import * as anchor from '@coral-xyz/anchor';
+import { Program, BN } from '@coral-xyz/anchor';
+import { Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram } from '@solana/web3.js';
+import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
+import { expect } from 'chai';
+import { startAnchor, BankrunProvider } from 'anchor-bankrun';
+import { SssCore } from '../target/types/sss_core';
 import {
   createSss1Mint,
   createTokenAccount,
@@ -19,7 +14,7 @@ import {
   airdropSol,
   ROLE_MINTER,
   CreateSss1MintResult,
-} from "./helpers";
+} from './helpers';
 
 // ─────────────────────────────────────────────────────────────
 // Constants
@@ -29,15 +24,11 @@ import {
 // This is the canonical mainnet/devnet address.
 // Using Anchor's Account<'info, PriceUpdateV2> automatically verifies
 // the account is owned by this program.
-const PYTH_RECEIVER_PROGRAM = new PublicKey(
-  "rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ",
-);
+const PYTH_RECEIVER_PROGRAM = new PublicKey('rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ');
 
 // Anchor discriminator for PriceUpdateV2 (first 8 bytes of sha256("account:PriceUpdateV2"))
 // Obtained from: sha256("account:PriceUpdateV2")[0..8]
-const PRICE_UPDATE_V2_DISCRIMINATOR = Buffer.from([
-  34, 241, 35, 99, 157, 126, 244, 205,
-]);
+const PRICE_UPDATE_V2_DISCRIMINATOR = Buffer.from([34, 241, 35, 99, 157, 126, 244, 205]);
 
 // ─────────────────────────────────────────────────────────────
 // Mock Oracle Helpers
@@ -65,11 +56,7 @@ const PRICE_UPDATE_V2_DISCRIMINATOR = Buffer.from([
  * @param exponent - Price exponent i32 (typically -8)
  * @param publishTime - Unix timestamp (seconds). Defaults to now if omitted.
  */
-function buildPriceUpdateV2Data(
-  price: bigint,
-  exponent: number,
-  publishTime?: bigint,
-): Buffer {
+function buildPriceUpdateV2Data(price: bigint, exponent: number, publishTime?: bigint): Buffer {
   const buf = Buffer.alloc(133);
   let offset = 0;
 
@@ -100,10 +87,7 @@ function buildPriceUpdateV2Data(
   offset += 4;
 
   // [93..101] publish_time (i64 LE)
-  const ts =
-    publishTime !== undefined
-      ? publishTime
-      : BigInt(Math.floor(Date.now() / 1000));
+  const ts = publishTime !== undefined ? publishTime : BigInt(Math.floor(Date.now() / 1000));
   buf.writeBigInt64LE(ts, offset);
   offset += 8;
 
@@ -133,9 +117,9 @@ function buildPriceUpdateV2Data(
 // (raw token-unit supply cap).
 // ─────────────────────────────────────────────────────────────
 
-describe("Oracle — No-Oracle Path (anchor test validator)", () => {
+describe('Oracle — No-Oracle Path (anchor test validator)', () => {
   const provider = anchor.AnchorProvider.env();
-  provider.opts.commitment = "confirmed";
+  provider.opts.commitment = 'confirmed';
   anchor.setProvider(provider);
 
   const coreProgram = anchor.workspace.SssCore as Program<SssCore>;
@@ -152,9 +136,9 @@ describe("Oracle — No-Oracle Path (anchor test validator)", () => {
     await airdropSol(provider.connection, recipient.publicKey, 2);
 
     mintResult = await createSss1Mint(provider, coreProgram, {
-      name: "Oracle Validation USD",
-      symbol: "OVUSD",
-      uri: "https://example.com/ovusd.json",
+      name: 'Oracle Validation USD',
+      symbol: 'OVUSD',
+      uri: 'https://example.com/ovusd.json',
       decimals: 6,
       supplyCap: new BN(1_000_000),
     });
@@ -174,7 +158,7 @@ describe("Oracle — No-Oracle Path (anchor test validator)", () => {
     );
   });
 
-  it("uses raw supply cap when no oracle is provided", async () => {
+  it('uses raw supply cap when no oracle is provided', async () => {
     await coreProgram.methods
       .mintTokens(new BN(1_000_000))
       .accountsPartial({
@@ -190,10 +174,10 @@ describe("Oracle — No-Oracle Path (anchor test validator)", () => {
       .rpc();
 
     const balance = await getTokenBalance(provider.connection, recipientAta);
-    expect(balance.toString()).to.equal("1000000");
+    expect(balance.toString()).to.equal('1000000');
   });
 
-  it("rejects minting over raw supply cap without oracle", async () => {
+  it('rejects minting over raw supply cap without oracle', async () => {
     try {
       await coreProgram.methods
         .mintTokens(new BN(1))
@@ -208,9 +192,9 @@ describe("Oracle — No-Oracle Path (anchor test validator)", () => {
         })
         .signers([minter])
         .rpc();
-      expect.fail("Should have thrown SupplyCapExceeded");
+      expect.fail('Should have thrown SupplyCapExceeded');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("SupplyCapExceeded");
+      expect(err.error.errorCode.code).to.equal('SupplyCapExceeded');
     }
   });
 });
@@ -223,7 +207,7 @@ describe("Oracle — No-Oracle Path (anchor test validator)", () => {
 // Anchor's Account<'info, PriceUpdateV2> verifies the owner automatically.
 // ─────────────────────────────────────────────────────────────
 
-describe("Oracle — PriceUpdateV2 (bankrun)", () => {
+describe('Oracle — PriceUpdateV2 (bankrun)', () => {
   let context: Awaited<ReturnType<typeof startAnchor>>;
   let provider: BankrunProvider;
   let coreProgram: Program<SssCore>;
@@ -236,11 +220,7 @@ describe("Oracle — PriceUpdateV2 (bankrun)", () => {
    * Owned by the Pyth Receiver program so Anchor's Account<PriceUpdateV2>
    * can deserialize it.
    */
-  function injectMockPriceUpdate(
-    price: bigint,
-    exponent: number,
-    publishTime?: bigint,
-  ): PublicKey {
+  function injectMockPriceUpdate(price: bigint, exponent: number, publishTime?: bigint): PublicKey {
     const oracle = Keypair.generate();
     const data = buildPriceUpdateV2Data(price, exponent, publishTime);
 
@@ -256,7 +236,7 @@ describe("Oracle — PriceUpdateV2 (bankrun)", () => {
 
   before(async () => {
     context = await startAnchor(
-      "",
+      '',
       [],
       [
         {
@@ -283,13 +263,10 @@ describe("Oracle — PriceUpdateV2 (bankrun)", () => {
     provider = new BankrunProvider(context);
     anchor.setProvider(provider);
 
-    coreProgram = new Program<SssCore>(
-      anchor.workspace.SssCore.idl,
-      provider,
-    );
+    coreProgram = new Program<SssCore>(anchor.workspace.SssCore.idl, provider);
   });
 
-  describe("oracle-adjusted supply cap at $1.00", () => {
+  describe('oracle-adjusted supply cap at $1.00', () => {
     let mintResult: CreateSss1MintResult;
     let minterRolePda: PublicKey;
     let recipientAta: PublicKey;
@@ -298,17 +275,13 @@ describe("Oracle — PriceUpdateV2 (bankrun)", () => {
       // Supply cap = 1000 USD, decimals = 6
       // With oracle price $1.00 (price=100_000_000, expo=-8):
       //   token_cap = 1000 * 10^6 * 10^8 / 100_000_000 = 1_000_000_000
-      mintResult = await createSss1Mint(
-        provider as any,
-        coreProgram,
-        {
-          name: "Oracle Cap USD",
-          symbol: "OCUSD",
-          uri: "https://example.com/ocusd.json",
-          decimals: 6,
-          supplyCap: new BN(1_000),
-        },
-      );
+      mintResult = await createSss1Mint(provider as any, coreProgram, {
+        name: 'Oracle Cap USD',
+        symbol: 'OCUSD',
+        uri: 'https://example.com/ocusd.json',
+        decimals: 6,
+        supplyCap: new BN(1_000),
+      });
 
       minterRolePda = await grantRole(
         coreProgram,
@@ -325,7 +298,7 @@ describe("Oracle — PriceUpdateV2 (bankrun)", () => {
       );
     });
 
-    it("succeeds minting under oracle-adjusted cap", async () => {
+    it('succeeds minting under oracle-adjusted cap', async () => {
       // Price = $1.00, cap = 1000 USD => token_cap = 1_000_000_000
       const oracleKey = injectMockPriceUpdate(BigInt(100_000_000), -8);
 
@@ -348,7 +321,7 @@ describe("Oracle — PriceUpdateV2 (bankrun)", () => {
       expect(config.totalMinted.toNumber()).to.equal(500_000_000);
     });
 
-    it("fails minting over oracle-adjusted cap", async () => {
+    it('fails minting over oracle-adjusted cap', async () => {
       // Already minted 500_000_000. Cap at $1.00 = 1_000_000_000.
       // Try minting 501 tokens = 501_000_000 (total = 1_001_000_000 > cap)
       const oracleKey = injectMockPriceUpdate(BigInt(100_000_000), -8);
@@ -367,13 +340,13 @@ describe("Oracle — PriceUpdateV2 (bankrun)", () => {
           })
           .signers([minter])
           .rpc();
-        expect.fail("Should have thrown SupplyCapExceeded");
+        expect.fail('Should have thrown SupplyCapExceeded');
       } catch (err: any) {
-        expect(err.toString()).to.include("SupplyCapExceeded");
+        expect(err.toString()).to.include('SupplyCapExceeded');
       }
     });
 
-    it("succeeds minting exactly at oracle-adjusted cap", async () => {
+    it('succeeds minting exactly at oracle-adjusted cap', async () => {
       const oracleKey = injectMockPriceUpdate(BigInt(100_000_000), -8);
 
       await coreProgram.methods
@@ -395,12 +368,12 @@ describe("Oracle — PriceUpdateV2 (bankrun)", () => {
     });
   });
 
-  describe("price sensitivity", () => {
-    it("higher price ($2.00) reduces token cap", async () => {
+  describe('price sensitivity', () => {
+    it('higher price ($2.00) reduces token cap', async () => {
       const capMint = await createSss1Mint(provider as any, coreProgram, {
-        name: "Price High USD",
-        symbol: "PHUSD",
-        uri: "https://example.com/phusd.json",
+        name: 'Price High USD',
+        symbol: 'PHUSD',
+        uri: 'https://example.com/phusd.json',
         decimals: 6,
         supplyCap: new BN(100),
       });
@@ -454,17 +427,17 @@ describe("Oracle — PriceUpdateV2 (bankrun)", () => {
           })
           .signers([minter])
           .rpc();
-        expect.fail("Should have thrown SupplyCapExceeded");
+        expect.fail('Should have thrown SupplyCapExceeded');
       } catch (err: any) {
-        expect(err.toString()).to.include("SupplyCapExceeded");
+        expect(err.toString()).to.include('SupplyCapExceeded');
       }
     });
 
-    it("lower price ($0.50) increases token cap", async () => {
+    it('lower price ($0.50) increases token cap', async () => {
       const capMint = await createSss1Mint(provider as any, coreProgram, {
-        name: "Price Low USD",
-        symbol: "PLUSD",
-        uri: "https://example.com/plusd.json",
+        name: 'Price Low USD',
+        symbol: 'PLUSD',
+        uri: 'https://example.com/plusd.json',
         decimals: 6,
         supplyCap: new BN(100),
       });
@@ -518,19 +491,19 @@ describe("Oracle — PriceUpdateV2 (bankrun)", () => {
           })
           .signers([minter])
           .rpc();
-        expect.fail("Should have thrown SupplyCapExceeded");
+        expect.fail('Should have thrown SupplyCapExceeded');
       } catch (err: any) {
-        expect(err.toString()).to.include("SupplyCapExceeded");
+        expect(err.toString()).to.include('SupplyCapExceeded');
       }
     });
   });
 
-  describe("no supply cap with oracle", () => {
-    it("ignores oracle when supply cap is None", async () => {
+  describe('no supply cap with oracle', () => {
+    it('ignores oracle when supply cap is None', async () => {
       const mint = await createSss1Mint(provider as any, coreProgram, {
-        name: "No Cap USD",
-        symbol: "NCUSD",
-        uri: "https://example.com/ncusd.json",
+        name: 'No Cap USD',
+        symbol: 'NCUSD',
+        uri: 'https://example.com/ncusd.json',
         decimals: 6,
         supplyCap: null,
       });
@@ -570,12 +543,12 @@ describe("Oracle — PriceUpdateV2 (bankrun)", () => {
     });
   });
 
-  describe("oracle staleness check", () => {
-    it("rejects oracle with stale publish_time (> 120 seconds old)", async () => {
+  describe('oracle staleness check', () => {
+    it('rejects oracle with stale publish_time (> 120 seconds old)', async () => {
       const mint = await createSss1Mint(provider as any, coreProgram, {
-        name: "Stale Oracle USD",
-        symbol: "STUSD",
-        uri: "https://example.com/stusd.json",
+        name: 'Stale Oracle USD',
+        symbol: 'STUSD',
+        uri: 'https://example.com/stusd.json',
         decimals: 6,
         supplyCap: new BN(1_000),
       });
@@ -612,19 +585,19 @@ describe("Oracle — PriceUpdateV2 (bankrun)", () => {
           })
           .signers([minter])
           .rpc();
-        expect.fail("Should have thrown OraclePriceStale");
+        expect.fail('Should have thrown OraclePriceStale');
       } catch (err: any) {
-        expect(err.toString()).to.include("OraclePriceStale");
+        expect(err.toString()).to.include('OraclePriceStale');
       }
     });
   });
 
-  describe("oracle with negative price", () => {
-    it("rejects oracle with negative price", async () => {
+  describe('oracle with negative price', () => {
+    it('rejects oracle with negative price', async () => {
       const mint = await createSss1Mint(provider as any, coreProgram, {
-        name: "Neg Price USD",
-        symbol: "NPUSD",
-        uri: "https://example.com/npusd.json",
+        name: 'Neg Price USD',
+        symbol: 'NPUSD',
+        uri: 'https://example.com/npusd.json',
         decimals: 6,
         supplyCap: new BN(1_000),
       });
@@ -659,9 +632,9 @@ describe("Oracle — PriceUpdateV2 (bankrun)", () => {
           })
           .signers([minter])
           .rpc();
-        expect.fail("Should have thrown InvalidOraclePrice");
+        expect.fail('Should have thrown InvalidOraclePrice');
       } catch (err: any) {
-        expect(err.toString()).to.include("InvalidOraclePrice");
+        expect(err.toString()).to.include('InvalidOraclePrice');
       }
     });
   });

@@ -1,8 +1,8 @@
-import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
-import { Keypair, SystemProgram } from "@solana/web3.js";
-import { expect } from "chai";
-import { SssCore } from "../target/types/sss_core";
+import * as anchor from '@coral-xyz/anchor';
+import { Program } from '@coral-xyz/anchor';
+import { Keypair, SystemProgram } from '@solana/web3.js';
+import { expect } from 'chai';
+import { SssCore } from '../target/types/sss_core';
 import {
   createSss1Mint,
   deriveRolePda,
@@ -11,11 +11,11 @@ import {
   ROLE_ADMIN,
   ROLE_MINTER,
   CreateSss1MintResult,
-} from "./helpers";
+} from './helpers';
 
-describe("Transfer Authority", () => {
+describe('Transfer Authority', () => {
   const provider = anchor.AnchorProvider.env();
-  provider.opts.commitment = "confirmed";
+  provider.opts.commitment = 'confirmed';
   anchor.setProvider(provider);
 
   const coreProgram = anchor.workspace.SssCore as Program<SssCore>;
@@ -29,16 +29,16 @@ describe("Transfer Authority", () => {
     await airdropSol(provider.connection, nonAdmin.publicKey, 5);
 
     mintResult = await createSss1Mint(provider, coreProgram, {
-      name: "Transfer Auth Test",
-      symbol: "TAT",
-      uri: "",
+      name: 'Transfer Auth Test',
+      symbol: 'TAT',
+      uri: '',
       decimals: 6,
       supplyCap: null,
     });
   });
 
   // Test 1: Happy path - admin transfers authority to newAdmin
-  it("transfers authority to a new admin", async () => {
+  it('transfers authority to a new admin', async () => {
     const { configPda, adminRolePda } = mintResult;
 
     const [newAdminRolePda] = deriveRolePda(
@@ -75,7 +75,7 @@ describe("Transfer Authority", () => {
   });
 
   // Test 2: New admin can perform admin actions (grant roles)
-  it("new admin can grant roles", async () => {
+  it('new admin can grant roles', async () => {
     const { configPda } = mintResult;
 
     const [newAdminRolePda] = deriveRolePda(
@@ -112,7 +112,7 @@ describe("Transfer Authority", () => {
   });
 
   // Test 3: Old admin can no longer perform admin actions
-  it("old admin cannot perform admin actions", async () => {
+  it('old admin cannot perform admin actions', async () => {
     const { configPda, adminRolePda } = mintResult;
 
     // Old admin's role PDA was closed in test 1
@@ -137,20 +137,20 @@ describe("Transfer Authority", () => {
           systemProgram: SystemProgram.programId,
         })
         .rpc();
-      expect.fail("Should have thrown");
+      expect.fail('Should have thrown');
     } catch (err: any) {
       // The admin role PDA was closed, so AccountNotInitialized or similar
-      expect(err.toString()).to.include("AccountNotInitialized");
+      expect(err.toString()).to.include('AccountNotInitialized');
     }
   });
 
   // Test 4: Non-admin cannot transfer authority
-  it("rejects transfer from non-admin", async () => {
+  it('rejects transfer from non-admin', async () => {
     // Create a fresh stablecoin for this test
     const freshMint = await createSss1Mint(provider, coreProgram, {
-      name: "Fresh Auth Test",
-      symbol: "FAT",
-      uri: "",
+      name: 'Fresh Auth Test',
+      symbol: 'FAT',
+      uri: '',
       decimals: 6,
       supplyCap: null,
     });
@@ -183,10 +183,10 @@ describe("Transfer Authority", () => {
         })
         .signers([attacker])
         .rpc();
-      expect.fail("Should have thrown");
+      expect.fail('Should have thrown');
     } catch (err: any) {
       // Attacker has no admin role PDA — seed validation fails
-      expect(err.toString()).to.include("AccountNotInitialized");
+      expect(err.toString()).to.include('AccountNotInitialized');
     }
   });
 });

@@ -1,9 +1,9 @@
-import * as anchor from "@coral-xyz/anchor";
-import { Program, BN } from "@coral-xyz/anchor";
-import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
-import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
-import { expect } from "chai";
-import { SssCore } from "../target/types/sss_core";
+import * as anchor from '@coral-xyz/anchor';
+import { Program, BN } from '@coral-xyz/anchor';
+import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
+import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
+import { expect } from 'chai';
+import { SssCore } from '../target/types/sss_core';
 import {
   createSss1Mint,
   createTokenAccount,
@@ -17,11 +17,11 @@ import {
   ROLE_BURNER,
   ROLE_SEIZER,
   CreateSss1MintResult,
-} from "./helpers";
+} from './helpers';
 
-describe("Security", () => {
+describe('Security', () => {
   const provider = anchor.AnchorProvider.env();
-  provider.opts.commitment = "confirmed";
+  provider.opts.commitment = 'confirmed';
   anchor.setProvider(provider);
 
   const coreProgram = anchor.workspace.SssCore as Program<SssCore>;
@@ -43,9 +43,9 @@ describe("Security", () => {
 
     // Create SSS-1 stablecoin owned by default provider authority
     mintResult = await createSss1Mint(provider, coreProgram, {
-      name: "Security Test USD",
-      symbol: "SUSD",
-      uri: "https://example.com/susd.json",
+      name: 'Security Test USD',
+      symbol: 'SUSD',
+      uri: 'https://example.com/susd.json',
       decimals: 6,
       supplyCap: null,
     });
@@ -91,7 +91,7 @@ describe("Security", () => {
   // 1. Mint without minter role
   // ─────────────────────────────────────────────────────────────
 
-  it("rejects mint from account without minter role", async () => {
+  it('rejects mint from account without minter role', async () => {
     const [attackerMinterRole] = deriveRolePda(
       mintResult.configPda,
       attacker.publicKey,
@@ -113,10 +113,10 @@ describe("Security", () => {
         })
         .signers([attacker])
         .rpc();
-      expect.fail("Attacker without minter role should not be able to mint");
+      expect.fail('Attacker without minter role should not be able to mint');
     } catch (err: any) {
       // PDA does not exist — Anchor rejects with AccountNotInitialized
-      expect(err.error.errorCode.code).to.equal("AccountNotInitialized");
+      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
     }
   });
 
@@ -124,7 +124,7 @@ describe("Security", () => {
   // 2. Burn without minter role
   // ─────────────────────────────────────────────────────────────
 
-  it("rejects burn from account without burner role", async () => {
+  it('rejects burn from account without burner role', async () => {
     const [attackerBurnerRole] = deriveRolePda(
       mintResult.configPda,
       attacker.publicKey,
@@ -145,9 +145,9 @@ describe("Security", () => {
         })
         .signers([attacker])
         .rpc();
-      expect.fail("Attacker without burner role should not be able to burn");
+      expect.fail('Attacker without burner role should not be able to burn');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("AccountNotInitialized");
+      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
     }
   });
 
@@ -155,7 +155,7 @@ describe("Security", () => {
   // 3. Freeze without freezer role
   // ─────────────────────────────────────────────────────────────
 
-  it("rejects freeze from account without freezer role", async () => {
+  it('rejects freeze from account without freezer role', async () => {
     const [attackerFreezerRole] = deriveRolePda(
       mintResult.configPda,
       attacker.publicKey,
@@ -176,9 +176,9 @@ describe("Security", () => {
         })
         .signers([attacker])
         .rpc();
-      expect.fail("Attacker without freezer role should not be able to freeze");
+      expect.fail('Attacker without freezer role should not be able to freeze');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("AccountNotInitialized");
+      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
     }
   });
 
@@ -186,7 +186,7 @@ describe("Security", () => {
   // 4. Thaw without freezer role
   // ─────────────────────────────────────────────────────────────
 
-  it("rejects thaw from account without freezer role", async () => {
+  it('rejects thaw from account without freezer role', async () => {
     const [attackerFreezerRole] = deriveRolePda(
       mintResult.configPda,
       attacker.publicKey,
@@ -207,9 +207,9 @@ describe("Security", () => {
         })
         .signers([attacker])
         .rpc();
-      expect.fail("Attacker without freezer role should not be able to thaw");
+      expect.fail('Attacker without freezer role should not be able to thaw');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("AccountNotInitialized");
+      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
     }
   });
 
@@ -217,7 +217,7 @@ describe("Security", () => {
   // 5. Pause without pauser role
   // ─────────────────────────────────────────────────────────────
 
-  it("rejects pause from account without pauser role", async () => {
+  it('rejects pause from account without pauser role', async () => {
     const [attackerPauserRole] = deriveRolePda(
       mintResult.configPda,
       attacker.publicKey,
@@ -235,9 +235,9 @@ describe("Security", () => {
         })
         .signers([attacker])
         .rpc();
-      expect.fail("Attacker without pauser role should not be able to pause");
+      expect.fail('Attacker without pauser role should not be able to pause');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("AccountNotInitialized");
+      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
     }
   });
 
@@ -245,7 +245,7 @@ describe("Security", () => {
   // 6. Unpause without pauser role
   // ─────────────────────────────────────────────────────────────
 
-  it("rejects unpause from account without pauser role", async () => {
+  it('rejects unpause from account without pauser role', async () => {
     // First, pause legitimately via the admin (who has no pauser role,
     // so we grant one temporarily)
     const pauser = Keypair.generate();
@@ -287,9 +287,9 @@ describe("Security", () => {
         })
         .signers([attacker])
         .rpc();
-      expect.fail("Attacker without pauser role should not be able to unpause");
+      expect.fail('Attacker without pauser role should not be able to unpause');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("AccountNotInitialized");
+      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
     }
 
     // Clean up: unpause so subsequent tests can run
@@ -308,7 +308,7 @@ describe("Security", () => {
   // 7. Grant role without admin
   // ─────────────────────────────────────────────────────────────
 
-  it("rejects grant role from account without admin role", async () => {
+  it('rejects grant role from account without admin role', async () => {
     const someUser = Keypair.generate();
 
     const [attackerAdminRole] = deriveRolePda(
@@ -337,9 +337,9 @@ describe("Security", () => {
         })
         .signers([attacker])
         .rpc();
-      expect.fail("Attacker without admin role should not be able to grant roles");
+      expect.fail('Attacker without admin role should not be able to grant roles');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("AccountNotInitialized");
+      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
     }
   });
 
@@ -347,7 +347,7 @@ describe("Security", () => {
   // 8. Revoke role without admin
   // ─────────────────────────────────────────────────────────────
 
-  it("rejects revoke role from account without admin role", async () => {
+  it('rejects revoke role from account without admin role', async () => {
     const [attackerAdminRole] = deriveRolePda(
       mintResult.configPda,
       attacker.publicKey,
@@ -366,9 +366,9 @@ describe("Security", () => {
         })
         .signers([attacker])
         .rpc();
-      expect.fail("Attacker without admin role should not be able to revoke roles");
+      expect.fail('Attacker without admin role should not be able to revoke roles');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("AccountNotInitialized");
+      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
     }
   });
 
@@ -376,7 +376,7 @@ describe("Security", () => {
   // 9. Seize without admin
   // ─────────────────────────────────────────────────────────────
 
-  it("rejects seize from account without seizer role", async () => {
+  it('rejects seize from account without seizer role', async () => {
     // Create an ATA for the attacker to receive seized tokens
     const attackerAta = await createTokenAccount(
       provider,
@@ -406,9 +406,9 @@ describe("Security", () => {
         })
         .signers([attacker])
         .rpc();
-      expect.fail("Attacker without seizer role should not be able to seize tokens");
+      expect.fail('Attacker without seizer role should not be able to seize tokens');
     } catch (err: any) {
-      expect(err.error.errorCode.code).to.equal("AccountNotInitialized");
+      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
     }
   });
 });

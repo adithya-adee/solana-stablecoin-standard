@@ -1,19 +1,19 @@
-import * as anchor from "@coral-xyz/anchor";
-import { Program, BN } from "@coral-xyz/anchor";
+import * as anchor from '@coral-xyz/anchor';
+import { Program, BN } from '@coral-xyz/anchor';
 import {
   Keypair,
   PublicKey,
   SystemProgram,
   Transaction,
   TransactionInstruction,
-} from "@solana/web3.js";
+} from '@solana/web3.js';
 import {
   TOKEN_2022_PROGRAM_ID,
   createTransferCheckedWithTransferHookInstruction,
-} from "@solana/spl-token";
-import { expect } from "chai";
-import { SssCore } from "../target/types/sss_core";
-import { SssTransferHook } from "../target/types/sss_transfer_hook";
+} from '@solana/spl-token';
+import { expect } from 'chai';
+import { SssCore } from '../target/types/sss_core';
+import { SssTransferHook } from '../target/types/sss_transfer_hook';
 import {
   createSss2Mint,
   createTokenAccount,
@@ -29,16 +29,15 @@ import {
   ROLE_FREEZER,
   ROLE_BLACKLISTER,
   CreateSss2MintResult,
-} from "./helpers";
+} from './helpers';
 
-describe("Transfer Hook", () => {
+describe('Transfer Hook', () => {
   const provider = anchor.AnchorProvider.env();
-  provider.opts.commitment = "confirmed";
+  provider.opts.commitment = 'confirmed';
   anchor.setProvider(provider);
 
   const coreProgram = anchor.workspace.SssCore as Program<SssCore>;
-  const hookProgram = anchor.workspace
-    .SssTransferHook as Program<SssTransferHook>;
+  const hookProgram = anchor.workspace.SssTransferHook as Program<SssTransferHook>;
 
   let mintResult: CreateSss2MintResult;
   let minterRolePda: PublicKey;
@@ -80,12 +79,12 @@ describe("Transfer Hook", () => {
   // 1. Initialize ExtraAccountMetas
   // ─────────────────────────────────────────────────────────────
 
-  describe("Initialize ExtraAccountMetas", () => {
-    it("creates SSS-2 mint with ExtraAccountMetas PDA initialized", async () => {
+  describe('Initialize ExtraAccountMetas', () => {
+    it('creates SSS-2 mint with ExtraAccountMetas PDA initialized', async () => {
       mintResult = await createSss2Mint(provider, coreProgram, hookProgram, {
-        name: "Hook Test USD",
-        symbol: "hUSD",
-        uri: "https://example.com/husd.json",
+        name: 'Hook Test USD',
+        symbol: 'hUSD',
+        uri: 'https://example.com/husd.json',
         decimals: DECIMALS,
         supplyCap: null,
       });
@@ -93,32 +92,26 @@ describe("Transfer Hook", () => {
       // Verify config was created with preset 2
       const config = await fetchConfig(coreProgram, mintResult.configPda);
       expect(config.preset).to.equal(2);
-      expect(config.mint.toBase58()).to.equal(
-        mintResult.mint.publicKey.toBase58(),
-      );
+      expect(config.mint.toBase58()).to.equal(mintResult.mint.publicKey.toBase58());
 
       // Verify ExtraAccountMetas PDA exists and is owned by the hook program
       const extraMetasInfo = await provider.connection.getAccountInfo(
         mintResult.extraAccountMetasPda,
       );
       expect(extraMetasInfo).to.not.be.null;
-      expect(extraMetasInfo!.owner.toBase58()).to.equal(
-        hookProgram.programId.toBase58(),
-      );
+      expect(extraMetasInfo!.owner.toBase58()).to.equal(hookProgram.programId.toBase58());
       expect(extraMetasInfo!.data.length).to.be.greaterThan(0);
     });
 
-    it("derives ExtraAccountMetas PDA with correct seeds", async () => {
+    it('derives ExtraAccountMetas PDA with correct seeds', async () => {
       const [expectedPda] = deriveExtraAccountMetasPda(
         mintResult.mint.publicKey,
         hookProgram.programId,
       );
-      expect(mintResult.extraAccountMetasPda.toBase58()).to.equal(
-        expectedPda.toBase58(),
-      );
+      expect(mintResult.extraAccountMetasPda.toBase58()).to.equal(expectedPda.toBase58());
     });
 
-    it("rejects duplicate ExtraAccountMetas initialization", async () => {
+    it('rejects duplicate ExtraAccountMetas initialization', async () => {
       const [extraAccountMetasPda] = deriveExtraAccountMetasPda(
         mintResult.mint.publicKey,
         hookProgram.programId,
@@ -134,11 +127,11 @@ describe("Transfer Hook", () => {
             systemProgram: SystemProgram.programId,
           })
           .rpc();
-        expect.fail("Should reject duplicate initialization");
+        expect.fail('Should reject duplicate initialization');
       } catch (err: any) {
         // PDA already exists — SystemProgram.createAccount fails
         // Anchor wraps this as a custom program error (0x0 = already in use)
-        expect(err.toString()).to.include("already in use");
+        expect(err.toString()).to.include('already in use');
       }
     });
   });
@@ -147,8 +140,8 @@ describe("Transfer Hook", () => {
   // 2. Setup roles and token accounts (shared for transfer tests)
   // ─────────────────────────────────────────────────────────────
 
-  describe("Transfer Hook Setup", () => {
-    it("grants minter, freezer, and blacklister roles", async () => {
+  describe('Transfer Hook Setup', () => {
+    it('grants minter, freezer, and blacklister roles', async () => {
       minterRolePda = await grantRole(
         coreProgram,
         mintResult.configPda,
@@ -172,28 +165,12 @@ describe("Transfer Hook", () => {
       );
     });
 
-    it("creates and thaws token accounts for all participants", async () => {
+    it('creates and thaws token accounts for all participants', async () => {
       // Create ATAs (they start frozen due to DefaultAccountState)
-      aliceAta = await createTokenAccount(
-        provider,
-        mintResult.mint.publicKey,
-        alice.publicKey,
-      );
-      bobAta = await createTokenAccount(
-        provider,
-        mintResult.mint.publicKey,
-        bob.publicKey,
-      );
-      charlieAta = await createTokenAccount(
-        provider,
-        mintResult.mint.publicKey,
-        charlie.publicKey,
-      );
-      daveAta = await createTokenAccount(
-        provider,
-        mintResult.mint.publicKey,
-        dave.publicKey,
-      );
+      aliceAta = await createTokenAccount(provider, mintResult.mint.publicKey, alice.publicKey);
+      bobAta = await createTokenAccount(provider, mintResult.mint.publicKey, bob.publicKey);
+      charlieAta = await createTokenAccount(provider, mintResult.mint.publicKey, charlie.publicKey);
+      daveAta = await createTokenAccount(provider, mintResult.mint.publicKey, dave.publicKey);
 
       // Thaw all accounts
       for (const ata of [aliceAta, bobAta, charlieAta, daveAta]) {
@@ -240,10 +217,7 @@ describe("Transfer Hook", () => {
         .signers([minter])
         .rpc();
 
-      const aliceBalance = await getTokenBalance(
-        provider.connection,
-        aliceAta,
-      );
+      const aliceBalance = await getTokenBalance(provider.connection, aliceAta);
       expect(aliceBalance.toString()).to.equal(MINT_AMOUNT.toString());
     });
   });
@@ -252,54 +226,49 @@ describe("Transfer Hook", () => {
   // 3. Transfer succeeds for non-blacklisted accounts
   // ─────────────────────────────────────────────────────────────
 
-  describe("Transfer succeeds for non-blacklisted", () => {
-    it("allows transfer between two non-blacklisted accounts", async () => {
+  describe('Transfer succeeds for non-blacklisted', () => {
+    it('allows transfer between two non-blacklisted accounts', async () => {
       const transferAmount = BigInt(5_000_000); // 5 tokens
 
-      const transferIx =
-        await createTransferCheckedWithTransferHookInstruction(
-          provider.connection,
-          aliceAta,
-          mintResult.mint.publicKey,
-          bobAta,
-          alice.publicKey,
-          transferAmount,
-          DECIMALS,
-          undefined,
-          "confirmed",
-          TOKEN_2022_PROGRAM_ID,
-        );
+      const transferIx = await createTransferCheckedWithTransferHookInstruction(
+        provider.connection,
+        aliceAta,
+        mintResult.mint.publicKey,
+        bobAta,
+        alice.publicKey,
+        transferAmount,
+        DECIMALS,
+        undefined,
+        'confirmed',
+        TOKEN_2022_PROGRAM_ID,
+      );
 
       const tx = new Transaction().add(transferIx);
       await provider.sendAndConfirm(tx, [alice]);
 
-      const aliceBalance = await getTokenBalance(
-        provider.connection,
-        aliceAta,
-      );
+      const aliceBalance = await getTokenBalance(provider.connection, aliceAta);
       const bobBalance = await getTokenBalance(provider.connection, bobAta);
 
-      expect(aliceBalance.toString()).to.equal("45000000"); // 50M - 5M
-      expect(bobBalance.toString()).to.equal("5000000");
+      expect(aliceBalance.toString()).to.equal('45000000'); // 50M - 5M
+      expect(bobBalance.toString()).to.equal('5000000');
     });
 
-    it("allows multiple sequential transfers", async () => {
+    it('allows multiple sequential transfers', async () => {
       // Bob transfers to Dave
       const transferAmount = BigInt(2_000_000); // 2 tokens
 
-      const transferIx =
-        await createTransferCheckedWithTransferHookInstruction(
-          provider.connection,
-          bobAta,
-          mintResult.mint.publicKey,
-          daveAta,
-          bob.publicKey,
-          transferAmount,
-          DECIMALS,
-          undefined,
-          "confirmed",
-          TOKEN_2022_PROGRAM_ID,
-        );
+      const transferIx = await createTransferCheckedWithTransferHookInstruction(
+        provider.connection,
+        bobAta,
+        mintResult.mint.publicKey,
+        daveAta,
+        bob.publicKey,
+        transferAmount,
+        DECIMALS,
+        undefined,
+        'confirmed',
+        TOKEN_2022_PROGRAM_ID,
+      );
 
       const tx = new Transaction().add(transferIx);
       await provider.sendAndConfirm(tx, [bob]);
@@ -307,8 +276,8 @@ describe("Transfer Hook", () => {
       const bobBalance = await getTokenBalance(provider.connection, bobAta);
       const daveBalance = await getTokenBalance(provider.connection, daveAta);
 
-      expect(bobBalance.toString()).to.equal("3000000"); // 5M - 2M
-      expect(daveBalance.toString()).to.equal("2000000");
+      expect(bobBalance.toString()).to.equal('3000000'); // 5M - 2M
+      expect(daveBalance.toString()).to.equal('2000000');
     });
   });
 
@@ -316,8 +285,8 @@ describe("Transfer Hook", () => {
   // 4. Blacklist add
   // ─────────────────────────────────────────────────────────────
 
-  describe("Blacklist add", () => {
-    it("blacklister adds charlie to blacklist with reason", async () => {
+  describe('Blacklist add', () => {
+    it('blacklister adds charlie to blacklist with reason', async () => {
       const [blacklistPda] = deriveBlacklistPda(
         mintResult.mint.publicKey,
         charlie.publicKey,
@@ -325,7 +294,7 @@ describe("Transfer Hook", () => {
       );
 
       await hookProgram.methods
-        .addToBlacklist("OFAC sanctioned entity")
+        .addToBlacklist('OFAC sanctioned entity')
         .accountsPartial({
           blacklister: provider.wallet.publicKey,
           blacklisterRole: blacklisterRolePda,
@@ -337,20 +306,15 @@ describe("Transfer Hook", () => {
         .rpc();
 
       // Verify blacklist entry data
-      const entry =
-        await hookProgram.account.blacklistEntry.fetch(blacklistPda);
-      expect(entry.mint.toBase58()).to.equal(
-        mintResult.mint.publicKey.toBase58(),
-      );
+      const entry = await hookProgram.account.blacklistEntry.fetch(blacklistPda);
+      expect(entry.mint.toBase58()).to.equal(mintResult.mint.publicKey.toBase58());
       expect(entry.address.toBase58()).to.equal(charlie.publicKey.toBase58());
-      expect(entry.addedBy.toBase58()).to.equal(
-        provider.wallet.publicKey.toBase58(),
-      );
-      expect(entry.reason).to.equal("OFAC sanctioned entity");
+      expect(entry.addedBy.toBase58()).to.equal(provider.wallet.publicKey.toBase58());
+      expect(entry.reason).to.equal('OFAC sanctioned entity');
       expect(entry.addedAt.toNumber()).to.be.greaterThan(0);
     });
 
-    it("blacklister adds dave to blacklist", async () => {
+    it('blacklister adds dave to blacklist', async () => {
       const [blacklistPda] = deriveBlacklistPda(
         mintResult.mint.publicKey,
         dave.publicKey,
@@ -358,7 +322,7 @@ describe("Transfer Hook", () => {
       );
 
       await hookProgram.methods
-        .addToBlacklist("Suspicious activity detected")
+        .addToBlacklist('Suspicious activity detected')
         .accountsPartial({
           blacklister: provider.wallet.publicKey,
           blacklisterRole: blacklisterRolePda,
@@ -369,13 +333,12 @@ describe("Transfer Hook", () => {
         })
         .rpc();
 
-      const entry =
-        await hookProgram.account.blacklistEntry.fetch(blacklistPda);
+      const entry = await hookProgram.account.blacklistEntry.fetch(blacklistPda);
       expect(entry.address.toBase58()).to.equal(dave.publicKey.toBase58());
-      expect(entry.reason).to.equal("Suspicious activity detected");
+      expect(entry.reason).to.equal('Suspicious activity detected');
     });
 
-    it("rejects blacklist add from non-blacklister", async () => {
+    it('rejects blacklist add from non-blacklister', async () => {
       const randomTarget = Keypair.generate();
       const [blacklistPda] = deriveBlacklistPda(
         mintResult.mint.publicKey,
@@ -393,7 +356,7 @@ describe("Transfer Hook", () => {
 
       try {
         await hookProgram.methods
-          .addToBlacklist("Unauthorized attempt")
+          .addToBlacklist('Unauthorized attempt')
           .accountsPartial({
             blacklister: nonAdmin.publicKey,
             blacklisterRole: fakeBlacklisterRole,
@@ -404,14 +367,14 @@ describe("Transfer Hook", () => {
           })
           .signers([nonAdmin])
           .rpc();
-        expect.fail("Non-blacklister should not be able to add to blacklist");
+        expect.fail('Non-blacklister should not be able to add to blacklist');
       } catch (err: any) {
         // verify_blacklister_for_mint rejects: account not owned by sss-core
-        expect(err.error.errorCode.code).to.equal("Unauthorized");
+        expect(err.error.errorCode.code).to.equal('Unauthorized');
       }
     });
 
-    it("rejects blacklist add with reason exceeding 512 characters", async () => {
+    it('rejects blacklist add with reason exceeding 512 characters', async () => {
       const randomTarget = Keypair.generate();
       const [blacklistPda] = deriveBlacklistPda(
         mintResult.mint.publicKey,
@@ -419,7 +382,7 @@ describe("Transfer Hook", () => {
         hookProgram.programId,
       );
 
-      const longReason = "x".repeat(513);
+      const longReason = 'x'.repeat(513);
 
       try {
         await hookProgram.methods
@@ -433,13 +396,13 @@ describe("Transfer Hook", () => {
             systemProgram: SystemProgram.programId,
           })
           .rpc();
-        expect.fail("Should reject reason exceeding 512 characters");
+        expect.fail('Should reject reason exceeding 512 characters');
       } catch (err: any) {
-        expect(err.error.errorCode.code).to.equal("ReasonTooLong");
+        expect(err.error.errorCode.code).to.equal('ReasonTooLong');
       }
     });
 
-    it("rejects duplicate blacklist entry for same address", async () => {
+    it('rejects duplicate blacklist entry for same address', async () => {
       // Charlie is already blacklisted — try to add again
       const [blacklistPda] = deriveBlacklistPda(
         mintResult.mint.publicKey,
@@ -449,7 +412,7 @@ describe("Transfer Hook", () => {
 
       try {
         await hookProgram.methods
-          .addToBlacklist("Duplicate attempt")
+          .addToBlacklist('Duplicate attempt')
           .accountsPartial({
             blacklister: provider.wallet.publicKey,
             blacklisterRole: blacklisterRolePda,
@@ -459,10 +422,10 @@ describe("Transfer Hook", () => {
             systemProgram: SystemProgram.programId,
           })
           .rpc();
-        expect.fail("Should reject duplicate blacklist entry");
+        expect.fail('Should reject duplicate blacklist entry');
       } catch (err: any) {
         // Anchor #[account(init)] fails because PDA already exists
-        expect(err.toString()).to.include("already in use");
+        expect(err.toString()).to.include('already in use');
       }
     });
   });
@@ -471,116 +434,106 @@ describe("Transfer Hook", () => {
   // 5. Transfer blocked for blacklisted address
   // ─────────────────────────────────────────────────────────────
 
-  describe("Transfer blocked for blacklisted address", () => {
-    it("blocks transfer FROM blacklisted sender (charlie)", async () => {
+  describe('Transfer blocked for blacklisted address', () => {
+    it('blocks transfer FROM blacklisted sender (charlie)', async () => {
       try {
-        const transferIx =
-          await createTransferCheckedWithTransferHookInstruction(
-            provider.connection,
-            charlieAta,
-            mintResult.mint.publicKey,
-            bobAta,
-            charlie.publicKey,
-            BigInt(1_000_000),
-            DECIMALS,
-            undefined,
-            "confirmed",
-            TOKEN_2022_PROGRAM_ID,
-          );
+        const transferIx = await createTransferCheckedWithTransferHookInstruction(
+          provider.connection,
+          charlieAta,
+          mintResult.mint.publicKey,
+          bobAta,
+          charlie.publicKey,
+          BigInt(1_000_000),
+          DECIMALS,
+          undefined,
+          'confirmed',
+          TOKEN_2022_PROGRAM_ID,
+        );
 
         const tx = new Transaction().add(transferIx);
         await provider.sendAndConfirm(tx, [charlie]);
-        expect.fail("Should block transfer from blacklisted sender");
+        expect.fail('Should block transfer from blacklisted sender');
       } catch (err: any) {
         // Transfer hook rejects with SenderBlacklisted (custom error 0x1770 / 6000)
-        expect(err.toString()).to.include("0x1770");
+        expect(err.toString()).to.include('0x1770');
       }
     });
 
-    it("blocks transfer TO blacklisted receiver (charlie)", async () => {
+    it('blocks transfer TO blacklisted receiver (charlie)', async () => {
       try {
-        const transferIx =
-          await createTransferCheckedWithTransferHookInstruction(
-            provider.connection,
-            aliceAta,
-            mintResult.mint.publicKey,
-            charlieAta,
-            alice.publicKey,
-            BigInt(1_000_000),
-            DECIMALS,
-            undefined,
-            "confirmed",
-            TOKEN_2022_PROGRAM_ID,
-          );
-
-        const tx = new Transaction().add(transferIx);
-        await provider.sendAndConfirm(tx, [alice]);
-        expect.fail("Should block transfer to blacklisted receiver");
-      } catch (err: any) {
-        // Transfer hook rejects with ReceiverBlacklisted (custom error 0x1771 / 6001)
-        expect(err.toString()).to.include("0x1771");
-      }
-    });
-
-    it("blocks transfer FROM blacklisted dave", async () => {
-      try {
-        const transferIx =
-          await createTransferCheckedWithTransferHookInstruction(
-            provider.connection,
-            daveAta,
-            mintResult.mint.publicKey,
-            aliceAta,
-            dave.publicKey,
-            BigInt(500_000),
-            DECIMALS,
-            undefined,
-            "confirmed",
-            TOKEN_2022_PROGRAM_ID,
-          );
-
-        const tx = new Transaction().add(transferIx);
-        await provider.sendAndConfirm(tx, [dave]);
-        expect.fail("Should block transfer from blacklisted dave");
-      } catch (err: any) {
-        // Transfer hook rejects with SenderBlacklisted (custom error 0x1770 / 6000)
-        expect(err.toString()).to.include("0x1770");
-      }
-    });
-
-    it("confirms non-blacklisted transfers still work while blacklist is active", async () => {
-      // Alice to Bob should still succeed — neither is blacklisted
-      const transferAmount = BigInt(1_000_000);
-      const aliceBalanceBefore = await getTokenBalance(
-        provider.connection,
-        aliceAta,
-      );
-
-      const transferIx =
-        await createTransferCheckedWithTransferHookInstruction(
+        const transferIx = await createTransferCheckedWithTransferHookInstruction(
           provider.connection,
           aliceAta,
           mintResult.mint.publicKey,
-          bobAta,
+          charlieAta,
           alice.publicKey,
-          transferAmount,
+          BigInt(1_000_000),
           DECIMALS,
           undefined,
-          "confirmed",
+          'confirmed',
           TOKEN_2022_PROGRAM_ID,
         );
+
+        const tx = new Transaction().add(transferIx);
+        await provider.sendAndConfirm(tx, [alice]);
+        expect.fail('Should block transfer to blacklisted receiver');
+      } catch (err: any) {
+        // Transfer hook rejects with ReceiverBlacklisted (custom error 0x1771 / 6001)
+        expect(err.toString()).to.include('0x1771');
+      }
+    });
+
+    it('blocks transfer FROM blacklisted dave', async () => {
+      try {
+        const transferIx = await createTransferCheckedWithTransferHookInstruction(
+          provider.connection,
+          daveAta,
+          mintResult.mint.publicKey,
+          aliceAta,
+          dave.publicKey,
+          BigInt(500_000),
+          DECIMALS,
+          undefined,
+          'confirmed',
+          TOKEN_2022_PROGRAM_ID,
+        );
+
+        const tx = new Transaction().add(transferIx);
+        await provider.sendAndConfirm(tx, [dave]);
+        expect.fail('Should block transfer from blacklisted dave');
+      } catch (err: any) {
+        // Transfer hook rejects with SenderBlacklisted (custom error 0x1770 / 6000)
+        expect(err.toString()).to.include('0x1770');
+      }
+    });
+
+    it('confirms non-blacklisted transfers still work while blacklist is active', async () => {
+      // Alice to Bob should still succeed — neither is blacklisted
+      const transferAmount = BigInt(1_000_000);
+      const aliceBalanceBefore = await getTokenBalance(provider.connection, aliceAta);
+
+      const transferIx = await createTransferCheckedWithTransferHookInstruction(
+        provider.connection,
+        aliceAta,
+        mintResult.mint.publicKey,
+        bobAta,
+        alice.publicKey,
+        transferAmount,
+        DECIMALS,
+        undefined,
+        'confirmed',
+        TOKEN_2022_PROGRAM_ID,
+      );
 
       const tx = new Transaction().add(transferIx);
       await provider.sendAndConfirm(tx, [alice]);
 
-      const aliceBalanceAfter = await getTokenBalance(
-        provider.connection,
-        aliceAta,
-      );
+      const aliceBalanceAfter = await getTokenBalance(provider.connection, aliceAta);
       const bobBalance = await getTokenBalance(provider.connection, bobAta);
 
-      expect(
-        (aliceBalanceBefore - aliceBalanceAfter).toString(),
-      ).to.equal(transferAmount.toString());
+      expect((aliceBalanceBefore - aliceBalanceAfter).toString()).to.equal(
+        transferAmount.toString(),
+      );
       expect(Number(bobBalance)).to.be.greaterThan(0);
     });
   });
@@ -589,8 +542,8 @@ describe("Transfer Hook", () => {
   // 6. Blacklist remove
   // ─────────────────────────────────────────────────────────────
 
-  describe("Blacklist remove", () => {
-    it("rejects blacklist removal from non-blacklister", async () => {
+  describe('Blacklist remove', () => {
+    it('rejects blacklist removal from non-blacklister', async () => {
       const [blacklistPda] = deriveBlacklistPda(
         mintResult.mint.publicKey,
         charlie.publicKey,
@@ -615,14 +568,14 @@ describe("Transfer Hook", () => {
           })
           .signers([nonAdmin])
           .rpc();
-        expect.fail("Non-blacklister should not be able to remove from blacklist");
+        expect.fail('Non-blacklister should not be able to remove from blacklist');
       } catch (err: any) {
         // verify_blacklister_for_mint rejects: account not owned by sss-core
-        expect(err.error.errorCode.code).to.equal("Unauthorized");
+        expect(err.error.errorCode.code).to.equal('Unauthorized');
       }
     });
 
-    it("blacklister removes charlie from blacklist", async () => {
+    it('blacklister removes charlie from blacklist', async () => {
       const [blacklistPda] = deriveBlacklistPda(
         mintResult.mint.publicKey,
         charlie.publicKey,
@@ -640,126 +593,94 @@ describe("Transfer Hook", () => {
         .rpc();
 
       // Verify the blacklist entry account is closed
-      const entryInfo =
-        await provider.connection.getAccountInfo(blacklistPda);
+      const entryInfo = await provider.connection.getAccountInfo(blacklistPda);
       expect(entryInfo).to.be.null;
     });
 
-    it("charlie can transfer again after removal from blacklist", async () => {
-      const charlieBalanceBefore = await getTokenBalance(
-        provider.connection,
-        charlieAta,
-      );
-      const bobBalanceBefore = await getTokenBalance(
-        provider.connection,
-        bobAta,
-      );
+    it('charlie can transfer again after removal from blacklist', async () => {
+      const charlieBalanceBefore = await getTokenBalance(provider.connection, charlieAta);
+      const bobBalanceBefore = await getTokenBalance(provider.connection, bobAta);
 
       const transferAmount = BigInt(1_000_000);
 
-      const transferIx =
-        await createTransferCheckedWithTransferHookInstruction(
-          provider.connection,
-          charlieAta,
-          mintResult.mint.publicKey,
-          bobAta,
-          charlie.publicKey,
-          transferAmount,
-          DECIMALS,
-          undefined,
-          "confirmed",
-          TOKEN_2022_PROGRAM_ID,
-        );
+      const transferIx = await createTransferCheckedWithTransferHookInstruction(
+        provider.connection,
+        charlieAta,
+        mintResult.mint.publicKey,
+        bobAta,
+        charlie.publicKey,
+        transferAmount,
+        DECIMALS,
+        undefined,
+        'confirmed',
+        TOKEN_2022_PROGRAM_ID,
+      );
 
       const tx = new Transaction().add(transferIx);
       await provider.sendAndConfirm(tx, [charlie]);
 
-      const charlieBalanceAfter = await getTokenBalance(
-        provider.connection,
-        charlieAta,
-      );
-      const bobBalanceAfter = await getTokenBalance(
-        provider.connection,
-        bobAta,
-      );
+      const charlieBalanceAfter = await getTokenBalance(provider.connection, charlieAta);
+      const bobBalanceAfter = await getTokenBalance(provider.connection, bobAta);
 
-      expect(
-        (charlieBalanceBefore - charlieBalanceAfter).toString(),
-      ).to.equal(transferAmount.toString());
-      expect(
-        (bobBalanceAfter - bobBalanceBefore).toString(),
-      ).to.equal(transferAmount.toString());
+      expect((charlieBalanceBefore - charlieBalanceAfter).toString()).to.equal(
+        transferAmount.toString(),
+      );
+      expect((bobBalanceAfter - bobBalanceBefore).toString()).to.equal(transferAmount.toString());
     });
 
-    it("others can transfer TO charlie after removal", async () => {
-      const bobBalanceBefore = await getTokenBalance(
-        provider.connection,
-        bobAta,
-      );
-      const charlieBalanceBefore = await getTokenBalance(
-        provider.connection,
-        charlieAta,
-      );
+    it('others can transfer TO charlie after removal', async () => {
+      const bobBalanceBefore = await getTokenBalance(provider.connection, bobAta);
+      const charlieBalanceBefore = await getTokenBalance(provider.connection, charlieAta);
 
       const transferAmount = BigInt(500_000);
 
-      const transferIx =
-        await createTransferCheckedWithTransferHookInstruction(
-          provider.connection,
-          bobAta,
-          mintResult.mint.publicKey,
-          charlieAta,
-          bob.publicKey,
-          transferAmount,
-          DECIMALS,
-          undefined,
-          "confirmed",
-          TOKEN_2022_PROGRAM_ID,
-        );
+      const transferIx = await createTransferCheckedWithTransferHookInstruction(
+        provider.connection,
+        bobAta,
+        mintResult.mint.publicKey,
+        charlieAta,
+        bob.publicKey,
+        transferAmount,
+        DECIMALS,
+        undefined,
+        'confirmed',
+        TOKEN_2022_PROGRAM_ID,
+      );
 
       const tx = new Transaction().add(transferIx);
       await provider.sendAndConfirm(tx, [bob]);
 
-      const bobBalanceAfter = await getTokenBalance(
-        provider.connection,
-        bobAta,
-      );
-      const charlieBalanceAfter = await getTokenBalance(
-        provider.connection,
-        charlieAta,
-      );
+      const bobBalanceAfter = await getTokenBalance(provider.connection, bobAta);
+      const charlieBalanceAfter = await getTokenBalance(provider.connection, charlieAta);
 
-      expect(
-        (bobBalanceBefore - bobBalanceAfter).toString(),
-      ).to.equal(transferAmount.toString());
-      expect(
-        (charlieBalanceAfter - charlieBalanceBefore).toString(),
-      ).to.equal(transferAmount.toString());
+      expect((bobBalanceBefore - bobBalanceAfter).toString()).to.equal(transferAmount.toString());
+      expect((charlieBalanceAfter - charlieBalanceBefore).toString()).to.equal(
+        transferAmount.toString(),
+      );
     });
 
-    it("dave remains blacklisted while charlie was removed", async () => {
+    it('dave remains blacklisted while charlie was removed', async () => {
       // Dave should still be blocked
       try {
-        const transferIx =
-          await createTransferCheckedWithTransferHookInstruction(
-            provider.connection,
-            daveAta,
-            mintResult.mint.publicKey,
-            aliceAta,
-            dave.publicKey,
-            BigInt(100_000),
-            DECIMALS,
-            undefined,
-            "confirmed",
-            TOKEN_2022_PROGRAM_ID,
-          );
+        const transferIx = await createTransferCheckedWithTransferHookInstruction(
+          provider.connection,
+          daveAta,
+          mintResult.mint.publicKey,
+          aliceAta,
+          dave.publicKey,
+          BigInt(100_000),
+          DECIMALS,
+          undefined,
+          'confirmed',
+          TOKEN_2022_PROGRAM_ID,
+        );
 
         const tx = new Transaction().add(transferIx);
         await provider.sendAndConfirm(tx, [dave]);
-        expect.fail("Dave should still be blacklisted");
+        expect.fail('Dave should still be blacklisted');
       } catch (err: any) {
         // Transfer hook rejects with SenderBlacklisted (custom error 0x1770 / 6000)
-        expect(err.toString()).to.include("0x1770");
+        expect(err.toString()).to.include('0x1770');
       }
     });
   });
@@ -768,8 +689,8 @@ describe("Transfer Hook", () => {
   // 7. Transfer hook fallback
   // ─────────────────────────────────────────────────────────────
 
-  describe("Transfer hook fallback", () => {
-    it("fallback rejects non-Execute instruction discriminators", async () => {
+  describe('Transfer hook fallback', () => {
+    it('fallback rejects non-Execute instruction discriminators', async () => {
       // The fallback handler only accepts the Execute variant of the
       // TransferHookInstruction enum. Any other discriminator (e.g.
       // Initialize = 0) should return InvalidInstructionData.
@@ -840,51 +761,44 @@ describe("Transfer Hook", () => {
       try {
         const tx = new Transaction().add(ix);
         await provider.sendAndConfirm(tx, []);
-        expect.fail("Fallback should reject non-Execute discriminator");
+        expect.fail('Fallback should reject non-Execute discriminator');
       } catch (err: any) {
         // The hook's fallback match arm returns ProgramError::InvalidInstructionData
-        expect(err.toString()).to.include("invalid instruction data");
+        expect(err.toString()).to.include('invalid instruction data');
       }
     });
 
-    it("fallback processes valid Execute instruction via transfer", async () => {
+    it('fallback processes valid Execute instruction via transfer', async () => {
       // The normal createTransferCheckedWithTransferHookInstruction flow
       // exercises the fallback's Execute path. We verify it works by
       // performing a standard transfer — Token-2022 uses the SPL
       // interface discriminator (not Anchor's), which routes through
       // the fallback → Execute → transfer_hook handler.
-      const aliceBalanceBefore = await getTokenBalance(
-        provider.connection,
-        aliceAta,
-      );
+      const aliceBalanceBefore = await getTokenBalance(provider.connection, aliceAta);
 
       const transferAmount = BigInt(1_000_000);
-      const transferIx =
-        await createTransferCheckedWithTransferHookInstruction(
-          provider.connection,
-          aliceAta,
-          mintResult.mint.publicKey,
-          bobAta,
-          alice.publicKey,
-          transferAmount,
-          DECIMALS,
-          undefined,
-          "confirmed",
-          TOKEN_2022_PROGRAM_ID,
-        );
+      const transferIx = await createTransferCheckedWithTransferHookInstruction(
+        provider.connection,
+        aliceAta,
+        mintResult.mint.publicKey,
+        bobAta,
+        alice.publicKey,
+        transferAmount,
+        DECIMALS,
+        undefined,
+        'confirmed',
+        TOKEN_2022_PROGRAM_ID,
+      );
 
       const tx = new Transaction().add(transferIx);
       await provider.sendAndConfirm(tx, [alice]);
 
-      const aliceBalanceAfter = await getTokenBalance(
-        provider.connection,
-        aliceAta,
-      );
+      const aliceBalanceAfter = await getTokenBalance(provider.connection, aliceAta);
 
       // If fallback's Execute path failed, this transfer would revert
-      expect(
-        (aliceBalanceBefore - aliceBalanceAfter).toString(),
-      ).to.equal(transferAmount.toString());
+      expect((aliceBalanceBefore - aliceBalanceAfter).toString()).to.equal(
+        transferAmount.toString(),
+      );
     });
   });
 
@@ -892,8 +806,8 @@ describe("Transfer Hook", () => {
   // 8. Blacklist entry data integrity
   // ─────────────────────────────────────────────────────────────
 
-  describe("Blacklist entry data integrity", () => {
-    it("re-blacklisting an address after removal creates fresh entry", async () => {
+  describe('Blacklist entry data integrity', () => {
+    it('re-blacklisting an address after removal creates fresh entry', async () => {
       // Remove dave from blacklist first
       const [daveBlacklistPda] = deriveBlacklistPda(
         mintResult.mint.publicKey,
@@ -912,13 +826,12 @@ describe("Transfer Hook", () => {
         .rpc();
 
       // Verify removed
-      const removedInfo =
-        await provider.connection.getAccountInfo(daveBlacklistPda);
+      const removedInfo = await provider.connection.getAccountInfo(daveBlacklistPda);
       expect(removedInfo).to.be.null;
 
       // Re-add with different reason
       await hookProgram.methods
-        .addToBlacklist("Re-flagged by compliance")
+        .addToBlacklist('Re-flagged by compliance')
         .accountsPartial({
           blacklister: provider.wallet.publicKey,
           blacklisterRole: blacklisterRolePda,
@@ -930,13 +843,12 @@ describe("Transfer Hook", () => {
         .rpc();
 
       // Verify new entry has updated reason
-      const entry =
-        await hookProgram.account.blacklistEntry.fetch(daveBlacklistPda);
-      expect(entry.reason).to.equal("Re-flagged by compliance");
+      const entry = await hookProgram.account.blacklistEntry.fetch(daveBlacklistPda);
+      expect(entry.reason).to.equal('Re-flagged by compliance');
       expect(entry.address.toBase58()).to.equal(dave.publicKey.toBase58());
     });
 
-    it("blacklist reason can be exactly 512 characters (max)", async () => {
+    it('blacklist reason can be exactly 512 characters (max)', async () => {
       const target = Keypair.generate();
       const [blacklistPda] = deriveBlacklistPda(
         mintResult.mint.publicKey,
@@ -944,7 +856,7 @@ describe("Transfer Hook", () => {
         hookProgram.programId,
       );
 
-      const maxReason = "A".repeat(512);
+      const maxReason = 'A'.repeat(512);
 
       await hookProgram.methods
         .addToBlacklist(maxReason)
@@ -958,8 +870,7 @@ describe("Transfer Hook", () => {
         })
         .rpc();
 
-      const entry =
-        await hookProgram.account.blacklistEntry.fetch(blacklistPda);
+      const entry = await hookProgram.account.blacklistEntry.fetch(blacklistPda);
       expect(entry.reason).to.equal(maxReason);
       expect(entry.reason.length).to.equal(512);
 
