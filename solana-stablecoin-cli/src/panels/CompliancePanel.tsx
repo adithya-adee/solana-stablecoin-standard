@@ -91,7 +91,15 @@ export function CompliancePanel({ mint }: CompliancePanelProps) {
       } else if (op === 'rl-revoke') {
         txSig = await sss.roles.revoke(addr, roleType(roleInput as any));
       } else if (op === 'rl-chk') {
-        const ALL_ROLES = ['admin', 'minter', 'freezer', 'pauser', 'burner', 'blacklister', 'seizer'] as const;
+        const ALL_ROLES = [
+          'admin',
+          'minter',
+          'freezer',
+          'pauser',
+          'burner',
+          'blacklister',
+          'seizer',
+        ] as const;
         const results: { address: string; role: string }[] = [];
         for (const r of ALL_ROLES) {
           const has = await sss.roles.check(addr, roleType(r));
@@ -137,7 +145,9 @@ export function CompliancePanel({ mint }: CompliancePanelProps) {
       {/* Menu List */}
       <Box flexDirection="column" borderStyle="single" borderColor="gray" paddingX={1} width={35}>
         <Box marginBottom={1}>
-          <Text color={Theme.primary as any} bold>Compliance Ops</Text>
+          <Text color={Theme.primary as any} bold>
+            Compliance Ops
+          </Text>
         </Box>
         {OPS.map((op, idx) => {
           const isSelected = idx === selectedIdx && !activeForm;
@@ -147,7 +157,9 @@ export function CompliancePanel({ mint }: CompliancePanelProps) {
             <React.Fragment key={op.id}>
               {showGroup && (
                 <Box marginTop={idx > 0 ? 1 : 0}>
-                  <Text color="gray" dimColor>--- {op.group.toUpperCase()} ---</Text>
+                  <Text color="gray" dimColor>
+                    --- {op.group.toUpperCase()} ---
+                  </Text>
                 </Box>
               )}
               <Box>
@@ -165,19 +177,42 @@ export function CompliancePanel({ mint }: CompliancePanelProps) {
 
       {/* Active Form Area */}
       {activeForm && (
-        <Box flexDirection="column" flexGrow={1} borderStyle="single" borderColor="cyanBright" paddingX={2}>
+        <Box
+          flexDirection="column"
+          flexGrow={1}
+          borderStyle="single"
+          borderColor="cyanBright"
+          paddingX={2}
+        >
           <Box marginBottom={1}>
-            <Text color="cyanBright" bold>Execute: {OPS.find((o) => o.id === activeForm)?.label}</Text>
+            <Text color="cyanBright" bold>
+              Execute: {OPS.find((o) => o.id === activeForm)?.label}
+            </Text>
           </Box>
 
-          <TextInput label="Target Address" value={address} onChange={setAddress} onSubmit={attemptOp} />
+          <TextInput
+            label="Target Address"
+            value={address}
+            onChange={setAddress}
+            onSubmit={attemptOp}
+          />
 
           {activeForm === 'bl-add' && (
-            <TextInput label="Match Reason (Optional)" value={reason} onChange={setReason} onSubmit={attemptOp} />
+            <TextInput
+              label="Match Reason (Optional)"
+              value={reason}
+              onChange={setReason}
+              onSubmit={attemptOp}
+            />
           )}
 
           {(activeForm === 'rl-grant' || activeForm === 'rl-revoke') && (
-            <TextInput label="Role (admin | minter | freezer | pauser...)" value={roleInput} onChange={setRoleInput} onSubmit={attemptOp} />
+            <TextInput
+              label="Role (admin | minter | freezer | pauser...)"
+              value={roleInput}
+              onChange={setRoleInput}
+              onSubmit={attemptOp}
+            />
           )}
 
           {error && <Err message={error} />}
@@ -204,13 +239,23 @@ export function CompliancePanel({ mint }: CompliancePanelProps) {
           {phase === 'done' && roleInfos.length >= 0 && activeForm === 'rl-chk' && (
             <Box marginTop={1} flexDirection="column">
               <Text bold>Active Roles:</Text>
-              {roleInfos.length === 0 ? <Text color="gray">None</Text> : roleInfos.map(r => <Text key={r.role} color="cyanBright">{r.role}</Text>)}
+              {roleInfos.length === 0 ? (
+                <Text color="gray">None</Text>
+              ) : (
+                roleInfos.map((r) => (
+                  <Text key={r.role} color="cyanBright">
+                    {r.role}
+                  </Text>
+                ))
+              )}
             </Box>
           )}
 
           {(phase === 'idle' || phase === 'done') && (
             <Box marginTop={1}>
-              <Text color="gray">Press [Enter] on the last field to execute, or [Esc] to cancel.</Text>
+              <Text color="gray">
+                Press [Enter] on the last field to execute, or [Esc] to cancel.
+              </Text>
             </Box>
           )}
         </Box>

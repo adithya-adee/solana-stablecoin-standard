@@ -37,8 +37,19 @@ function TuiApp() {
   }, []);
 
   return (
-    <Layout activeTab={activeTab} onTabChange={setActiveTab} refreshRateMs={refreshRateMs} lastRefresh={lastRefresh}>
-      {activeTab === 'Dashboard' && <DashboardPanel mint={mint} setRefreshRate={setRefreshRateMs} setLastRefresh={setLastRefresh} />}
+    <Layout
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      refreshRateMs={refreshRateMs}
+      lastRefresh={lastRefresh}
+    >
+      {activeTab === 'Dashboard' && (
+        <DashboardPanel
+          mint={mint}
+          setRefreshRate={setRefreshRateMs}
+          setLastRefresh={setLastRefresh}
+        />
+      )}
       {activeTab === 'Operations' && <OperationsPanel mint={mint} />}
       {activeTab === 'Compliance' && <CompliancePanel mint={mint} />}
       {activeTab === 'Holders' && <HoldersPanel mint={mint} setRefreshRate={setRefreshRateMs} />}

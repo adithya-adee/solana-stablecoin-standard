@@ -82,19 +82,39 @@ export function OperationsPanel({ mint }: OperationsPanelProps) {
       if (op === 'mint') {
         const recip = new PublicKey(recipient);
         const amt = parseAmount(amount);
-        const ata = getAssociatedTokenAddressSync(sss.mintAddress, recip, false, TOKEN_2022_PROGRAM_ID);
+        const ata = getAssociatedTokenAddressSync(
+          sss.mintAddress,
+          recip,
+          false,
+          TOKEN_2022_PROGRAM_ID,
+        );
         txSig = await sss.mintTokens(ata, amt);
       } else if (op === 'burn') {
         const amt = parseAmount(amount);
-        const ata = getAssociatedTokenAddressSync(sss.mintAddress, provider.publicKey, false, TOKEN_2022_PROGRAM_ID);
+        const ata = getAssociatedTokenAddressSync(
+          sss.mintAddress,
+          provider.publicKey,
+          false,
+          TOKEN_2022_PROGRAM_ID,
+        );
         txSig = await sss.burn(ata, amt);
       } else if (op === 'freeze') {
         const addr = new PublicKey(address);
-        const ata = getAssociatedTokenAddressSync(sss.mintAddress, addr, false, TOKEN_2022_PROGRAM_ID);
+        const ata = getAssociatedTokenAddressSync(
+          sss.mintAddress,
+          addr,
+          false,
+          TOKEN_2022_PROGRAM_ID,
+        );
         txSig = await sss.freeze(ata);
       } else if (op === 'thaw') {
         const addr = new PublicKey(address);
-        const ata = getAssociatedTokenAddressSync(sss.mintAddress, addr, false, TOKEN_2022_PROGRAM_ID);
+        const ata = getAssociatedTokenAddressSync(
+          sss.mintAddress,
+          addr,
+          false,
+          TOKEN_2022_PROGRAM_ID,
+        );
         txSig = await sss.thaw(ata);
       } else if (op === 'pause') {
         txSig = await sss.pause();
@@ -104,8 +124,18 @@ export function OperationsPanel({ mint }: OperationsPanelProps) {
         const from = new PublicKey(fromAddress);
         const to = new PublicKey(toAddress);
         const amt = parseAmount(amount);
-        const fromAta = getAssociatedTokenAddressSync(sss.mintAddress, from, false, TOKEN_2022_PROGRAM_ID);
-        const toAta = getAssociatedTokenAddressSync(sss.mintAddress, to, false, TOKEN_2022_PROGRAM_ID);
+        const fromAta = getAssociatedTokenAddressSync(
+          sss.mintAddress,
+          from,
+          false,
+          TOKEN_2022_PROGRAM_ID,
+        );
+        const toAta = getAssociatedTokenAddressSync(
+          sss.mintAddress,
+          to,
+          false,
+          TOKEN_2022_PROGRAM_ID,
+        );
         txSig = await sss.seize(fromAta, toAta, amt);
       }
 
@@ -144,7 +174,9 @@ export function OperationsPanel({ mint }: OperationsPanelProps) {
       {/* Menu List */}
       <Box flexDirection="column" borderStyle="single" borderColor="gray" paddingX={1} width={30}>
         <Box marginBottom={1}>
-          <Text color={Theme.primary as any} bold>Operations</Text>
+          <Text color={Theme.primary as any} bold>
+            Operations
+          </Text>
         </Box>
         {OPS.map((op, idx) => {
           const isSelected = idx === selectedIdx && !activeForm;
@@ -164,9 +196,17 @@ export function OperationsPanel({ mint }: OperationsPanelProps) {
 
       {/* Active Form Area */}
       {activeForm && (
-        <Box flexDirection="column" flexGrow={1} borderStyle="single" borderColor="cyanBright" paddingX={2}>
+        <Box
+          flexDirection="column"
+          flexGrow={1}
+          borderStyle="single"
+          borderColor="cyanBright"
+          paddingX={2}
+        >
           <Box marginBottom={1}>
-            <Text color="cyanBright" bold>Execute: {OPS.find((o) => o.id === activeForm)?.label}</Text>
+            <Text color="cyanBright" bold>
+              Execute: {OPS.find((o) => o.id === activeForm)?.label}
+            </Text>
           </Box>
 
           {/* Render inputs based on active form */}
@@ -182,13 +222,23 @@ export function OperationsPanel({ mint }: OperationsPanelProps) {
           )}
 
           {(activeForm === 'freeze' || activeForm === 'thaw') && (
-            <TextInput label="Target Address" value={address} onChange={setAddress} onSubmit={attemptOp} />
+            <TextInput
+              label="Target Address"
+              value={address}
+              onChange={setAddress}
+              onSubmit={attemptOp}
+            />
           )}
 
           {(activeForm === 'pause' || activeForm === 'unpause') && (
             <Box flexDirection="column" marginBottom={1}>
               <Text>Press Enter to confirm and execute.</Text>
-              <TextInput label="Type 'yes' to proceed (optional safety)" value={address} onChange={setAddress} onSubmit={attemptOp} />
+              <TextInput
+                label="Type 'yes' to proceed (optional safety)"
+                value={address}
+                onChange={setAddress}
+                onSubmit={attemptOp}
+              />
             </Box>
           )}
 
@@ -217,7 +267,9 @@ export function OperationsPanel({ mint }: OperationsPanelProps) {
 
           {phase === 'idle' && (
             <Box marginTop={1}>
-              <Text color="gray">Press [Enter] on the last field to execute, or [Esc] to cancel.</Text>
+              <Text color="gray">
+                Press [Enter] on the last field to execute, or [Esc] to cancel.
+              </Text>
             </Box>
           )}
         </Box>

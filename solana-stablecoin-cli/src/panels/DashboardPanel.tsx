@@ -67,7 +67,7 @@ export function DashboardPanel({ mint, setRefreshRate, setLastRefresh }: Dashboa
           ]}
         />
       </Card>
-      
+
       {/* We could add Recent Activity here later if we want to parse the last 5 logs inline */}
     </Box>
   );

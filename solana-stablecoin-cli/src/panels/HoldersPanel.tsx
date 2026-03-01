@@ -36,14 +36,14 @@ export function HoldersPanel({ mint, setRefreshRate }: HoldersPanelProps) {
 
     const parsed: HolderInfo[] = [];
     for (let i = 0; i < validAccounts.length; i++) {
-        const info = accountInfos[i];
-        if (!info) continue;
-        const layout = AccountLayout.decode(info.data);
-        parsed.push({
+      const info = accountInfos[i];
+      if (!info) continue;
+      const layout = AccountLayout.decode(info.data);
+      parsed.push({
         address: layout.owner.toBase58(),
         amount: layout.amount,
         isFrozen: layout.state === 2,
-        });
+      });
     }
     return { holders: parsed, total: validAccounts.length };
   }, [mint]);
@@ -65,11 +65,13 @@ export function HoldersPanel({ mint, setRefreshRate }: HoldersPanelProps) {
           rows={data.holders.map((h) => ({
             key: h.address,
             value: `${formatAmount(h.amount)} ${h.isFrozen ? '(Frozen)' : ''}`,
-            highlight: h.isFrozen
+            highlight: h.isFrozen,
           }))}
         />
       </Card>
-      <Box><Text color="gray">Holders automatically refresh every 10 seconds.</Text></Box>
+      <Box>
+        <Text color="gray">Holders automatically refresh every 10 seconds.</Text>
+      </Box>
     </Box>
   );
 }

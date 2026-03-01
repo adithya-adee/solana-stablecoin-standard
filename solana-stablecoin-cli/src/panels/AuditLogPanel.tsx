@@ -34,12 +34,12 @@ export function AuditLogPanel({ mint, setRefreshRate }: AuditLogPanelProps) {
     const signatures = await provider.connection.getSignaturesForAddress(mintPub, { limit: 20 });
 
     const txs = await Promise.all(
-        signatures.map(sig => 
-            provider.connection.getTransaction(sig.signature, {
-                maxSupportedTransactionVersion: 0,
-                commitment: 'confirmed',
-            })
-        )
+      signatures.map((sig) =>
+        provider.connection.getTransaction(sig.signature, {
+          maxSupportedTransactionVersion: 0,
+          commitment: 'confirmed',
+        }),
+      ),
     );
 
     const parsedLogs: LogInfo[] = [];
@@ -92,7 +92,9 @@ export function AuditLogPanel({ mint, setRefreshRate }: AuditLogPanelProps) {
           }))}
         />
       </Card>
-      <Box><Text color="gray">Log automatically refreshes every 10 seconds.</Text></Box>
+      <Box>
+        <Text color="gray">Log automatically refreshes every 10 seconds.</Text>
+      </Box>
     </Box>
   );
 }
