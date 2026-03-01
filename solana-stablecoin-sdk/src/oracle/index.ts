@@ -1,4 +1,4 @@
-import { Connection, PublicKey } from "@solana/web3.js";
+import { Connection, PublicKey } from '@solana/web3.js';
 
 /**
  * Oracle price feed utilities for SSS stablecoins.
@@ -25,13 +25,13 @@ export interface OraclePrice {
 /** Well-known Pyth price feed addresses. */
 export const PYTH_FEEDS = {
   /** SOL/USD on mainnet */
-  SOL_USD_MAINNET: new PublicKey("H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG"),
+  SOL_USD_MAINNET: new PublicKey('H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG'),
   /** SOL/USD on devnet */
-  SOL_USD_DEVNET: new PublicKey("J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix"),
+  SOL_USD_DEVNET: new PublicKey('J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix'),
   /** USDC/USD on mainnet */
-  USDC_USD_MAINNET: new PublicKey("Gnt27xtC473ZT2Mw5u8wZ68Z3gULkSTb5DuxJy7eJotD"),
+  USDC_USD_MAINNET: new PublicKey('Gnt27xtC473ZT2Mw5u8wZ68Z3gULkSTb5DuxJy7eJotD'),
   /** USDT/USD on mainnet */
-  USDT_USD_MAINNET: new PublicKey("3vxLXJqLqF3JG5TCbYycbKWRBbCJQLxQmBGCkyqEEefL"),
+  USDT_USD_MAINNET: new PublicKey('3vxLXJqLqF3JG5TCbYycbKWRBbCJQLxQmBGCkyqEEefL'),
 } as const;
 
 /**
@@ -44,16 +44,10 @@ export const PYTH_FEEDS = {
  */
 export function parsePythPrice(data: Buffer | Uint8Array): OraclePrice {
   if (data.length < 224) {
-    throw new Error(
-      `Invalid Pyth price account: expected >= 224 bytes, got ${data.length}`,
-    );
+    throw new Error(`Invalid Pyth price account: expected >= 224 bytes, got ${data.length}`);
   }
 
-  const view = new DataView(
-    data.buffer,
-    data.byteOffset,
-    data.byteLength,
-  );
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
 
   const exponent = view.getInt32(20, true);
   const price = view.getBigInt64(208, true);
@@ -76,9 +70,7 @@ export async function fetchPythPrice(
 ): Promise<OraclePrice> {
   const accountInfo = await connection.getAccountInfo(priceFeedAddress);
   if (!accountInfo) {
-    throw new Error(
-      `Price feed account not found: ${priceFeedAddress.toBase58()}`,
-    );
+    throw new Error(`Price feed account not found: ${priceFeedAddress.toBase58()}`);
   }
   return parsePythPrice(accountInfo.data);
 }
@@ -147,9 +139,11 @@ export function tokenAmountToUsd(
  * Pass the returned AccountMeta to the mint instruction's remainingAccounts
  * to enable USD-denominated supply cap checking.
  */
-export function buildOracleRemainingAccount(
-  priceFeedAddress: PublicKey,
-): { pubkey: PublicKey; isSigner: boolean; isWritable: boolean } {
+export function buildOracleRemainingAccount(priceFeedAddress: PublicKey): {
+  pubkey: PublicKey;
+  isSigner: boolean;
+  isWritable: boolean;
+} {
   return {
     pubkey: priceFeedAddress,
     isSigner: false,

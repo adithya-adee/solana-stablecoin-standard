@@ -9,16 +9,7 @@
   "instructions": [
     {
       "name": "burn_tokens",
-      "discriminator": [
-        76,
-        15,
-        51,
-        254,
-        229,
-        215,
-        121,
-        66
-      ],
+      "discriminator": [76, 15, 51, 254, 229, 215, 121, 66],
       "accounts": [
         {
           "name": "burner",
@@ -31,18 +22,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  115,
-                  115,
-                  115,
-                  45,
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
+                "value": [115, 115, 115, 45, 99, 111, 110, 102, 105, 103]
               },
               {
                 "kind": "account",
@@ -53,9 +33,7 @@
         },
         {
           "name": "burner_role",
-          "docs": [
-            "Burner role PDA — its existence proves burn authorization."
-          ]
+          "docs": ["Burner role PDA — its existence proves burn authorization."]
         },
         {
           "name": "mint",
@@ -78,16 +56,7 @@
     },
     {
       "name": "freeze_account",
-      "discriminator": [
-        253,
-        75,
-        82,
-        133,
-        167,
-        238,
-        43,
-        130
-      ],
+      "discriminator": [253, 75, 82, 133, 167, 238, 43, 130],
       "accounts": [
         {
           "name": "freezer",
@@ -99,18 +68,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  115,
-                  115,
-                  115,
-                  45,
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
+                "value": [115, 115, 115, 45, 99, 111, 110, 102, 105, 103]
               },
               {
                 "kind": "account",
@@ -137,16 +95,7 @@
     },
     {
       "name": "grant_role",
-      "discriminator": [
-        218,
-        234,
-        128,
-        15,
-        82,
-        33,
-        236,
-        253
-      ],
+      "discriminator": [218, 234, 128, 15, 82, 33, 236, 253],
       "accounts": [
         {
           "name": "admin",
@@ -160,18 +109,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  115,
-                  115,
-                  115,
-                  45,
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
+                "value": [115, 115, 115, 45, 99, 111, 110, 102, 105, 103]
               },
               {
                 "kind": "account",
@@ -183,15 +121,11 @@
         },
         {
           "name": "admin_role",
-          "docs": [
-            "Admin's own role PDA — proves admin authorization."
-          ]
+          "docs": ["Admin's own role PDA — proves admin authorization."]
         },
         {
           "name": "grantee",
-          "docs": [
-            "The address receiving the role."
-          ]
+          "docs": ["The address receiving the role."]
         },
         {
           "name": "role_account",
@@ -211,16 +145,7 @@
     },
     {
       "name": "initialize",
-      "discriminator": [
-        175,
-        175,
-        109,
-        31,
-        13,
-        152,
-        155,
-        237
-      ],
+      "discriminator": [175, 175, 109, 31, 13, 152, 155, 237],
       "accounts": [
         {
           "name": "authority",
@@ -234,18 +159,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  115,
-                  115,
-                  115,
-                  45,
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
+                "value": [115, 115, 115, 45, 99, 111, 110, 102, 105, 103]
               },
               {
                 "kind": "account",
@@ -256,9 +170,7 @@
         },
         {
           "name": "mint",
-          "docs": [
-            "The Token-2022 mint, created externally by the SDK before this instruction."
-          ]
+          "docs": ["The Token-2022 mint, created externally by the SDK before this instruction."]
         },
         {
           "name": "admin_role",
@@ -285,16 +197,7 @@
     },
     {
       "name": "mint_tokens",
-      "discriminator": [
-        59,
-        132,
-        24,
-        246,
-        122,
-        39,
-        8,
-        243
-      ],
+      "discriminator": [59, 132, 24, 246, 122, 39, 8, 243],
       "accounts": [
         {
           "name": "minter",
@@ -307,18 +210,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  115,
-                  115,
-                  115,
-                  45,
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
+                "value": [115, 115, 115, 45, 99, 111, 110, 102, 105, 103]
               },
               {
                 "kind": "account",
@@ -371,16 +263,7 @@
     },
     {
       "name": "pause",
-      "discriminator": [
-        211,
-        22,
-        221,
-        251,
-        74,
-        121,
-        193,
-        47
-      ],
+      "discriminator": [211, 22, 221, 251, 74, 121, 193, 47],
       "accounts": [
         {
           "name": "pauser",
@@ -393,18 +276,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  115,
-                  115,
-                  115,
-                  45,
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
+                "value": [115, 115, 115, 45, 99, 111, 110, 102, 105, 103]
               },
               {
                 "kind": "account",
@@ -422,16 +294,7 @@
     },
     {
       "name": "revoke_role",
-      "discriminator": [
-        179,
-        232,
-        2,
-        180,
-        48,
-        227,
-        82,
-        7
-      ],
+      "discriminator": [179, 232, 2, 180, 48, 227, 82, 7],
       "accounts": [
         {
           "name": "admin",
@@ -445,18 +308,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  115,
-                  115,
-                  115,
-                  45,
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
+                "value": [115, 115, 115, 45, 99, 111, 110, 102, 105, 103]
               },
               {
                 "kind": "account",
@@ -468,15 +320,11 @@
         },
         {
           "name": "admin_role",
-          "docs": [
-            "Admin's own role PDA — proves admin authorization."
-          ]
+          "docs": ["Admin's own role PDA — proves admin authorization."]
         },
         {
           "name": "role_account",
-          "docs": [
-            "The role PDA being revoked. Closed and rent returned to admin."
-          ],
+          "docs": ["The role PDA being revoked. Closed and rent returned to admin."],
           "writable": true
         }
       ],
@@ -484,16 +332,7 @@
     },
     {
       "name": "seize",
-      "discriminator": [
-        129,
-        159,
-        143,
-        31,
-        161,
-        224,
-        241,
-        84
-      ],
+      "discriminator": [129, 159, 143, 31, 161, 224, 241, 84],
       "accounts": [
         {
           "name": "seizer",
@@ -501,25 +340,12 @@
         },
         {
           "name": "config",
-          "docs": [
-            "NO pause check — seizure works during emergencies."
-          ],
+          "docs": ["NO pause check — seizure works during emergencies."],
           "pda": {
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  115,
-                  115,
-                  115,
-                  45,
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
+                "value": [115, 115, 115, 45, 99, 111, 110, 102, 105, 103]
               },
               {
                 "kind": "account",
@@ -530,9 +356,7 @@
         },
         {
           "name": "seizer_role",
-          "docs": [
-            "Seizer role PDA — its existence proves seizure authorization."
-          ]
+          "docs": ["Seizer role PDA — its existence proves seizure authorization."]
         },
         {
           "name": "mint"
@@ -558,16 +382,7 @@
     },
     {
       "name": "thaw_account",
-      "discriminator": [
-        115,
-        152,
-        79,
-        213,
-        213,
-        169,
-        184,
-        35
-      ],
+      "discriminator": [115, 152, 79, 213, 213, 169, 184, 35],
       "accounts": [
         {
           "name": "freezer",
@@ -579,18 +394,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  115,
-                  115,
-                  115,
-                  45,
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
+                "value": [115, 115, 115, 45, 99, 111, 110, 102, 105, 103]
               },
               {
                 "kind": "account",
@@ -617,16 +421,7 @@
     },
     {
       "name": "transfer_authority",
-      "discriminator": [
-        48,
-        169,
-        76,
-        72,
-        229,
-        180,
-        55,
-        161
-      ],
+      "discriminator": [48, 169, 76, 72, 229, 180, 55, 161],
       "accounts": [
         {
           "name": "admin",
@@ -640,18 +435,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  115,
-                  115,
-                  115,
-                  45,
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
+                "value": [115, 115, 115, 45, 99, 111, 110, 102, 105, 103]
               },
               {
                 "kind": "account",
@@ -663,9 +447,7 @@
         },
         {
           "name": "admin_role",
-          "docs": [
-            "The caller's admin role PDA — will be closed."
-          ],
+          "docs": ["The caller's admin role PDA — will be closed."],
           "writable": true
         },
         {
@@ -673,9 +455,7 @@
         },
         {
           "name": "new_admin_role",
-          "docs": [
-            "The new authority's admin role PDA — will be created."
-          ],
+          "docs": ["The new authority's admin role PDA — will be created."],
           "writable": true
         },
         {
@@ -687,16 +467,7 @@
     },
     {
       "name": "unpause",
-      "discriminator": [
-        169,
-        144,
-        4,
-        38,
-        10,
-        141,
-        188,
-        255
-      ],
+      "discriminator": [169, 144, 4, 38, 10, 141, 188, 255],
       "accounts": [
         {
           "name": "pauser",
@@ -709,18 +480,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  115,
-                  115,
-                  115,
-                  45,
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
+                "value": [115, 115, 115, 45, 99, 111, 110, 102, 105, 103]
               },
               {
                 "kind": "account",
@@ -738,16 +498,7 @@
     },
     {
       "name": "update_minter",
-      "discriminator": [
-        164,
-        129,
-        164,
-        88,
-        75,
-        29,
-        91,
-        38
-      ],
+      "discriminator": [164, 129, 164, 88, 75, 29, 91, 38],
       "accounts": [
         {
           "name": "admin",
@@ -759,18 +510,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  115,
-                  115,
-                  115,
-                  45,
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
+                "value": [115, 115, 115, 45, 99, 111, 110, 102, 105, 103]
               },
               {
                 "kind": "account",
@@ -782,15 +522,11 @@
         },
         {
           "name": "admin_role",
-          "docs": [
-            "Admin role PDA — proves admin authorization."
-          ]
+          "docs": ["Admin role PDA — proves admin authorization."]
         },
         {
           "name": "minter_role",
-          "docs": [
-            "The minter's role account to update. Must be a Minter role."
-          ],
+          "docs": ["The minter's role account to update. Must be a Minter role."],
           "writable": true
         }
       ],
@@ -805,16 +541,7 @@
     },
     {
       "name": "update_supply_cap",
-      "discriminator": [
-        9,
-        215,
-        52,
-        77,
-        1,
-        9,
-        162,
-        17
-      ],
+      "discriminator": [9, 215, 52, 77, 1, 9, 162, 17],
       "accounts": [
         {
           "name": "admin",
@@ -827,18 +554,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  115,
-                  115,
-                  115,
-                  45,
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
+                "value": [115, 115, 115, 45, 99, 111, 110, 102, 105, 103]
               },
               {
                 "kind": "account",
@@ -865,200 +581,65 @@
   "accounts": [
     {
       "name": "PriceUpdateV2",
-      "discriminator": [
-        34,
-        241,
-        35,
-        99,
-        157,
-        126,
-        244,
-        205
-      ]
+      "discriminator": [34, 241, 35, 99, 157, 126, 244, 205]
     },
     {
       "name": "RoleAccount",
-      "discriminator": [
-        142,
-        236,
-        135,
-        197,
-        214,
-        3,
-        244,
-        226
-      ]
+      "discriminator": [142, 236, 135, 197, 214, 3, 244, 226]
     },
     {
       "name": "StablecoinConfig",
-      "discriminator": [
-        127,
-        25,
-        244,
-        213,
-        1,
-        192,
-        101,
-        6
-      ]
+      "discriminator": [127, 25, 244, 213, 1, 192, 101, 6]
     }
   ],
   "events": [
     {
       "name": "AccountFrozen",
-      "discriminator": [
-        221,
-        214,
-        59,
-        29,
-        246,
-        50,
-        119,
-        206
-      ]
+      "discriminator": [221, 214, 59, 29, 246, 50, 119, 206]
     },
     {
       "name": "AccountThawed",
-      "discriminator": [
-        49,
-        63,
-        73,
-        105,
-        129,
-        190,
-        40,
-        119
-      ]
+      "discriminator": [49, 63, 73, 105, 129, 190, 40, 119]
     },
     {
       "name": "AuthorityTransferred",
-      "discriminator": [
-        245,
-        109,
-        179,
-        54,
-        135,
-        92,
-        22,
-        64
-      ]
+      "discriminator": [245, 109, 179, 54, 135, 92, 22, 64]
     },
     {
       "name": "ConfigUpdated",
-      "discriminator": [
-        40,
-        241,
-        230,
-        122,
-        11,
-        19,
-        198,
-        194
-      ]
+      "discriminator": [40, 241, 230, 122, 11, 19, 198, 194]
     },
     {
       "name": "OperationsPaused",
-      "discriminator": [
-        173,
-        3,
-        52,
-        125,
-        217,
-        125,
-        167,
-        81
-      ]
+      "discriminator": [173, 3, 52, 125, 217, 125, 167, 81]
     },
     {
       "name": "OperationsUnpaused",
-      "discriminator": [
-        54,
-        216,
-        228,
-        170,
-        9,
-        168,
-        101,
-        17
-      ]
+      "discriminator": [54, 216, 228, 170, 9, 168, 101, 17]
     },
     {
       "name": "RoleGranted",
-      "discriminator": [
-        220,
-        183,
-        89,
-        228,
-        143,
-        63,
-        246,
-        58
-      ]
+      "discriminator": [220, 183, 89, 228, 143, 63, 246, 58]
     },
     {
       "name": "RoleRevoked",
-      "discriminator": [
-        167,
-        183,
-        52,
-        229,
-        126,
-        206,
-        62,
-        61
-      ]
+      "discriminator": [167, 183, 52, 229, 126, 206, 62, 61]
     },
     {
       "name": "StablecoinInitialized",
-      "discriminator": [
-        238,
-        217,
-        135,
-        14,
-        147,
-        33,
-        221,
-        169
-      ]
+      "discriminator": [238, 217, 135, 14, 147, 33, 221, 169]
     },
     {
       "name": "TokensBurned",
-      "discriminator": [
-        230,
-        255,
-        34,
-        113,
-        226,
-        53,
-        227,
-        9
-      ]
+      "discriminator": [230, 255, 34, 113, 226, 53, 227, 9]
     },
     {
       "name": "TokensMinted",
-      "discriminator": [
-        207,
-        212,
-        128,
-        194,
-        175,
-        54,
-        64,
-        24
-      ]
+      "discriminator": [207, 212, 128, 194, 175, 54, 64, 24]
     },
     {
       "name": "TokensSeized",
-      "discriminator": [
-        51,
-        129,
-        131,
-        114,
-        206,
-        234,
-        140,
-        122
-      ]
+      "discriminator": [51, 129, 131, 114, 206, 234, 140, 122]
     }
   ],
   "errors": [
@@ -1276,9 +857,7 @@
           },
           {
             "name": "enable_transfer_hook",
-            "docs": [
-              "Override preset default for transfer hook. If None, derived from preset."
-            ],
+            "docs": ["Override preset default for transfer hook. If None, derived from preset."],
             "type": {
               "option": "bool"
             }
@@ -1341,10 +920,7 @@
               "`FeedId` but avoid the type alias because of compatibility issues with Anchor's `idl-build` feature."
             ],
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1361,9 +937,7 @@
           },
           {
             "name": "publish_time",
-            "docs": [
-              "The timestamp of this price update in seconds"
-            ],
+            "docs": ["The timestamp of this price update in seconds"],
             "type": "i64"
           },
           {
@@ -1509,9 +1083,7 @@
           },
           {
             "name": "amount_minted",
-            "docs": [
-              "Cumulative amount minted by this minter. Only tracked for Role::Minter."
-            ],
+            "docs": ["Cumulative amount minted by this minter. Only tracked for Role::Minter."],
             "type": "u64"
           }
         ]
@@ -1606,58 +1178,42 @@
           },
           {
             "name": "name",
-            "docs": [
-              "Stablecoin name (max 32 chars)."
-            ],
+            "docs": ["Stablecoin name (max 32 chars)."],
             "type": "string"
           },
           {
             "name": "symbol",
-            "docs": [
-              "Stablecoin ticker symbol (max 10 chars)."
-            ],
+            "docs": ["Stablecoin ticker symbol (max 10 chars)."],
             "type": "string"
           },
           {
             "name": "uri",
-            "docs": [
-              "Metadata URI (max 200 chars)."
-            ],
+            "docs": ["Metadata URI (max 200 chars)."],
             "type": "string"
           },
           {
             "name": "decimals",
-            "docs": [
-              "Token decimals (e.g. 6 for USDC-style)."
-            ],
+            "docs": ["Token decimals (e.g. 6 for USDC-style)."],
             "type": "u8"
           },
           {
             "name": "enable_permanent_delegate",
-            "docs": [
-              "Whether the config PDA is set as permanent delegate on token accounts."
-            ],
+            "docs": ["Whether the config PDA is set as permanent delegate on token accounts."],
             "type": "bool"
           },
           {
             "name": "enable_transfer_hook",
-            "docs": [
-              "Whether a transfer hook program is attached to the mint."
-            ],
+            "docs": ["Whether a transfer hook program is attached to the mint."],
             "type": "bool"
           },
           {
             "name": "default_account_frozen",
-            "docs": [
-              "Whether new token accounts are frozen by default (requires explicit thaw)."
-            ],
+            "docs": ["Whether new token accounts are frozen by default (requires explicit thaw)."],
             "type": "bool"
           },
           {
             "name": "admin_count",
-            "docs": [
-              "Number of active admins. Used to prevent revoking the last admin."
-            ],
+            "docs": ["Number of active admins. Used to prevent revoking the last admin."],
             "type": "u32"
           }
         ]

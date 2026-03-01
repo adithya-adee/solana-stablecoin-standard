@@ -1,10 +1,10 @@
-import { Program, BN } from "@coral-xyz/anchor";
-import { PublicKey } from "@solana/web3.js";
-import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
-import type { SssCore } from "../idl/sss_core";
-import { deriveConfigPda, deriveRolePda } from "../pda";
-import type { RoleType, MintAddress, ConfigPda, RolePda } from "../types";
-import { ROLE_MAP, roleType } from "../types";
+import { Program, BN } from '@coral-xyz/anchor';
+import { PublicKey } from '@solana/web3.js';
+import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
+import type { SssCore } from '../idl/sss_core';
+import { deriveConfigPda, deriveRolePda } from '../pda';
+import type { RoleType, MintAddress, ConfigPda, RolePda } from '../types';
+import { ROLE_MAP, roleType } from '../types';
 
 /**
  * Build the `initialize` instruction.
@@ -29,12 +29,7 @@ export function buildInitializeIx(
   },
 ) {
   const [configPda] = deriveConfigPda(mint, program.programId);
-  const [adminRolePda] = deriveRolePda(
-    configPda,
-    authority,
-    roleType("admin"),
-    program.programId,
-  );
+  const [adminRolePda] = deriveRolePda(configPda, authority, roleType('admin'), program.programId);
 
   return program.methods
     .initialize({
@@ -72,12 +67,7 @@ export function buildMintTokensIx(
   priceUpdate: PublicKey | null = null,
 ) {
   const [configPda] = deriveConfigPda(mint, program.programId);
-  const [minterRolePda] = deriveRolePda(
-    configPda,
-    minter,
-    roleType("minter"),
-    program.programId,
-  );
+  const [minterRolePda] = deriveRolePda(configPda, minter, roleType('minter'), program.programId);
 
   return program.methods
     .mintTokens(amount)
@@ -106,12 +96,7 @@ export function buildBurnTokensIx(
   amount: BN,
 ) {
   const [configPda] = deriveConfigPda(mint, program.programId);
-  const [burnerRolePda] = deriveRolePda(
-    configPda,
-    burner,
-    roleType("burner"),
-    program.programId,
-  );
+  const [burnerRolePda] = deriveRolePda(configPda, burner, roleType('burner'), program.programId);
 
   return program.methods
     .burnTokens(amount)
@@ -141,7 +126,7 @@ export function buildFreezeAccountIx(
   const [freezerRolePda] = deriveRolePda(
     configPda,
     freezer,
-    roleType("freezer"),
+    roleType('freezer'),
     program.programId,
   );
 
@@ -173,7 +158,7 @@ export function buildThawAccountIx(
   const [freezerRolePda] = deriveRolePda(
     configPda,
     freezer,
-    roleType("freezer"),
+    roleType('freezer'),
     program.programId,
   );
 
@@ -195,17 +180,8 @@ export function buildThawAccountIx(
  *
  * Auto-resolved by Anchor: config (PDA, seeded by config.mint)
  */
-export function buildPauseIx(
-  program: Program<SssCore>,
-  configPda: ConfigPda,
-  pauser: PublicKey,
-) {
-  const [pauserRolePda] = deriveRolePda(
-    configPda,
-    pauser,
-    roleType("pauser"),
-    program.programId,
-  );
+export function buildPauseIx(program: Program<SssCore>, configPda: ConfigPda, pauser: PublicKey) {
+  const [pauserRolePda] = deriveRolePda(configPda, pauser, roleType('pauser'), program.programId);
 
   return program.methods
     .pause()
@@ -223,17 +199,8 @@ export function buildPauseIx(
  *
  * Auto-resolved by Anchor: config (PDA, seeded by config.mint)
  */
-export function buildUnpauseIx(
-  program: Program<SssCore>,
-  configPda: ConfigPda,
-  pauser: PublicKey,
-) {
-  const [pauserRolePda] = deriveRolePda(
-    configPda,
-    pauser,
-    roleType("pauser"),
-    program.programId,
-  );
+export function buildUnpauseIx(program: Program<SssCore>, configPda: ConfigPda, pauser: PublicKey) {
+  const [pauserRolePda] = deriveRolePda(configPda, pauser, roleType('pauser'), program.programId);
 
   return program.methods
     .unpause()
@@ -261,12 +228,7 @@ export function buildSeizeIx(
   amount: BN,
 ) {
   const [configPda] = deriveConfigPda(mint, program.programId);
-  const [seizerRolePda] = deriveRolePda(
-    configPda,
-    seizer,
-    roleType("seizer"),
-    program.programId,
-  );
+  const [seizerRolePda] = deriveRolePda(configPda, seizer, roleType('seizer'), program.programId);
 
   return program.methods
     .seize(amount)
@@ -294,18 +256,8 @@ export function buildGrantRoleIx(
   grantee: PublicKey,
   role: RoleType,
 ) {
-  const [adminRolePda] = deriveRolePda(
-    configPda,
-    admin,
-    roleType("admin"),
-    program.programId,
-  );
-  const [roleAccountPda] = deriveRolePda(
-    configPda,
-    grantee,
-    role,
-    program.programId,
-  );
+  const [adminRolePda] = deriveRolePda(configPda, admin, roleType('admin'), program.programId);
+  const [roleAccountPda] = deriveRolePda(configPda, grantee, role, program.programId);
 
   return program.methods
     .grantRole((ROLE_MAP as any)[role] as number)
@@ -332,12 +284,7 @@ export function buildRevokeRoleIx(
   admin: PublicKey,
   roleAccountPda: RolePda,
 ) {
-  const [adminRolePda] = deriveRolePda(
-    configPda,
-    admin,
-    roleType("admin"),
-    program.programId,
-  );
+  const [adminRolePda] = deriveRolePda(configPda, admin, roleType('admin'), program.programId);
 
   return program.methods
     .revokeRole()
@@ -363,16 +310,11 @@ export function buildTransferAuthorityIx(
   admin: PublicKey,
   newAuthority: PublicKey,
 ) {
-  const [adminRolePda] = deriveRolePda(
-    configPda,
-    admin,
-    roleType("admin"),
-    program.programId,
-  );
+  const [adminRolePda] = deriveRolePda(configPda, admin, roleType('admin'), program.programId);
   const [newAdminRolePda] = deriveRolePda(
     configPda,
     newAuthority,
-    roleType("admin"),
+    roleType('admin'),
     program.programId,
   );
 
@@ -402,12 +344,7 @@ export function buildUpdateMinterIx(
   minterRoleAccountPda: RolePda,
   newQuota: BN | null,
 ) {
-  const [adminRolePda] = deriveRolePda(
-    configPda,
-    admin,
-    roleType("admin"),
-    program.programId,
-  );
+  const [adminRolePda] = deriveRolePda(configPda, admin, roleType('admin'), program.programId);
 
   return program.methods
     .updateMinter(newQuota)
@@ -433,12 +370,7 @@ export function buildUpdateSupplyCapIx(
   admin: PublicKey,
   newSupplyCap: BN | null,
 ) {
-  const [adminRolePda] = deriveRolePda(
-    configPda,
-    admin,
-    roleType("admin"),
-    program.programId,
-  );
+  const [adminRolePda] = deriveRolePda(configPda, admin, roleType('admin'), program.programId);
 
   return program.methods
     .updateSupplyCap(newSupplyCap)

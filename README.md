@@ -13,7 +13,7 @@
 
 **Production-grade framework for issuing regulated stablecoins on Solana with Token-2022**
 
-*3 presets · 7 roles · Transfer hook blacklists · Confidential transfers · Oracle supply caps · Per-minter quotas · Full toolchain*
+_3 presets · 7 roles · Transfer hook blacklists · Confidential transfers · Oracle supply caps · Per-minter quotas · Full toolchain_
 
 [![CI](https://github.com/solanabr/solana-stablecoin-standard/actions/workflows/ci.yml/badge.svg)](https://github.com/solanabr/solana-stablecoin-standard/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -76,12 +76,12 @@
 
 **Three-layer composable design:**
 
-| Layer | Description |
-|-------|-------------|
-| **Layer 3 — Presets** | SSS-1 (Minimal), SSS-2 (Compliant), SSS-3 (Private) |
-| **Layer 2 — Modules** | Compliance (hooks + blacklist) · Privacy (confidential transfers) |
+| Layer                  | Description                                                           |
+| ---------------------- | --------------------------------------------------------------------- |
+| **Layer 3 — Presets**  | SSS-1 (Minimal), SSS-2 (Compliant), SSS-3 (Private)                   |
+| **Layer 2 — Modules**  | Compliance (hooks + blacklist) · Privacy (confidential transfers)     |
 | **Layer 1 — Base SDK** | SolanaStablecoin class · Instruction builders · PDA derivers · Oracle |
-| **On-chain** | `sss-core` + `sss-transfer-hook` (Anchor programs on Token-2022) |
+| **On-chain**           | `sss-core` + `sss-transfer-hook` (Anchor programs on Token-2022)      |
 
 </div>
 
@@ -89,20 +89,20 @@
 
 ## Preset Comparison
 
-| Feature | SSS-1 (Minimal) | SSS-2 (Compliant) | SSS-3 (Private) |
-|---------|:---:|:---:|:---:|
-| Mint / Burn | ✅ | ✅ | ✅ |
-| Freeze / Thaw | ✅ | ✅ | ✅ |
-| Pause / Unpause | ✅ | ✅ | ✅ |
-| Seize (permanent delegate) | ✅ | ✅ | ✅ |
-| Role-based access (7 roles) | ✅ | ✅ | ✅ |
-| On-chain metadata | ✅ | ✅ | ✅ |
-| Supply cap + per-minter quotas | ✅ | ✅ | ✅ |
-| Transfer hook (blacklist) | — | ✅ | — |
-| Default frozen accounts | — | ✅ | — |
-| Confidential transfers | — | — | ✅ |
-| Auditor key (regulatory) | — | — | ✅ |
-| **Use case** | *Internal tokens, DAO treasuries* | *Regulated stablecoins (USDC-class)* | *Privacy-preserving currencies* |
+| Feature                        |          SSS-1 (Minimal)          |          SSS-2 (Compliant)           |         SSS-3 (Private)         |
+| ------------------------------ | :-------------------------------: | :----------------------------------: | :-----------------------------: |
+| Mint / Burn                    |                ✅                 |                  ✅                  |               ✅                |
+| Freeze / Thaw                  |                ✅                 |                  ✅                  |               ✅                |
+| Pause / Unpause                |                ✅                 |                  ✅                  |               ✅                |
+| Seize (permanent delegate)     |                ✅                 |                  ✅                  |               ✅                |
+| Role-based access (7 roles)    |                ✅                 |                  ✅                  |               ✅                |
+| On-chain metadata              |                ✅                 |                  ✅                  |               ✅                |
+| Supply cap + per-minter quotas |                ✅                 |                  ✅                  |               ✅                |
+| Transfer hook (blacklist)      |                 —                 |                  ✅                  |                —                |
+| Default frozen accounts        |                 —                 |                  ✅                  |                —                |
+| Confidential transfers         |                 —                 |                  —                   |               ✅                |
+| Auditor key (regulatory)       |                 —                 |                  —                   |               ✅                |
+| **Use case**                   | _Internal tokens, DAO treasuries_ | _Regulated stablecoins (USDC-class)_ | _Privacy-preserving currencies_ |
 
 ---
 
@@ -128,33 +128,33 @@ cargo test            # 16 Rust unit + fuzz tests
 ### TypeScript SDK
 
 ```typescript
-import { SolanaStablecoin, Presets } from "@stbr/sss-token";
-import { AnchorProvider } from "@coral-xyz/anchor";
+import { SolanaStablecoin, Presets } from '@stbr/sss-token';
+import { AnchorProvider } from '@coral-xyz/anchor';
 
 const provider = AnchorProvider.env();
 
 // Create an SSS-2 compliant stablecoin
 const stable = await SolanaStablecoin.create(provider, {
   preset: Presets.SSS_2,
-  name: "My Stablecoin",
-  symbol: "MUSD",
+  name: 'My Stablecoin',
+  symbol: 'MUSD',
   decimals: 6,
 });
 
 // Or create with custom extensions (preset inferred automatically)
 const custom = await SolanaStablecoin.create(provider, {
-  name: "Custom Stable",
-  symbol: "CUSD",
+  name: 'Custom Stable',
+  symbol: 'CUSD',
   extensions: { permanentDelegate: true, transferHook: false },
 });
 
 // Token operations
-await stable.roles.grant(minterWallet.publicKey, "minter");
+await stable.roles.grant(minterWallet.publicKey, 'minter');
 await stable.mint({ recipient: recipientTokenAccount, amount: 1_000_000n });
 const supply = await stable.getTotalSupply();
 
 // Compliance (SSS-2)
-await stable.compliance.blacklistAdd(address, "Sanctions match");
+await stable.compliance.blacklistAdd(address, 'Sanctions match');
 await stable.compliance.seize(frozenAccount, treasury, amount);
 ```
 
@@ -195,24 +195,24 @@ docker compose up    # Backend with health check at :3000/health
 
 ### On-Chain Programs
 
-| Program | Description | Program ID |
-|---------|-------------|------------|
-| **sss-core** | Universal stablecoin management — roles, supply caps, pause, seize | `SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP` |
-| **sss-transfer-hook** | Token-2022 transfer hook — blacklist enforcement per transfer | `HookFvKFaoF9KL8TUXUnQK5r2mJoMYdBENu549seRyXW` |
+| Program               | Description                                                        | Program ID                                     |
+| --------------------- | ------------------------------------------------------------------ | ---------------------------------------------- |
+| **sss-core**          | Universal stablecoin management — roles, supply caps, pause, seize | `SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP`  |
+| **sss-transfer-hook** | Token-2022 transfer hook — blacklist enforcement per transfer      | `HookFvKFaoF9KL8TUXUnQK5r2mJoMYdBENu549seRyXW` |
 
 **StablecoinConfig** stores per-mint: name, symbol, uri, decimals, preset, supply_cap, total_minted, total_burned, is_paused, enable_permanent_delegate, enable_transfer_hook, default_account_frozen.
 
 ### Role System (7 roles, PDA-per-role-per-address)
 
-| Role | ID | Permissions |
-|------|:---:|------------|
-| Admin | 0 | Grant/revoke roles, update config, transfer authority |
-| Minter | 1 | Mint tokens (with optional per-minter quota) |
-| Freezer | 2 | Freeze/thaw token accounts |
-| Pauser | 3 | Pause/unpause all operations |
-| Burner | 4 | Burn tokens from any account (via permanent delegate) |
-| Blacklister | 5 | Add/remove addresses from transfer blacklist |
-| Seizer | 6 | Seize tokens from any account to treasury |
+| Role        | ID  | Permissions                                           |
+| ----------- | :-: | ----------------------------------------------------- |
+| Admin       |  0  | Grant/revoke roles, update config, transfer authority |
+| Minter      |  1  | Mint tokens (with optional per-minter quota)          |
+| Freezer     |  2  | Freeze/thaw token accounts                            |
+| Pauser      |  3  | Pause/unpause all operations                          |
+| Burner      |  4  | Burn tokens from any account (via permanent delegate) |
+| Blacklister |  5  | Add/remove addresses from transfer blacklist          |
+| Seizer      |  6  | Seize tokens from any account to treasury             |
 
 ### TypeScript SDK (`@stbr/sss-token`)
 
@@ -245,12 +245,12 @@ docker compose up    # Backend with health check at :3000/health
 
 ### Bonus Features
 
-| Feature | Description |
-|---------|-------------|
-| **SSS-3 Private Stablecoin** | Token-2022 ConfidentialTransfer + auditor key + scoped allowlists (documented as PoC) |
-| **Oracle Integration** | Pyth price feeds for USD-denominated supply caps (`parsePythPrice`, `usdToTokenAmount`) |
-| **Interactive Admin TUI** | ratatui terminal dashboard for real-time monitoring |
-| **Example Frontend** | Next.js 15 scaffold for stablecoin creation and management |
+| Feature                      | Description                                                                             |
+| ---------------------------- | --------------------------------------------------------------------------------------- |
+| **SSS-3 Private Stablecoin** | Token-2022 ConfidentialTransfer + auditor key + scoped allowlists (documented as PoC)   |
+| **Oracle Integration**       | Pyth price feeds for USD-denominated supply caps (`parsePythPrice`, `usdToTokenAmount`) |
+| **Interactive Admin TUI**    | ratatui terminal dashboard for real-time monitoring                                     |
+| **Example Frontend**         | Next.js 15 scaffold for stablecoin creation and management                              |
 
 #### TUI Dashboard (ratatui)
 
@@ -269,8 +269,8 @@ Web-based admin interface with wallet integration for all stablecoin operations.
 
 ![Frontend Demo](docs/images/frontend-demo.gif)
 
-| Dashboard | Operations | Confidential Transfers |
-|:-:|:-:|:-:|
+|                    Dashboard                     |                     Operations                     |                 Confidential Transfers                 |
+| :----------------------------------------------: | :------------------------------------------------: | :----------------------------------------------------: |
 | ![Dashboard](docs/images/frontend-dashboard.png) | ![Operations](docs/images/frontend-operations.png) | ![Confidential](docs/images/frontend-confidential.png) |
 
 ```bash
@@ -283,9 +283,9 @@ cd frontend && pnpm dev    # http://localhost:3001
 
 Both programs deployed and verified on devnet with 22 example transactions across all 3 presets.
 
-| Program | Address | Status |
-|---------|---------|--------|
-| sss-core | `SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP` | Deployed |
+| Program           | Address                                        | Status   |
+| ----------------- | ---------------------------------------------- | -------- |
+| sss-core          | `SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP`  | Deployed |
 | sss-transfer-hook | `HookFvKFaoF9KL8TUXUnQK5r2mJoMYdBENu549seRyXW` | Deployed |
 
 Full deployment proof with real transaction signatures in [`deployments/devnet-proof.json`](deployments/devnet-proof.json):
@@ -300,12 +300,12 @@ Full deployment proof with real transaction signatures in [`deployments/devnet-p
 
 **203 tests, all passing.**
 
-| Suite | Count | What's Covered |
-|-------|:-----:|----------------|
-| Integration (`anchor test`) | 97 | All 14 instruction paths, error cases, role boundaries, oracle caps |
-| SDK unit (`vitest`) | 90 | PDA derivation, errors, types, oracle, barrel exports, client class |
-| Rust unit + fuzz (`cargo test`) | 16 | Config logic, supply arithmetic, role escalation, pause bypass |
-| **Total** | **203** | |
+| Suite                           |  Count  | What's Covered                                                      |
+| ------------------------------- | :-----: | ------------------------------------------------------------------- |
+| Integration (`anchor test`)     |   97    | All 14 instruction paths, error cases, role boundaries, oracle caps |
+| SDK unit (`vitest`)             |   90    | PDA derivation, errors, types, oracle, barrel exports, client class |
+| Rust unit + fuzz (`cargo test`) |   16    | Config logic, supply arithmetic, role escalation, pause bypass      |
+| **Total**                       | **203** |                                                                     |
 
 SDK unit test breakdown: `pda.test.ts` (13) · `errors.test.ts` (12) · `types.test.ts` (7) · `oracle.test.ts` (14) · `exports.test.ts` (39) · `client.test.ts` (5)
 
@@ -334,18 +334,18 @@ solana-stablecoin-standard/
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [Architecture](docs/ARCHITECTURE.md) | 3-layer model, PDA derivation, data flows, security model |
-| [SDK Reference](docs/SDK.md) | Presets, custom configs, custom extensions, TypeScript API |
-| [CLI Reference](docs/CLI.md) | All 20 subcommands with examples |
-| [API Reference](docs/API.md) | Backend REST endpoints, auth, rate limiting |
-| [SSS-1 Spec](docs/SSS-1.md) | Minimal preset — internal tokens, DAO treasuries |
-| [SSS-2 Spec](docs/SSS-2.md) | Compliant preset — regulated stablecoins |
-| [SSS-3 Spec](docs/SSS-3.md) | Private preset — confidential transfers + auditor key |
-| [Operations](docs/OPERATIONS.md) | Operator runbook, emergency procedures |
-| [Security](docs/SECURITY.md) | Threat model, access control matrix |
-| [Compliance](docs/COMPLIANCE.md) | Regulatory considerations, audit trail format |
+| Document                             | Description                                                |
+| ------------------------------------ | ---------------------------------------------------------- |
+| [Architecture](docs/ARCHITECTURE.md) | 3-layer model, PDA derivation, data flows, security model  |
+| [SDK Reference](docs/SDK.md)         | Presets, custom configs, custom extensions, TypeScript API |
+| [CLI Reference](docs/CLI.md)         | All 20 subcommands with examples                           |
+| [API Reference](docs/API.md)         | Backend REST endpoints, auth, rate limiting                |
+| [SSS-1 Spec](docs/SSS-1.md)          | Minimal preset — internal tokens, DAO treasuries           |
+| [SSS-2 Spec](docs/SSS-2.md)          | Compliant preset — regulated stablecoins                   |
+| [SSS-3 Spec](docs/SSS-3.md)          | Private preset — confidential transfers + auditor key      |
+| [Operations](docs/OPERATIONS.md)     | Operator runbook, emergency procedures                     |
+| [Security](docs/SECURITY.md)         | Threat model, access control matrix                        |
+| [Compliance](docs/COMPLIANCE.md)     | Regulatory considerations, audit trail format              |
 
 ---
 

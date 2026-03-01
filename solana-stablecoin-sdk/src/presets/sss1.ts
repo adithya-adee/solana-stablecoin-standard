@@ -1,10 +1,4 @@
-import {
-  Connection,
-  Keypair,
-  PublicKey,
-  SystemProgram,
-  Transaction,
-} from "@solana/web3.js";
+import { Connection, Keypair, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import {
   TOKEN_2022_PROGRAM_ID,
   createInitializeMint2Instruction,
@@ -16,14 +10,10 @@ import {
   AuthorityType,
   TYPE_SIZE,
   LENGTH_SIZE,
-} from "@solana/spl-token";
-import {
-  createInitializeInstruction,
-  pack,
-  type TokenMetadata,
-} from "@solana/spl-token-metadata";
-import type { MintAddress } from "../types";
-import { deriveConfigPda } from "../pda";
+} from '@solana/spl-token';
+import { createInitializeInstruction, pack, type TokenMetadata } from '@solana/spl-token-metadata';
+import type { MintAddress } from '../types';
+import { deriveConfigPda } from '../pda';
 
 export interface Sss1MintOptions {
   name: string;
@@ -50,17 +40,14 @@ export async function createSss1MintTransaction(
   const [configPda] = deriveConfigPda(mintKeypair.publicKey as MintAddress, coreProgramId);
   const decimals = options.decimals ?? 6;
 
-  const extensions = [
-    ExtensionType.MetadataPointer,
-    ExtensionType.PermanentDelegate,
-  ];
+  const extensions = [ExtensionType.MetadataPointer, ExtensionType.PermanentDelegate];
   const mintLen = getMintLen(extensions);
 
   const metadata: TokenMetadata = {
     mint: mintKeypair.publicKey,
     name: options.name,
     symbol: options.symbol,
-    uri: options.uri ?? "",
+    uri: options.uri ?? '',
     additionalMetadata: [],
     updateAuthority: configPda,
   };
@@ -68,8 +55,7 @@ export async function createSss1MintTransaction(
   const metadataLen = pack(metadata).length;
   const totalLen = mintLen + TYPE_SIZE + LENGTH_SIZE + metadataLen;
 
-  const lamports =
-    await connection.getMinimumBalanceForRentExemption(totalLen);
+  const lamports = await connection.getMinimumBalanceForRentExemption(totalLen);
 
   const tx = new Transaction().add(
     SystemProgram.createAccount({
@@ -104,7 +90,7 @@ export async function createSss1MintTransaction(
       metadata: mintKeypair.publicKey,
       name: options.name,
       symbol: options.symbol,
-      uri: options.uri ?? "",
+      uri: options.uri ?? '',
       mintAuthority: payer, // payer signs
       updateAuthority: configPda, // update authority set to configPda immediately
     }),

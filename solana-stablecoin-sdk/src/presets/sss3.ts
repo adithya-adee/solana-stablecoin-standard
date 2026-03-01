@@ -5,7 +5,7 @@ import {
   SystemProgram,
   Transaction,
   TransactionInstruction,
-} from "@solana/web3.js";
+} from '@solana/web3.js';
 import {
   TOKEN_2022_PROGRAM_ID,
   createInitializeMint2Instruction,
@@ -17,14 +17,10 @@ import {
   AuthorityType,
   TYPE_SIZE,
   LENGTH_SIZE,
-} from "@solana/spl-token";
-import {
-  createInitializeInstruction,
-  pack,
-  type TokenMetadata,
-} from "@solana/spl-token-metadata";
-import type { MintAddress } from "../types";
-import { deriveConfigPda } from "../pda";
+} from '@solana/spl-token';
+import { createInitializeInstruction, pack, type TokenMetadata } from '@solana/spl-token-metadata';
+import type { MintAddress } from '../types';
+import { deriveConfigPda } from '../pda';
 
 export interface Sss3MintOptions {
   name: string;
@@ -141,7 +137,7 @@ export async function createSss3MintTransaction(
     mint: mintKeypair.publicKey,
     name: options.name,
     symbol: options.symbol,
-    uri: options.uri ?? "",
+    uri: options.uri ?? '',
     additionalMetadata: [],
     updateAuthority: configPda,
   };
@@ -149,8 +145,7 @@ export async function createSss3MintTransaction(
   const metadataLen = pack(metadata).length;
   const totalLen = mintLen + TYPE_SIZE + LENGTH_SIZE + metadataLen;
 
-  const lamports =
-    await connection.getMinimumBalanceForRentExemption(totalLen);
+  const lamports = await connection.getMinimumBalanceForRentExemption(totalLen);
 
   const tx = new Transaction().add(
     // 1. Create the mint account
@@ -196,7 +191,7 @@ export async function createSss3MintTransaction(
       metadata: mintKeypair.publicKey,
       name: options.name,
       symbol: options.symbol,
-      uri: options.uri ?? "",
+      uri: options.uri ?? '',
       mintAuthority: payer, // payer signs
       updateAuthority: configPda, // update authority set to configPda immediately
     }),

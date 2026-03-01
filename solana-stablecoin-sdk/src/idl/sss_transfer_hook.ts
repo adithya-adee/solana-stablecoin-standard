@@ -5,116 +5,86 @@
  * IDL can be found at `target/idl/sss_transfer_hook.json`.
  */
 export type SssTransferHook = {
-  "address": "HookFvKFaoF9KL8TUXUnQK5r2mJoMYdBENu549seRyXW",
-  "metadata": {
-    "name": "sssTransferHook",
-    "version": "0.1.0",
-    "spec": "0.1.0",
-    "description": "Solana Stablecoin Standard - Transfer Hook Program"
-  },
-  "instructions": [
+  address: 'HookFvKFaoF9KL8TUXUnQK5r2mJoMYdBENu549seRyXW';
+  metadata: {
+    name: 'sssTransferHook';
+    version: '0.1.0';
+    spec: '0.1.0';
+    description: 'Solana Stablecoin Standard - Transfer Hook Program';
+  };
+  instructions: [
     {
-      "name": "addToBlacklist",
-      "discriminator": [
-        90,
-        115,
-        98,
-        231,
-        173,
-        119,
-        117,
-        176
-      ],
-      "accounts": [
+      name: 'addToBlacklist';
+      discriminator: [90, 115, 98, 231, 173, 119, 117, 176];
+      accounts: [
         {
-          "name": "blacklister",
-          "writable": true,
-          "signer": true
+          name: 'blacklister';
+          writable: true;
+          signer: true;
         },
         {
-          "name": "blacklisterRole",
-          "docs": [
-            "Verified by checking owner == sss-core program ID and re-deriving the",
-            "expected PDA address from known seeds using the mint key."
-          ]
+          name: 'blacklisterRole';
+          docs: [
+            'Verified by checking owner == sss-core program ID and re-deriving the',
+            'expected PDA address from known seeds using the mint key.',
+          ];
         },
         {
-          "name": "mint"
+          name: 'mint';
         },
         {
-          "name": "address"
+          name: 'address';
         },
         {
-          "name": "blacklistEntry",
-          "writable": true,
-          "pda": {
-            "seeds": [
+          name: 'blacklistEntry';
+          writable: true;
+          pda: {
+            seeds: [
               {
-                "kind": "const",
-                "value": [
-                  98,
-                  108,
-                  97,
-                  99,
-                  107,
-                  108,
-                  105,
-                  115,
-                  116
-                ]
+                kind: 'const';
+                value: [98, 108, 97, 99, 107, 108, 105, 115, 116];
               },
               {
-                "kind": "account",
-                "path": "mint"
+                kind: 'account';
+                path: 'mint';
               },
               {
-                "kind": "account",
-                "path": "address"
-              }
-            ]
-          }
+                kind: 'account';
+                path: 'address';
+              },
+            ];
+          };
         },
         {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
+          name: 'systemProgram';
+          address: '11111111111111111111111111111111';
+        },
+      ];
+      args: [
         {
-          "name": "reason",
-          "type": "string"
-        }
-      ]
+          name: 'reason';
+          type: 'string';
+        },
+      ];
     },
     {
-      "name": "initializeExtraAccountMetas",
-      "discriminator": [
-        22,
-        213,
-        130,
-        114,
-        1,
-        174,
-        121,
-        36
-      ],
-      "accounts": [
+      name: 'initializeExtraAccountMetas';
+      discriminator: [22, 213, 130, 114, 1, 174, 121, 36];
+      accounts: [
         {
-          "name": "payer",
-          "writable": true,
-          "signer": true
+          name: 'payer';
+          writable: true;
+          signer: true;
         },
         {
-          "name": "extraAccountMetas",
-          "docs": [
-            "for this mint. Created and initialized in this instruction."
-          ],
-          "writable": true,
-          "pda": {
-            "seeds": [
+          name: 'extraAccountMetas';
+          docs: ['for this mint. Created and initialized in this instruction.'];
+          writable: true;
+          pda: {
+            seeds: [
               {
-                "kind": "const",
-                "value": [
+                kind: 'const';
+                value: [
                   101,
                   120,
                   116,
@@ -133,230 +103,181 @@ export type SssTransferHook = {
                   101,
                   116,
                   97,
-                  115
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "mint"
-              }
-            ]
-          }
-        },
-        {
-          "name": "mint"
-        },
-        {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "removeFromBlacklist",
-      "discriminator": [
-        47,
-        105,
-        20,
-        10,
-        165,
-        168,
-        203,
-        219
-      ],
-      "accounts": [
-        {
-          "name": "blacklister",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "blacklisterRole",
-          "docs": [
-            "Verified by checking owner == sss-core program ID and re-deriving the",
-            "expected PDA address from known seeds using the mint key."
-          ]
-        },
-        {
-          "name": "mint"
-        },
-        {
-          "name": "blacklistEntry",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  98,
-                  108,
-                  97,
-                  99,
-                  107,
-                  108,
-                  105,
                   115,
-                  116
-                ]
+                ];
               },
               {
-                "kind": "account",
-                "path": "mint"
+                kind: 'account';
+                path: 'mint';
+              },
+            ];
+          };
+        },
+        {
+          name: 'mint';
+        },
+        {
+          name: 'systemProgram';
+          address: '11111111111111111111111111111111';
+        },
+      ];
+      args: [];
+    },
+    {
+      name: 'removeFromBlacklist';
+      discriminator: [47, 105, 20, 10, 165, 168, 203, 219];
+      accounts: [
+        {
+          name: 'blacklister';
+          writable: true;
+          signer: true;
+        },
+        {
+          name: 'blacklisterRole';
+          docs: [
+            'Verified by checking owner == sss-core program ID and re-deriving the',
+            'expected PDA address from known seeds using the mint key.',
+          ];
+        },
+        {
+          name: 'mint';
+        },
+        {
+          name: 'blacklistEntry';
+          writable: true;
+          pda: {
+            seeds: [
+              {
+                kind: 'const';
+                value: [98, 108, 97, 99, 107, 108, 105, 115, 116];
               },
               {
-                "kind": "account",
-                "path": "blacklist_entry.address",
-                "account": "blacklistEntry"
-              }
-            ]
-          }
-        }
-      ],
-      "args": []
+                kind: 'account';
+                path: 'mint';
+              },
+              {
+                kind: 'account';
+                path: 'blacklist_entry.address';
+                account: 'blacklistEntry';
+              },
+            ];
+          };
+        },
+      ];
+      args: [];
     },
     {
-      "name": "transferHook",
-      "discriminator": [
-        220,
-        57,
-        220,
-        152,
-        126,
-        125,
-        97,
-        168
-      ],
-      "accounts": [
+      name: 'transferHook';
+      discriminator: [220, 57, 220, 152, 126, 125, 97, 168];
+      accounts: [
         {
-          "name": "source"
+          name: 'source';
         },
         {
-          "name": "mint"
+          name: 'mint';
         },
         {
-          "name": "destination"
+          name: 'destination';
         },
         {
-          "name": "authority"
+          name: 'authority';
         },
         {
-          "name": "extraAccountMetas",
-          "docs": [
-            "[b\"extra-account-metas\", mint]. Not validated here since Token-2022",
-            "handles resolution."
-          ]
+          name: 'extraAccountMetas';
+          docs: [
+            '[b"extra-account-metas", mint]. Not validated here since Token-2022',
+            'handles resolution.',
+          ];
         },
         {
-          "name": "senderBlacklist",
-          "docs": [
-            "ExtraAccountMetaList. If this account exists (has data, owned by this",
-            "program), the sender is blacklisted and the transfer is rejected."
-          ]
+          name: 'senderBlacklist';
+          docs: [
+            'ExtraAccountMetaList. If this account exists (has data, owned by this',
+            'program), the sender is blacklisted and the transfer is rejected.',
+          ];
         },
         {
-          "name": "receiverBlacklist",
-          "docs": [
-            "ExtraAccountMetaList. If this account exists (has data, owned by this",
-            "program), the receiver is blacklisted and the transfer is rejected."
-          ]
-        }
-      ],
-      "args": [
+          name: 'receiverBlacklist';
+          docs: [
+            'ExtraAccountMetaList. If this account exists (has data, owned by this',
+            'program), the receiver is blacklisted and the transfer is rejected.',
+          ];
+        },
+      ];
+      args: [
         {
-          "name": "amount",
-          "type": "u64"
-        }
-      ]
-    }
-  ],
-  "accounts": [
+          name: 'amount';
+          type: 'u64';
+        },
+      ];
+    },
+  ];
+  accounts: [
     {
-      "name": "blacklistEntry",
-      "discriminator": [
-        218,
-        179,
-        231,
-        40,
-        141,
-        25,
-        168,
-        189
-      ]
-    }
-  ],
-  "errors": [
+      name: 'blacklistEntry';
+      discriminator: [218, 179, 231, 40, 141, 25, 168, 189];
+    },
+  ];
+  errors: [
     {
-      "code": 6000,
-      "name": "senderBlacklisted",
-      "msg": "Sender is blacklisted"
+      code: 6000;
+      name: 'senderBlacklisted';
+      msg: 'Sender is blacklisted';
     },
     {
-      "code": 6001,
-      "name": "receiverBlacklisted",
-      "msg": "Receiver is blacklisted"
+      code: 6001;
+      name: 'receiverBlacklisted';
+      msg: 'Receiver is blacklisted';
     },
     {
-      "code": 6002,
-      "name": "reasonTooLong",
-      "msg": "Reason exceeds maximum length"
+      code: 6002;
+      name: 'reasonTooLong';
+      msg: 'Reason exceeds maximum length';
     },
     {
-      "code": 6003,
-      "name": "unauthorized",
-      "msg": "Unauthorized: not an admin"
-    }
-  ],
-  "types": [
+      code: 6003;
+      name: 'unauthorized';
+      msg: 'Unauthorized: not an admin';
+    },
+  ];
+  types: [
     {
-      "name": "blacklistEntry",
-      "type": {
-        "kind": "struct",
-        "fields": [
+      name: 'blacklistEntry';
+      type: {
+        kind: 'struct';
+        fields: [
           {
-            "name": "mint",
-            "docs": [
-              "The stablecoin mint this entry applies to."
-            ],
-            "type": "pubkey"
+            name: 'mint';
+            docs: ['The stablecoin mint this entry applies to.'];
+            type: 'pubkey';
           },
           {
-            "name": "address",
-            "docs": [
-              "The wallet address that is blacklisted."
-            ],
-            "type": "pubkey"
+            name: 'address';
+            docs: ['The wallet address that is blacklisted.'];
+            type: 'pubkey';
           },
           {
-            "name": "addedBy",
-            "docs": [
-              "The admin who added this entry."
-            ],
-            "type": "pubkey"
+            name: 'addedBy';
+            docs: ['The admin who added this entry.'];
+            type: 'pubkey';
           },
           {
-            "name": "addedAt",
-            "docs": [
-              "Unix timestamp when the entry was created."
-            ],
-            "type": "i64"
+            name: 'addedAt';
+            docs: ['Unix timestamp when the entry was created.'];
+            type: 'i64';
           },
           {
-            "name": "reason",
-            "docs": [
-              "Compliance reason for blacklisting (max 512 chars)."
-            ],
-            "type": "string"
+            name: 'reason';
+            docs: ['Compliance reason for blacklisting (max 512 chars).'];
+            type: 'string';
           },
           {
-            "name": "bump",
-            "docs": [
-              "PDA bump seed."
-            ],
-            "type": "u8"
-          }
-        ]
-      }
-    }
-  ]
+            name: 'bump';
+            docs: ['PDA bump seed.'];
+            type: 'u8';
+          },
+        ];
+      };
+    },
+  ];
 };

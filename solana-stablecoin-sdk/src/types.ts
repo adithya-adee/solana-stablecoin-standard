@@ -1,25 +1,25 @@
-import { PublicKey, Keypair } from "@solana/web3.js";
+import { PublicKey, Keypair } from '@solana/web3.js';
 
 declare const __brand: unique symbol;
 export type Brand<T, B extends string> = T & { readonly [__brand]: B };
 
-export type Preset = Brand<"sss-1" | "sss-2" | "sss-3", "Preset">;
+export type Preset = Brand<'sss-1' | 'sss-2' | 'sss-3', 'Preset'>;
 export type RoleType = Brand<
-  "admin" | "minter" | "freezer" | "pauser" | "burner" | "blacklister" | "seizer",
-  "RoleType"
+  'admin' | 'minter' | 'freezer' | 'pauser' | 'burner' | 'blacklister' | 'seizer',
+  'RoleType'
 >;
-export type RoleId = Brand<0 | 1 | 2 | 3 | 4 | 5 | 6, "RoleId">;
+export type RoleId = Brand<0 | 1 | 2 | 3 | 4 | 5 | 6, 'RoleId'>;
 
-export const preset = (v: "sss-1" | "sss-2" | "sss-3") => v as Preset;
+export const preset = (v: 'sss-1' | 'sss-2' | 'sss-3') => v as Preset;
 export const roleType = (
-  v: "admin" | "minter" | "freezer" | "pauser" | "burner" | "blacklister" | "seizer"
+  v: 'admin' | 'minter' | 'freezer' | 'pauser' | 'burner' | 'blacklister' | 'seizer',
 ) => v as RoleType;
 export const roleId = (v: 0 | 1 | 2 | 3 | 4 | 5 | 6) => v as RoleId;
 
-export type MintAddress = Brand<PublicKey, "MintAddress">;
-export type ConfigPda = Brand<PublicKey, "ConfigPda">;
-export type RolePda = Brand<PublicKey, "RolePda">;
-export type BlacklistPda = Brand<PublicKey, "BlacklistPda">;
+export type MintAddress = Brand<PublicKey, 'MintAddress'>;
+export type ConfigPda = Brand<PublicKey, 'ConfigPda'>;
+export type RolePda = Brand<PublicKey, 'RolePda'>;
+export type BlacklistPda = Brand<PublicKey, 'BlacklistPda'>;
 
 export interface StablecoinCreateOptions {
   preset: Preset;
@@ -69,21 +69,21 @@ export const ROLE_MAP = {
 } as Record<RoleType, RoleId>;
 
 export const PRESET_MAP = {
-  "sss-1": 1,
-  "sss-2": 2,
-  "sss-3": 3,
+  'sss-1': 1,
+  'sss-2': 2,
+  'sss-3': 3,
 } as Record<Preset, number>;
 
 export const REVERSE_PRESET_MAP: Record<number, Preset> = {
-  1: preset("sss-1"),
-  2: preset("sss-2"),
-  3: preset("sss-3"),
+  1: preset('sss-1'),
+  2: preset('sss-2'),
+  3: preset('sss-3'),
 };
 
 export const Presets = {
-  SSS_1: preset("sss-1"),
-  SSS_2: preset("sss-2"),
-  SSS_3: preset("sss-3"),
+  SSS_1: preset('sss-1'),
+  SSS_2: preset('sss-2'),
+  SSS_3: preset('sss-3'),
 } as const;
 
 export interface StablecoinExtensionConfig {

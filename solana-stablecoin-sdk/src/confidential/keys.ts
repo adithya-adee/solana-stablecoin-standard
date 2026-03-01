@@ -1,4 +1,4 @@
-import { randomBytes } from "crypto";
+import { randomBytes } from 'crypto';
 
 /**
  * Generate a random ElGamal-like keypair for testing/demo purposes.
@@ -45,8 +45,8 @@ export function deriveElGamalKeypair(
   _tokenAccount: unknown,
 ): { publicKey: Uint8Array; secretKey: Uint8Array } {
   throw new Error(
-    "ElGamal keypair derivation requires the solana-zk-sdk Rust crate. " +
-    "Use generateTestElGamalKeypair() for testing, or call the Rust proof " +
-    "service for production deployments.",
+    'ElGamal keypair derivation requires the solana-zk-sdk Rust crate. ' +
+      'Use generateTestElGamalKeypair() for testing, or call the Rust proof ' +
+      'service for production deployments.',
   );
 }

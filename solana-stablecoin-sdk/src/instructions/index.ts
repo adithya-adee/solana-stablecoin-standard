@@ -12,10 +12,10 @@ export {
   buildTransferAuthorityIx,
   buildUpdateMinterIx,
   buildUpdateSupplyCapIx,
-} from "./core";
+} from './core';
 
 export {
   buildInitializeExtraAccountMetasIx,
   buildAddToBlacklistIx,
   buildRemoveFromBlacklistIx,
-} from "./hook";
+} from './hook';

@@ -1,15 +1,15 @@
-import { Program } from "@coral-xyz/anchor";
-import { PublicKey } from "@solana/web3.js";
-import type { SssTransferHook } from "../idl/sss_transfer_hook";
-import type { MintAddress } from "../types";
+import { Program } from '@coral-xyz/anchor';
+import { PublicKey } from '@solana/web3.js';
+import type { SssTransferHook } from '../idl/sss_transfer_hook';
+import type { MintAddress } from '../types';
 import {
   deriveBlacklistPda,
   deriveConfigPda,
   deriveExtraAccountMetasPda,
   deriveRolePda,
   SSS_CORE_PROGRAM_ID,
-} from "../pda";
-import { roleType } from "../types";
+} from '../pda';
+import { roleType } from '../types';
 
 /**
  * Build the `initializeExtraAccountMetas` instruction.
@@ -52,7 +52,7 @@ export function buildAddToBlacklistIx(
   const [blacklisterRolePda] = deriveRolePda(
     configPda,
     blacklister,
-    roleType("blacklister"),
+    roleType('blacklister'),
     coreProgramId,
   );
 
@@ -80,17 +80,13 @@ export function buildRemoveFromBlacklistIx(
   address: PublicKey,
   coreProgramId: PublicKey = SSS_CORE_PROGRAM_ID,
 ) {
-  const [blacklistEntryPda] = deriveBlacklistPda(
-    mint,
-    address,
-    program.programId,
-  );
+  const [blacklistEntryPda] = deriveBlacklistPda(mint, address, program.programId);
 
   const [configPda] = deriveConfigPda(mint, coreProgramId);
   const [blacklisterRolePda] = deriveRolePda(
     configPda,
     blacklister,
-    roleType("blacklister"),
+    roleType('blacklister'),
     coreProgramId,
   );
 

@@ -1,15 +1,15 @@
-import { Program, AnchorProvider, BN } from "@coral-xyz/anchor";
-import { PublicKey, Keypair, Transaction, TransactionInstruction } from "@solana/web3.js";
-import type { SssCore } from "./idl/sss_core";
-import type { SssTransferHook } from "./idl/sss_transfer_hook";
-import { SssCoreIdl, SssTransferHookIdl } from "./idl";
+import { Program, AnchorProvider, BN } from '@coral-xyz/anchor';
+import { PublicKey, Keypair, Transaction, TransactionInstruction } from '@solana/web3.js';
+import type { SssCore } from './idl/sss_core';
+import type { SssTransferHook } from './idl/sss_transfer_hook';
+import { SssCoreIdl, SssTransferHookIdl } from './idl';
 import {
   deriveConfigPda,
   deriveRolePda,
   deriveBlacklistPda,
   SSS_CORE_PROGRAM_ID,
   SSS_HOOK_PROGRAM_ID,
-} from "./pda";
+} from './pda';
 import type {
   Preset,
   RoleType,
@@ -18,15 +18,15 @@ import type {
   StablecoinInfo,
   MintAddress,
   ConfigPda,
-} from "./types";
-import { PRESET_MAP, REVERSE_PRESET_MAP, ROLE_MAP, preset, roleType } from "./types";
-import { mapAnchorError } from "./errors";
-import * as coreix from "./instructions/core";
-import * as hookix from "./instructions/hook";
-import { createSss1MintTransaction } from "./presets/sss1";
-import { createSss2MintTransaction } from "./presets/sss2";
-import { createSss3MintTransaction } from "./presets/sss3";
-import { ConfidentialOps } from "./confidential";
+} from './types';
+import { PRESET_MAP, REVERSE_PRESET_MAP, ROLE_MAP, preset, roleType } from './types';
+import { mapAnchorError } from './errors';
+import * as coreix from './instructions/core';
+import * as hookix from './instructions/hook';
+import { createSss1MintTransaction } from './presets/sss1';
+import { createSss2MintTransaction } from './presets/sss2';
+import { createSss3MintTransaction } from './presets/sss3';
+import { ConfidentialOps } from './confidential';
 
 export class SSS {
   readonly mintAddress: MintAddress;
@@ -70,10 +70,7 @@ export class SSS {
     coreProgramId: PublicKey = SSS_CORE_PROGRAM_ID,
     hookProgramId: PublicKey = SSS_HOOK_PROGRAM_ID,
   ): { coreProgram: Program<SssCore>; hookProgram: Program<SssTransferHook> } {
-    const coreProgram = new Program<SssCore>(
-      SssCoreIdl as SssCore,
-      provider,
-    );
+    const coreProgram = new Program<SssCore>(SssCoreIdl as SssCore, provider);
     const hookProgram = new Program<SssTransferHook>(
       SssTransferHookIdl as SssTransferHook,
       provider,
@@ -103,7 +100,7 @@ export class SSS {
     mintKeypair?: Keypair,
   ): Promise<SSS> {
     // If extensions provided, route through custom path
-    if ("extensions" in options && options.extensions) {
+    if ('extensions' in options && options.extensions) {
       return SSS.createCustom(provider, options as StablecoinCustomOptions, mintKeypair);
     }
     const opts = options as StablecoinCreateOptions;
@@ -111,14 +108,12 @@ export class SSS {
     const mint = mintKeypair ?? Keypair.generate();
     const payer = provider.publicKey;
     const decimals = opts.decimals ?? 6;
-    const supplyCap = opts.supplyCap
-      ? new BN(opts.supplyCap.toString())
-      : null;
+    const supplyCap = opts.supplyCap ? new BN(opts.supplyCap.toString()) : null;
 
     // Build mint creation transaction per preset
     let mintTx: Transaction;
     switch (opts.preset) {
-      case "sss-1":
+      case 'sss-1':
         mintTx = await createSss1MintTransaction(
           provider.connection,
           payer,
@@ -132,7 +127,7 @@ export class SSS {
           coreProgram.programId,
         );
         break;
-      case "sss-2":
+      case 'sss-2':
         mintTx = await createSss2MintTransaction(
           provider.connection,
           payer,
@@ -146,7 +141,7 @@ export class SSS {
           coreProgram.programId,
         );
         break;
-      case "sss-3":
+      case 'sss-3':
         mintTx = await createSss3MintTransaction(
           provider.connection,
           payer,
@@ -173,7 +168,7 @@ export class SSS {
         preset: (PRESET_MAP as any)[opts.preset],
         name: opts.name,
         symbol: opts.symbol,
-        uri: opts.uri ?? "",
+        uri: opts.uri ?? '',
         decimals,
         supplyCap,
       },
@@ -182,7 +177,7 @@ export class SSS {
     mintTx.add(initIx);
 
     // For SSS-2, also initialize extra account metas for the transfer hook
-    if (opts.preset === "sss-2") {
+    if (opts.preset === 'sss-2') {
       const hookInitIx = await hookix.buildInitializeExtraAccountMetasIx(
         hookProgram,
         mint.publicKey as MintAddress,
@@ -231,19 +226,23 @@ export class SSS {
     mintKeypair?: Keypair,
   ): Promise<SSS> {
     const p: Preset = options.extensions.confidentialTransfer
-      ? preset("sss-3")
+      ? preset('sss-3')
       : options.extensions.transferHook
-        ? preset("sss-2")
-        : preset("sss-1");
+        ? preset('sss-2')
+        : preset('sss-1');
 
-    return SSS.create(provider, {
-      preset: p,
-      name: options.name,
-      symbol: options.symbol,
-      uri: options.uri,
-      decimals: options.decimals,
-      supplyCap: options.supplyCap,
-    }, mintKeypair);
+    return SSS.create(
+      provider,
+      {
+        preset: p,
+        name: options.name,
+        symbol: options.symbol,
+        uri: options.uri,
+        decimals: options.decimals,
+        supplyCap: options.supplyCap,
+      },
+      mintKeypair,
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -254,33 +253,17 @@ export class SSS {
    * Load an existing stablecoin by its mint address.
    * Verifies the config PDA exists on-chain.
    */
-  static async load(
-    provider: AnchorProvider,
-    mint: MintAddress,
-  ): Promise<SSS> {
+  static async load(provider: AnchorProvider, mint: MintAddress): Promise<SSS> {
     const { coreProgram, hookProgram } = SSS.createPrograms(provider);
-    const [configPda, configBump] = deriveConfigPda(
-      mint,
-      coreProgram.programId,
-    );
+    const [configPda, configBump] = deriveConfigPda(mint, coreProgram.programId);
 
     // Verify config exists
-    const configAccount =
-      await coreProgram.account.stablecoinConfig.fetchNullable(configPda);
+    const configAccount = await coreProgram.account.stablecoinConfig.fetchNullable(configPda);
     if (!configAccount) {
-      throw new Error(
-        `No StablecoinConfig found for mint ${mint.toBase58()}`,
-      );
+      throw new Error(`No StablecoinConfig found for mint ${mint.toBase58()}`);
     }
 
-    return new SSS(
-      mint,
-      configPda,
-      configBump,
-      coreProgram,
-      hookProgram,
-      provider,
-    );
+    return new SSS(mint, configPda, configBump, coreProgram, hookProgram, provider);
   }
 
   // ---------------------------------------------------------------------------
@@ -363,11 +346,7 @@ export class SSS {
    */
   async pause(): Promise<string> {
     const pauser = this.provider.publicKey;
-    const ix = await coreix.buildPauseIx(
-      this.coreProgram,
-      this.configPda,
-      pauser,
-    );
+    const ix = await coreix.buildPauseIx(this.coreProgram, this.configPda, pauser);
     return this.sendIx(ix);
   }
 
@@ -377,11 +356,7 @@ export class SSS {
    */
   async unpause(): Promise<string> {
     const pauser = this.provider.publicKey;
-    const ix = await coreix.buildUnpauseIx(
-      this.coreProgram,
-      this.configPda,
-      pauser,
-    );
+    const ix = await coreix.buildUnpauseIx(this.coreProgram, this.configPda, pauser);
     return this.sendIx(ix);
   }
 
@@ -389,11 +364,7 @@ export class SSS {
    * Seize tokens from one account to another using permanent delegate.
    * Seizer-only, works even when paused.
    */
-  async seize(
-    from: PublicKey,
-    to: PublicKey,
-    amount: bigint,
-  ): Promise<string> {
+  async seize(from: PublicKey, to: PublicKey, amount: bigint): Promise<string> {
     const seizer = this.provider.publicKey;
     const ix = await coreix.buildSeizeIx(
       this.coreProgram,
@@ -412,15 +383,8 @@ export class SSS {
    */
   async updateSupplyCap(newSupplyCap: bigint | null): Promise<string> {
     const admin = this.provider.publicKey;
-    const capBN = newSupplyCap !== null
-      ? new BN(newSupplyCap.toString())
-      : null;
-    const ix = await coreix.buildUpdateSupplyCapIx(
-      this.coreProgram,
-      this.configPda,
-      admin,
-      capBN,
-    );
+    const capBN = newSupplyCap !== null ? new BN(newSupplyCap.toString()) : null;
+    const ix = await coreix.buildUpdateSupplyCapIx(this.coreProgram, this.configPda, admin, capBN);
     return this.sendIx(ix);
   }
 
@@ -447,19 +411,16 @@ export class SSS {
    * Fetch and return the on-chain stablecoin configuration.
    */
   async info(): Promise<StablecoinInfo> {
-    const config =
-      await this.coreProgram.account.stablecoinConfig.fetch(this.configPda);
+    const config = await this.coreProgram.account.stablecoinConfig.fetch(this.configPda);
 
     const totalMinted = BigInt(config.totalMinted.toString());
     const totalBurned = BigInt(config.totalBurned.toString());
-    const supplyCap = config.supplyCap
-      ? BigInt(config.supplyCap.toString())
-      : null;
+    const supplyCap = config.supplyCap ? BigInt(config.supplyCap.toString()) : null;
 
     return {
       mint: config.mint as MintAddress,
       authority: config.authority,
-      preset: REVERSE_PRESET_MAP[config.preset] ?? ("sss-1" as Preset),
+      preset: REVERSE_PRESET_MAP[config.preset] ?? ('sss-1' as Preset),
       paused: config.paused,
       supplyCap,
       totalMinted,
@@ -523,14 +484,8 @@ export class SSS {
      * Returns true if the role PDA exists on-chain.
      */
     check: async (address: PublicKey, role: RoleType): Promise<boolean> => {
-      const [rolePda] = deriveRolePda(
-        this.configPda,
-        address,
-        role,
-        this.coreProgram.programId,
-      );
-      const account =
-        await this.coreProgram.account.roleAccount.fetchNullable(rolePda);
+      const [rolePda] = deriveRolePda(this.configPda, address, role, this.coreProgram.programId);
+      const account = await this.coreProgram.account.roleAccount.fetchNullable(rolePda);
       return account !== null;
     },
   };
@@ -581,10 +536,7 @@ export class SSS {
         address,
         this.hookProgram.programId,
       );
-      const account =
-        await this.hookProgram.account.blacklistEntry.fetchNullable(
-          blacklistPda,
-        );
+      const account = await this.hookProgram.account.blacklistEntry.fetchNullable(blacklistPda);
       return account !== null;
     },
   };
@@ -616,7 +568,11 @@ export class SSS {
      * No ZK proofs required.
      */
     deposit: async (tokenAccount: PublicKey, amount: bigint, decimals: number): Promise<string> => {
-      const ops = new ConfidentialOps(this.provider.connection, this.mintAddress, this.provider.publicKey);
+      const ops = new ConfidentialOps(
+        this.provider.connection,
+        this.mintAddress,
+        this.provider.publicKey,
+      );
       const ix = ops.buildDepositInstruction(tokenAccount, amount, decimals);
       return this.sendIx(ix);
     },
@@ -626,7 +582,11 @@ export class SSS {
      * No ZK proofs required.
      */
     applyPending: async (tokenAccount: PublicKey): Promise<string> => {
-      const ops = new ConfidentialOps(this.provider.connection, this.mintAddress, this.provider.publicKey);
+      const ops = new ConfidentialOps(
+        this.provider.connection,
+        this.mintAddress,
+        this.provider.publicKey,
+      );
       const ix = ops.buildApplyPendingBalanceInstruction(tokenAccount);
       return this.sendIx(ix);
     },
@@ -635,16 +595,24 @@ export class SSS {
      * Confidential transfer. Requires Rust proof service for ZK proof generation.
      * @throws Always throws - ZK proofs not available in TypeScript
      */
-    transfer: async (_senderAccount: PublicKey, _recipientAccount: PublicKey, _amount: bigint): Promise<string> => {
-      throw new Error("Confidential transfer requires Rust proof service. See docs/SSS-3.md");
+    transfer: async (
+      _senderAccount: PublicKey,
+      _recipientAccount: PublicKey,
+      _amount: bigint,
+    ): Promise<string> => {
+      throw new Error('Confidential transfer requires Rust proof service. See docs/SSS-3.md');
     },
 
     /**
      * Confidential withdraw. Requires Rust proof service for ZK proof generation.
      * @throws Always throws - ZK proofs not available in TypeScript
      */
-    withdraw: async (_tokenAccount: PublicKey, _amount: bigint, _decimals: number): Promise<string> => {
-      throw new Error("Confidential withdraw requires Rust proof service. See docs/SSS-3.md");
+    withdraw: async (
+      _tokenAccount: PublicKey,
+      _amount: bigint,
+      _decimals: number,
+    ): Promise<string> => {
+      throw new Error('Confidential withdraw requires Rust proof service. See docs/SSS-3.md');
     },
   };
 }

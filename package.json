@@ -6,11 +6,14 @@
     "test:integration": "anchor test --skip-build",
     "test:sdk": "pnpm --filter @stbr/sss-token test",
     "lint": "eslint . --ext .ts,.tsx",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\" --ignore-path .prettierignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\" --ignore-path .prettierignore"
   },
   "devDependencies": {
     "@coral-xyz/anchor": "^0.32.0",
     "@types/node": "^25.3.2",
+    "prettier": "^3.5.1",
     "typescript": "^5.7",
     "vitest": "^3"
   }
