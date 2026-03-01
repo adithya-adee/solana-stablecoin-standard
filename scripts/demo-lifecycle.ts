@@ -42,6 +42,7 @@ import {
 } from "../solana-stablecoin-sdk/dist/cjs";
 import type { SssCore, SssTransferHook } from "../solana-stablecoin-sdk/dist/cjs";
 import { SssCoreIdl, SssTransferHookIdl } from "../solana-stablecoin-sdk/dist/cjs/idl";
+import { logHeader, logSection, logEntry, logSuccess, logError, logInfo, logWarning, icons } from "./utils/logging";
 
 const DEVNET_RPC = process.env.DEVNET_RPC || clusterApiUrl("devnet");
 
@@ -191,7 +192,7 @@ async function buildSss3MintTx(
 }
 
 async function main() {
-  console.log("=== SSS Devnet Lifecycle Proof ===\n");
+  logHeader("SSS Devnet Lifecycle Proof");
 
   const keypairPath = process.env.ANCHOR_WALLET
     || process.env.KEYPAIR_PATH
@@ -216,7 +217,8 @@ async function main() {
   );
 
   const balance = await connection.getBalance(payer.publicKey);
-  console.log(`Payer: ${payer.publicKey.toBase58()} (${(balance / 1e9).toFixed(4)} SOL)\n`);
+  logEntry("Payer", payer.publicKey.toBase58(), icons.key);
+  logEntry("Balance", `${(balance / 1e9).toFixed(4)} SOL`, icons.info);
 
   const proof: Record<string, unknown> = {
     payer: payer.publicKey.toBase58(),
@@ -230,7 +232,7 @@ async function main() {
   };
 
   // ─── SSS-1: Minimal Stablecoin ────────────────────────────
-  console.log("── SSS-1: Minimal Stablecoin ──");
+  logSection("SSS-1: Minimal Stablecoin");
   try {
     const mintKp = Keypair.generate();
     const [configPda] = deriveConfigPda(mintKp.publicKey as MintAddress, SSS_CORE_PROGRAM_ID);
@@ -248,15 +250,15 @@ async function main() {
     mintTx.add(initIx);
 
     const sig1 = await signSendConfirm(connection, mintTx, [payer, mintKp]);
-    console.log(`  Created mint: ${mintKp.publicKey.toBase58()}`);
-    console.log(`  Init tx: ${sig1.slice(0, 20)}...`);
+    logEntry("Created mint", mintKp.publicKey.toBase58(), icons.rocket);
+    logEntry("Init tx", `${sig1.slice(0, 20)}...`, icons.link);
 
     // Load SSS instance for remaining operations
     const sss = await SSS.load(provider, mintKp.publicKey as MintAddress);
 
     // Grant minter
     const grantSig = await sss.roles.grant(payer.publicKey, roleType("minter"));
-    console.log(`  Grant minter: ${grantSig.slice(0, 20)}...`);
+    logEntry("Grant minter", `${grantSig.slice(0, 20)}...`, icons.key);
 
     // Create ATA
     const ata = getAssociatedTokenAddressSync(
@@ -274,28 +276,28 @@ async function main() {
 
     // Mint
     const mintSig = await sss.mintTokens(ata, BigInt(500_000_000));
-    console.log(`  Mint 500: ${mintSig.slice(0, 20)}...`);
+    logEntry("Mint 500", `${mintSig.slice(0, 20)}...`, icons.rocket);
 
     // Burn
     const burnSig = await sss.burn(ata, BigInt(100_000_000));
-    console.log(`  Burn 100: ${burnSig.slice(0, 20)}...`);
+    logEntry("Burn 100", `${burnSig.slice(0, 20)}...`, icons.skull);
 
     // Freeze/thaw
     await sss.roles.grant(payer.publicKey, roleType("freezer"));
     const freezeSig = await sss.freeze(ata);
-    console.log(`  Freeze: ${freezeSig.slice(0, 20)}...`);
+    logEntry("Freeze", `${freezeSig.slice(0, 20)}...`, icons.skull);
     const thawSig = await sss.thaw(ata);
-    console.log(`  Thaw: ${thawSig.slice(0, 20)}...`);
+    logEntry("Thaw", `${thawSig.slice(0, 20)}...`, icons.rocket);
 
     // Pause/unpause
     await sss.roles.grant(payer.publicKey, roleType("pauser"));
     const pauseSig = await sss.pause();
-    console.log(`  Pause: ${pauseSig.slice(0, 20)}...`);
+    logEntry("Pause", `${pauseSig.slice(0, 20)}...`, icons.info);
     const unpauseSig = await sss.unpause();
-    console.log(`  Unpause: ${unpauseSig.slice(0, 20)}...`);
+    logEntry("Unpause", `${unpauseSig.slice(0, 20)}...`, icons.info);
 
     const info = await sss.info();
-    console.log(`  Supply: ${info.currentSupply} (cap: ${info.supplyCap})`);
+    logEntry("Supply", `${info.currentSupply} (cap: ${info.supplyCap})`, icons.info);
 
     (proof.presets as Record<string, unknown>)["sss-1"] = {
       mint: sss.mintAddress.toBase58(),
@@ -303,14 +305,14 @@ async function main() {
       transactions: { sig1, grantSig, mintSig, burnSig, freezeSig, thawSig, pauseSig, unpauseSig },
       finalSupply: info.currentSupply.toString(),
     };
-    console.log("  ✓ SSS-1 complete\n");
+    logSuccess("SSS-1 complete");
   } catch (err) {
-    console.error("  ✗ SSS-1 failed:", (err as Error).message, "\n");
+    logError("SSS-1 failed", err);
     (proof.presets as Record<string, unknown>)["sss-1"] = { error: (err as Error).message };
   }
 
   // ─── SSS-2: Compliant Stablecoin ──────────────────────────
-  console.log("── SSS-2: Compliant Stablecoin ──");
+  logSection("SSS-2: Compliant Stablecoin");
   try {
     const mintKp2 = Keypair.generate();
     const [configPda2] = deriveConfigPda(mintKp2.publicKey as MintAddress, SSS_CORE_PROGRAM_ID);
@@ -335,17 +337,17 @@ async function main() {
     mintTx2.add(hookInitIx);
 
     const sig2 = await signSendConfirm(connection, mintTx2, [payer, mintKp2]);
-    console.log(`  Created mint: ${mintKp2.publicKey.toBase58()}`);
-    console.log(`  Init tx: ${sig2.slice(0, 20)}...`);
+    logEntry("Created mint", mintKp2.publicKey.toBase58(), icons.rocket);
+    logEntry("Init tx", `${sig2.slice(0, 20)}...`, icons.link);
 
     // Load SSS instance for remaining operations
     const sss2 = await SSS.load(provider, mintKp2.publicKey as MintAddress);
 
     // 4. Grant minter + freezer roles
     const grantMinterSig2 = await sss2.roles.grant(payer.publicKey, roleType("minter"));
-    console.log(`  Grant minter: ${grantMinterSig2.slice(0, 20)}...`);
+    logEntry("Grant minter", `${grantMinterSig2.slice(0, 20)}...`, icons.key);
     const grantFreezerSig2 = await sss2.roles.grant(payer.publicKey, roleType("freezer"));
-    console.log(`  Grant freezer: ${grantFreezerSig2.slice(0, 20)}...`);
+    logEntry("Grant freezer", `${grantFreezerSig2.slice(0, 20)}...`, icons.key);
 
     // 5. Create ATAs (will be default frozen due to DefaultAccountState)
     const recipient2 = Keypair.generate();
@@ -368,63 +370,60 @@ async function main() {
       ),
       [payer],
     );
-    console.log(`  Created ATAs (default frozen)`);
+    logInfo("Created ATAs (default frozen)");
 
     // 6. Thaw accounts (KYC approval)
     const thawPayerSig2 = await sss2.thaw(payerAta2);
-    console.log(`  Thaw payer: ${thawPayerSig2.slice(0, 20)}...`);
+    logEntry("Thaw payer", `${thawPayerSig2.slice(0, 20)}...`, icons.rocket);
     const thawRecipientSig2 = await sss2.thaw(recipientAta2);
-    console.log(`  Thaw recipient: ${thawRecipientSig2.slice(0, 20)}...`);
+    logEntry("Thaw recipient", `${thawRecipientSig2.slice(0, 20)}...`, icons.rocket);
 
     // 7. Mint tokens
     const mintSig2 = await sss2.mintTokens(payerAta2, BigInt(1_000_000_000));
-    console.log(`  Mint 1K: ${mintSig2.slice(0, 20)}...`);
+    logEntry("Mint 1K", `${mintSig2.slice(0, 20)}...`, icons.rocket);
 
     // 8. Burn tokens
     const burnSig2 = await sss2.burn(payerAta2, BigInt(100_000_000));
-    console.log(`  Burn 100: ${burnSig2.slice(0, 20)}...`);
+    logEntry("Burn 100", `${burnSig2.slice(0, 20)}...`, icons.skull);
 
     // 9. Blacklist the recipient address
     const blacklistAddSig = await sss2.blacklist.add(
       recipient2.publicKey, "Compliance review required",
     );
-    console.log(`  Blacklist add: ${blacklistAddSig.slice(0, 20)}...`);
+    logEntry("Blacklist add", `${blacklistAddSig.slice(0, 20)}...`, icons.warning);
     const isBlacklisted = await sss2.blacklist.check(recipient2.publicKey);
-    console.log(`  Blacklist check: ${isBlacklisted}`);
+    logEntry("Blacklist check", String(isBlacklisted), icons.info);
 
     // 10. Remove from blacklist
     const blacklistRemoveSig = await sss2.blacklist.remove(recipient2.publicKey);
-    console.log(`  Blacklist remove: ${blacklistRemoveSig.slice(0, 20)}...`);
+    logEntry("Blacklist remove", `${blacklistRemoveSig.slice(0, 20)}...`, icons.rocket);
     const isStillBlacklisted = await sss2.blacklist.check(recipient2.publicKey);
-    console.log(`  Blacklist check after remove: ${isStillBlacklisted}`);
+    logEntry("Blacklist check after remove", String(isStillBlacklisted), icons.info);
 
     // 11. Seize tokens via permanent delegate
-    // Known limitation: SSS-2 seize fails because the sss-core program's
-    // TransferChecked CPI doesn't forward extra accounts needed by the transfer hook.
-    // This is documented in tests/sss-2.test.ts — seize works on SSS-1/SSS-3 but
-    // not SSS-2 until the program is updated to pass remaining_accounts for the hook.
     const mintToRecipSig2 = await sss2.mintTokens(recipientAta2, BigInt(50_000_000));
-    console.log(`  Mint 50 to recipient: ${mintToRecipSig2.slice(0, 20)}...`);
+    logEntry("Mint 50 to recipient", `${mintToRecipSig2.slice(0, 20)}...`, icons.rocket);
     let seizeSig2 = "N/A — known limitation";
     let seizeNote = "";
     try {
       seizeSig2 = await sss2.seize(recipientAta2, payerAta2, BigInt(25_000_000));
-      console.log(`  Seize 25 from recipient: ${seizeSig2.slice(0, 20)}...`);
+      logEntry("Seize 25 from recipient", `${seizeSig2.slice(0, 20)}...`, icons.skull);
     } catch (seizeErr) {
       seizeNote = "Expected failure: seize CPI missing transfer hook extra accounts";
-      console.log(`  Seize: expected failure (transfer hook accounts not forwarded in CPI)`);
+      logEntry("Seize", "expected failure (transfer hook accounts not forwarded in CPI)", icons.warning);
     }
 
     // 12. Pause/unpause cycle
     await sss2.roles.grant(payer.publicKey, roleType("pauser"));
     const pauseSig2 = await sss2.pause();
-    console.log(`  Pause: ${pauseSig2.slice(0, 20)}...`);
+    logEntry("Pause", `${pauseSig2.slice(0, 20)}...`, icons.info);
     const unpauseSig2 = await sss2.unpause();
-    console.log(`  Unpause: ${unpauseSig2.slice(0, 20)}...`);
+    logEntry("Unpause", `${unpauseSig2.slice(0, 20)}...`, icons.info);
 
     // 13. Report final state
     const info2 = await sss2.info();
-    console.log(`  Preset: ${info2.preset}, Supply: ${info2.currentSupply} (cap: ${info2.supplyCap})`);
+    logEntry("Preset", String(info2.preset), icons.info);
+    logEntry("Supply", `${info2.currentSupply} (cap: ${info2.supplyCap})`, icons.info);
 
     (proof.presets as Record<string, unknown>)["sss-2"] = {
       mint: sss2.mintAddress.toBase58(),
@@ -450,14 +449,14 @@ async function main() {
       note: "TransferHook + DefaultAccountState(Frozen) + PermanentDelegate extensions",
       ...(seizeNote ? { seizeLimitation: seizeNote } : {}),
     };
-    console.log("  ✓ SSS-2 complete\n");
+    logSuccess("SSS-2 complete");
   } catch (err) {
-    console.error("  ✗ SSS-2 failed:", (err as Error).message, "\n");
+    logError("SSS-2 failed", err);
     (proof.presets as Record<string, unknown>)["sss-2"] = { error: (err as Error).message };
   }
 
   // ─── SSS-3: Confidential Stablecoin ───────────────────────
-  console.log("── SSS-3: Confidential Stablecoin ──");
+  logSection("SSS-3: Confidential Stablecoin");
   try {
     const mintKp3 = Keypair.generate();
     const [configPda3] = deriveConfigPda(mintKp3.publicKey as MintAddress, SSS_CORE_PROGRAM_ID);
@@ -474,8 +473,8 @@ async function main() {
     mintTx3.add(initIx3);
 
     const sig3 = await signSendConfirm(connection, mintTx3, [payer, mintKp3]);
-    console.log(`  Created mint: ${mintKp3.publicKey.toBase58()}`);
-    console.log(`  Init tx: ${sig3.slice(0, 20)}...`);
+    logEntry("Created mint", mintKp3.publicKey.toBase58(), icons.rocket);
+    logEntry("Init tx", `${sig3.slice(0, 20)}...`, icons.link);
 
     const sss3 = await SSS.load(provider, mintKp3.publicKey as MintAddress);
     await sss3.roles.grant(payer.publicKey, roleType("minter"));
@@ -494,13 +493,14 @@ async function main() {
     );
 
     const mintSig3 = await sss3.mintTokens(ata3, BigInt(1_000_000_000));
-    console.log(`  Mint 1K: ${mintSig3.slice(0, 20)}...`);
+    logEntry("Mint 1K", `${mintSig3.slice(0, 20)}...`, icons.rocket);
 
     const burnSig3 = await sss3.burn(ata3, BigInt(50_000_000));
-    console.log(`  Burn 50: ${burnSig3.slice(0, 20)}...`);
+    logEntry("Burn 50", `${burnSig3.slice(0, 20)}...`, icons.skull);
 
     const info3 = await sss3.info();
-    console.log(`  Preset: ${info3.preset}, Supply: ${info3.currentSupply}`);
+    logEntry("Preset", String(info3.preset), icons.info);
+    logEntry("Supply", info3.currentSupply.toString(), icons.info);
 
     (proof.presets as Record<string, unknown>)["sss-3"] = {
       mint: sss3.mintAddress.toBase58(),
@@ -509,9 +509,9 @@ async function main() {
       finalSupply: info3.currentSupply.toString(),
       note: "ConfidentialTransferMint extension enabled",
     };
-    console.log("  ✓ SSS-3 complete\n");
+    logSuccess("SSS-3 complete");
   } catch (err) {
-    console.error("  ✗ SSS-3 failed:", (err as Error).message, "\n");
+    logError("SSS-3 failed", err);
     (proof.presets as Record<string, unknown>)["sss-3"] = { error: (err as Error).message };
   }
 
@@ -520,14 +520,14 @@ async function main() {
   const outPath = path.join(outDir, "devnet-proof.json");
   fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify(proof, null, 2));
-  console.log(`Proof saved to: ${outPath}`);
+  logSuccess(`Proof saved to: ${outPath}`);
 
   const finalBalance = await connection.getBalance(payer.publicKey);
-  console.log(`Final balance: ${(finalBalance / 1e9).toFixed(4)} SOL (used ${((balance - finalBalance) / 1e9).toFixed(4)} SOL)`);
-  console.log("\n=== Done ===");
+  logEntry("Final balance", `${(finalBalance / 1e9).toFixed(4)} SOL (used ${((balance - finalBalance) / 1e9).toFixed(4)} SOL)`, icons.info);
+  logHeader("Done");
 }
 
 main().catch((err) => {
-  console.error("Fatal:", err);
+  logError("Fatal", err);
   process.exit(1);
 });

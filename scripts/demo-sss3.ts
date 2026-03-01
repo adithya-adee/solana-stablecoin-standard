@@ -30,7 +30,8 @@ import {
   createAssociatedTokenAccountInstruction,
   TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
-import { SSS, generateTestElGamalKeypair, generateTestAesKey, preset, roleType, type Preset } from "../solana-stablecoin-sdk/dist/cjs";
+import { SSS, generateTestElGamalKeypair, generateTestAesKey, preset, roleType, type Preset } from "../solana-stablecoin-sdk/src";
+import { logHeader, logSection, logEntry, logSuccess, logError, logInfo, logWarning, icons } from "./utils/logging";
 
 const DEVNET_RPC = process.env.DEVNET_RPC || clusterApiUrl("devnet");
 
@@ -45,12 +46,12 @@ interface ProofResult {
 }
 
 async function main() {
-  console.log("=== SSS-3 Devnet Lifecycle Proof ===\n");
+  logHeader("SSS-3 Devnet Lifecycle Proof");
 
   // Load keypair
   const keypairPath = process.env.ANCHOR_WALLET
     || process.env.KEYPAIR_PATH
-    || path.join(process.env.HOME!, "Documents/secret/sss-devnet-keypair.json");
+    || path.join(process.env.HOME!, ".config/solana/sss-devnet-keypair.json");
   const rawKey = JSON.parse(fs.readFileSync(keypairPath, "utf-8"));
   const payer = Keypair.fromSecretKey(Uint8Array.from(rawKey));
 
@@ -62,9 +63,9 @@ async function main() {
   });
 
   const balance = await connection.getBalance(payer.publicKey);
-  console.log(
-    `Payer: ${payer.publicKey.toBase58()} (${(balance / 1e9).toFixed(4)} SOL)`,
-  );
+  logEntry("Payer", payer.publicKey.toBase58(), icons.key);
+  logEntry("Balance", `${(balance / 1e9).toFixed(4)} SOL`, icons.info);
+  
   if (balance < 0.1 * 1e9) {
     throw new Error(
       "Insufficient devnet balance. Fund with: solana airdrop 2 --url devnet",
@@ -75,7 +76,7 @@ async function main() {
   const notes: string[] = [];
 
   // 1. Create SSS-3 stablecoin with auditor key
-  console.log("\n1. Creating SSS-3 stablecoin...");
+  logSection("1. Creating SSS-3 stablecoin...");
   // Generate test keys to demonstrate the API (not used in this proof)
   generateTestElGamalKeypair();
   generateTestAesKey();
@@ -91,16 +92,16 @@ async function main() {
     supplyCap: BigInt(10_000_000_000_000), // 10M tokens
   });
   txSigs.initialize = "see-explorer";
-  console.log(`   Mint: ${sss.mintAddress.toBase58()}`);
-  console.log(`   Config: ${sss.configPda.toBase58()}`);
+  logEntry("Mint", sss.mintAddress.toBase58(), icons.key);
+  logEntry("Config", sss.configPda.toBase58(), icons.folder);
 
   // 2. Grant minter role
-  console.log("\n2. Granting minter role...");
+  logSection("2. Granting minter role...");
   txSigs.grantMinter = await sss.roles.grant(payer.publicKey, roleType("minter"));
-  console.log(`   Tx: ${txSigs.grantMinter}`);
+  logEntry("Tx", txSigs.grantMinter, icons.link);
 
   // 3. Create ATA and mint tokens (public balance)
-  console.log("\n3. Minting tokens to public balance...");
+  logSection("3. Minting tokens to public balance...");
   const ata = getAssociatedTokenAddressSync(
     sss.mintAddress,
     payer.publicKey,
@@ -118,10 +119,10 @@ async function main() {
   );
   await provider.sendAndConfirm(createAtaTx);
   txSigs.mint = await sss.mintTokens(ata, BigInt(1_000_000_000)); // 1K tokens
-  console.log(`   Minted 1K tokens. Tx: ${txSigs.mint}`);
+  logSuccess(`Minted 1K tokens. Tx: ${txSigs.mint}`);
 
   // 4. Deposit to confidential balance
-  console.log("\n4. Depositing to confidential balance...");
+  logSection("4. Depositing to confidential balance...");
   notes.push("Deposit moves tokens from public to pending confidential balance (no ZK proofs needed)");
   try {
     txSigs.deposit = await sss.confidential.deposit(
@@ -129,38 +130,38 @@ async function main() {
       BigInt(100_000_000), // 100 tokens
       6,
     );
-    console.log(`   Deposited 100 tokens. Tx: ${txSigs.deposit}`);
+    logSuccess(`Deposited 100 tokens. Tx: ${txSigs.deposit}`);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.log(`   Deposit requires configured confidential account: ${msg}`);
+    logWarning(`Deposit requires configured confidential account: ${msg}`);
     notes.push("Confidential deposit requires account to be configured for confidential transfers first");
     txSigs.deposit = "skipped-needs-account-config";
   }
 
   // 5. Apply pending balance
-  console.log("\n5. Applying pending balance...");
+  logSection("5. Applying pending balance...");
   notes.push("ApplyPendingBalance credits pending into available confidential balance (no ZK proofs needed)");
   try {
     txSigs.applyPending = await sss.confidential.applyPending(ata);
-    console.log(`   Applied. Tx: ${txSigs.applyPending}`);
+    logSuccess(`Applied. Tx: ${txSigs.applyPending}`);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.log(`   Apply pending skipped: ${msg}`);
+    logWarning(`Apply pending skipped: ${msg}`);
     txSigs.applyPending = "skipped-depends-on-deposit";
   }
 
   // 6. Burn some tokens
-  console.log("\n6. Burning tokens...");
+  logSection("6. Burning tokens...");
   txSigs.burn = await sss.burn(ata, BigInt(50_000_000)); // 50 tokens
-  console.log(`   Burned 50 tokens. Tx: ${txSigs.burn}`);
+  logSuccess(`Burned 50 tokens. Tx: ${txSigs.burn}`);
 
   // 7. Verify state
-  console.log("\n7. Final state:");
+  logSection("7. Final state:");
   const info = await sss.info();
-  console.log(`   Preset: ${info.preset}`);
-  console.log(`   Supply: ${info.currentSupply} (minted: ${info.totalMinted}, burned: ${info.totalBurned})`);
-  console.log(`   Cap: ${info.supplyCap}`);
-  console.log(`   Paused: ${info.paused}`);
+  logEntry("Preset", info.preset.toString());
+  logEntry("Supply", `${info.currentSupply} (minted: ${info.totalMinted}, burned: ${info.totalBurned})`);
+  logEntry("Cap", info.supplyCap?.toString() || "None");
+  logEntry("Paused", info.paused.toString());
 
   notes.push("Full confidential transfer and withdraw require Rust ZK proof service (solana-zk-sdk)");
 
@@ -183,11 +184,11 @@ async function main() {
   );
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify(proof, null, 2));
-  console.log(`\nProof saved to: ${outPath}`);
-  console.log("\n=== SSS-3 Lifecycle Proof Complete ===");
+  logSuccess(`Proof saved to: ${outPath}`);
+  logHeader("SSS-3 Lifecycle Proof Complete");
 }
 
 main().catch((err) => {
-  console.error("SSS-3 proof failed:", err);
+  logError("SSS-3 proof failed", err);
   process.exit(1);
 });

@@ -29,7 +29,8 @@ import {
   TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
 import { Transaction } from "@solana/web3.js";
-import { SSS, preset, roleType, type Preset } from "../solana-stablecoin-sdk/dist/cjs";
+import { SSS, preset, roleType, type Preset } from "../solana-stablecoin-sdk/src";
+import { logHeader, logSection, logEntry, logSuccess, logError, icons } from "./utils/logging";
 
 const DEVNET_RPC = process.env.DEVNET_RPC || clusterApiUrl("devnet");
 
@@ -43,12 +44,12 @@ interface ProofResult {
 }
 
 async function main() {
-  console.log("=== SSS-1 Devnet Lifecycle Proof ===\n");
+  logHeader("SSS-1 Devnet Lifecycle Proof");
 
   // Load keypair
   const keypairPath = process.env.ANCHOR_WALLET
     || process.env.KEYPAIR_PATH
-    || path.join(process.env.HOME!, "Documents/secret/sss-devnet-keypair.json");
+    || path.join(process.env.HOME!, ".config/solana/sss-devnet-keypair.json");
   const rawKey = JSON.parse(fs.readFileSync(keypairPath, "utf-8"));
   const payer = Keypair.fromSecretKey(Uint8Array.from(rawKey));
 
@@ -60,9 +61,9 @@ async function main() {
   });
 
   const balance = await connection.getBalance(payer.publicKey);
-  console.log(
-    `Payer: ${payer.publicKey.toBase58()} (${(balance / 1e9).toFixed(4)} SOL)`,
-  );
+  logEntry("Payer", payer.publicKey.toBase58(), icons.key);
+  logEntry("Balance", `${(balance / 1e9).toFixed(4)} SOL`, icons.info);
+  
   if (balance < 0.1 * 1e9) {
     throw new Error(
       "Insufficient devnet balance. Fund with: solana airdrop 2 --url devnet",
@@ -72,9 +73,11 @@ async function main() {
   const txSigs: Record<string, string> = {};
 
   // 1. Create SSS-1 stablecoin
-  console.log("\n1. Creating SSS-1 stablecoin...");
+  logSection("1. Creating SSS-1 stablecoin...");
+  const mintKeypair = Keypair.generate();
   const sss = await SSS.create(provider, {
     preset: preset("sss-1"),
+    mint: mintKeypair,
     name: "SSS-1 Proof Token",
     symbol: "S1PT",
     uri: "https://sss.dev/metadata/sss1-proof.json",
@@ -82,16 +85,16 @@ async function main() {
     supplyCap: BigInt(1_000_000_000_000), // 1M tokens
   });
   txSigs.initialize = "see-explorer"; // Created in SSS.create
-  console.log(`   Mint: ${sss.mintAddress.toBase58()}`);
-  console.log(`   Config: ${sss.configPda.toBase58()}`);
+  logEntry("Mint", sss.mintAddress.toBase58(), icons.key);
+  logEntry("Config", sss.configPda.toBase58(), icons.folder);
 
   // 2. Grant minter role
-  console.log("\n2. Granting minter role...");
+  logSection("2. Granting minter role...");
   txSigs.grantMinter = await sss.roles.grant(payer.publicKey, roleType("minter"));
-  console.log(`   Tx: ${txSigs.grantMinter}`);
+  logEntry("Tx", txSigs.grantMinter, icons.link);
 
   // 3. Create ATA and mint tokens
-  console.log("\n3. Minting tokens...");
+  logSection("3. Minting tokens...");
   const ata = getAssociatedTokenAddressSync(
     sss.mintAddress,
     payer.publicKey,
@@ -109,42 +112,42 @@ async function main() {
   );
   await provider.sendAndConfirm(createAtaTx);
   txSigs.mint = await sss.mintTokens(ata, BigInt(500_000_000_000)); // 500K
-  console.log(`   Minted 500K tokens. Tx: ${txSigs.mint}`);
+  logSuccess(`Minted 500K tokens. Tx: ${txSigs.mint}`);
 
   // 4. Burn tokens
-  console.log("\n4. Burning tokens...");
+  logSection("4. Burning tokens...");
   txSigs.burn = await sss.burn(ata, BigInt(100_000_000_000)); // 100K
-  console.log(`   Burned 100K tokens. Tx: ${txSigs.burn}`);
+  logSuccess(`Burned 100K tokens. Tx: ${txSigs.burn}`);
 
   // 5. Grant freezer and freeze account
-  console.log("\n5. Freezing account...");
+  logSection("5. Freezing account...");
   txSigs.grantFreezer = await sss.roles.grant(payer.publicKey, roleType("freezer"));
   txSigs.freeze = await sss.freeze(ata);
-  console.log(`   Frozen. Tx: ${txSigs.freeze}`);
+  logSuccess(`Frozen. Tx: ${txSigs.freeze}`);
 
   // 6. Thaw account
-  console.log("\n6. Thawing account...");
+  logSection("6. Thawing account...");
   txSigs.thaw = await sss.thaw(ata);
-  console.log(`   Thawed. Tx: ${txSigs.thaw}`);
+  logSuccess(`Thawed. Tx: ${txSigs.thaw}`);
 
   // 7. Grant pauser and pause
-  console.log("\n7. Pausing operations...");
+  logSection("7. Pausing operations...");
   txSigs.grantPauser = await sss.roles.grant(payer.publicKey, roleType("pauser"));
   txSigs.pause = await sss.pause();
-  console.log(`   Paused. Tx: ${txSigs.pause}`);
+  logSuccess(`Paused. Tx: ${txSigs.pause}`);
 
   // 8. Unpause
-  console.log("\n8. Unpausing operations...");
+  logSection("8. Unpausing operations...");
   txSigs.unpause = await sss.unpause();
-  console.log(`   Unpaused. Tx: ${txSigs.unpause}`);
+  logSuccess(`Unpaused. Tx: ${txSigs.unpause}`);
 
   // 9. Fetch info
-  console.log("\n9. Final state:");
+  logSection("9. Final state:");
   const info = await sss.info();
-  console.log(`   Preset: ${info.preset}`);
-  console.log(`   Supply: ${info.currentSupply} (minted: ${info.totalMinted}, burned: ${info.totalBurned})`);
-  console.log(`   Cap: ${info.supplyCap}`);
-  console.log(`   Paused: ${info.paused}`);
+  logEntry("Preset", info.preset.toString());
+  logEntry("Supply", `${info.currentSupply} (minted: ${info.totalMinted}, burned: ${info.totalBurned})`);
+  logEntry("Cap", info.supplyCap?.toString() || "None");
+  logEntry("Paused", info.paused.toString());
 
   // Save proof
   const proof: ProofResult = {
@@ -159,11 +162,11 @@ async function main() {
   const outPath = path.join(__dirname, "..", "deployments", "devnet-sss1-proof.json");
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify(proof, null, 2));
-  console.log(`\nProof saved to: ${outPath}`);
-  console.log("\n=== SSS-1 Lifecycle Proof Complete ===");
+  logSuccess(`Proof saved to: ${outPath}`);
+  logHeader("SSS-1 Lifecycle Proof Complete");
 }
 
 main().catch((err) => {
-  console.error("SSS-1 proof failed:", err);
+  logError("SSS-1 proof failed", err);
   process.exit(1);
 });

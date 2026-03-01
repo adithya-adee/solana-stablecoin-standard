@@ -30,7 +30,8 @@ import {
   createAssociatedTokenAccountInstruction,
   TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
-import { SSS, preset, roleType, type Preset } from "../solana-stablecoin-sdk/dist/cjs";
+import { SSS, preset, roleType, type Preset } from "../solana-stablecoin-sdk/src";
+import { logHeader, logSection, logEntry, logSuccess, logError, logInfo, icons } from "./utils/logging";
 
 const DEVNET_RPC = process.env.DEVNET_RPC || clusterApiUrl("devnet");
 
@@ -44,12 +45,12 @@ interface ProofResult {
 }
 
 async function main() {
-  console.log("=== SSS-2 Devnet Lifecycle Proof ===\n");
+  logHeader("SSS-2 Devnet Lifecycle Proof");
 
   // Load keypair
   const keypairPath = process.env.ANCHOR_WALLET
     || process.env.KEYPAIR_PATH
-    || path.join(process.env.HOME!, "Documents/secret/sss-devnet-keypair.json");
+    || path.join(process.env.HOME!, ".config/solana/sss-devnet-keypair.json");
   const rawKey = JSON.parse(fs.readFileSync(keypairPath, "utf-8"));
   const payer = Keypair.fromSecretKey(Uint8Array.from(rawKey));
 
@@ -61,9 +62,9 @@ async function main() {
   });
 
   const balance = await connection.getBalance(payer.publicKey);
-  console.log(
-    `Payer: ${payer.publicKey.toBase58()} (${(balance / 1e9).toFixed(4)} SOL)`,
-  );
+  logEntry("Payer", payer.publicKey.toBase58(), icons.key);
+  logEntry("Balance", `${(balance / 1e9).toFixed(4)} SOL`, icons.info);
+  
   if (balance < 0.1 * 1e9) {
     throw new Error(
       "Insufficient devnet balance (need ~1 SOL). Fund with: solana airdrop 2 --url devnet",
@@ -74,7 +75,7 @@ async function main() {
   const recipient = Keypair.generate();
 
   // 1. Create SSS-2 stablecoin
-  console.log("\n1. Creating SSS-2 stablecoin...");
+  logSection("1. Creating SSS-2 stablecoin...");
   const sss = await SSS.create(provider, {
     preset: preset("sss-2"),
     name: "SSS-2 Proof Token",
@@ -83,17 +84,17 @@ async function main() {
     decimals: 6,
   });
   txSigs.initialize = "see-explorer";
-  console.log(`   Mint: ${sss.mintAddress.toBase58()}`);
-  console.log(`   Config: ${sss.configPda.toBase58()}`);
+  logEntry("Mint", sss.mintAddress.toBase58(), icons.key);
+  logEntry("Config", sss.configPda.toBase58(), icons.folder);
 
   // 2. Grant roles
-  console.log("\n2. Granting roles...");
+  logSection("2. Granting roles...");
   txSigs.grantMinter = await sss.roles.grant(payer.publicKey, roleType("minter"));
   txSigs.grantFreezer = await sss.roles.grant(payer.publicKey, roleType("freezer"));
-  console.log(`   Minter + Freezer granted.`);
+  logSuccess("Minter + Freezer granted.");
 
   // 3. Create ATAs (will be frozen by default due to DefaultAccountState)
-  console.log("\n3. Creating token accounts (default frozen)...");
+  logSection("3. Creating token accounts (default frozen)...");
   const payerAta = getAssociatedTokenAddressSync(
     sss.mintAddress,
     payer.publicKey,
@@ -127,48 +128,48 @@ async function main() {
       ),
     );
   await provider.sendAndConfirm(createAtasTx);
-  console.log(`   Payer ATA: ${payerAta.toBase58()}`);
-  console.log(`   Recipient ATA: ${recipientAta.toBase58()}`);
+  logEntry("Payer ATA", payerAta.toBase58(), icons.folder);
+  logEntry("Recipient ATA", recipientAta.toBase58(), icons.folder);
 
   // 4. Thaw accounts (required for SSS-2 KYC flow)
-  console.log("\n4. Thawing accounts (KYC approved)...");
+  logSection("4. Thawing accounts (KYC approved)...");
   txSigs.thawPayer = await sss.thaw(payerAta);
   txSigs.thawRecipient = await sss.thaw(recipientAta);
-  console.log(`   Both accounts thawed.`);
+  logSuccess("Both accounts thawed.");
 
   // 5. Mint tokens
-  console.log("\n5. Minting tokens...");
+  logSection("5. Minting tokens...");
   txSigs.mint = await sss.mintTokens(payerAta, BigInt(1_000_000_000)); // 1K
-  console.log(`   Minted 1K tokens. Tx: ${txSigs.mint}`);
+  logSuccess(`Minted 1K tokens. Tx: ${txSigs.mint}`);
 
   // 6. Transfer tokens (exercises transfer hook)
-  console.log("\n6. Transferring tokens (via transfer hook)...");
+  logSection("6. Transferring tokens (via transfer hook)...");
   // Note: For SSS-2, transfers go through the transfer hook which checks blacklist
   // We use createTransferCheckedInstruction with additional accounts
   // For simplicity in the proof, we use the SDK
   txSigs.burn = await sss.burn(payerAta, BigInt(100_000_000)); // Burn 100 as proof
-  console.log(`   Burned 100 tokens as transfer proof. Tx: ${txSigs.burn}`);
+  logSuccess(`Burned 100 tokens as transfer proof. Tx: ${txSigs.burn}`);
 
   // 7. Blacklist an address
-  console.log("\n7. Blacklisting recipient...");
+  logSection("7. Blacklisting recipient...");
   txSigs.blacklistAdd = await sss.blacklist.add(
     recipient.publicKey,
     "Compliance review required",
   );
-  console.log(`   Blacklisted. Tx: ${txSigs.blacklistAdd}`);
+  logSuccess(`Blacklisted. Tx: ${txSigs.blacklistAdd}`);
 
   // 8. Check blacklist
-  console.log("\n8. Checking blacklist...");
+  logSection("8. Checking blacklist...");
   const isBlacklisted = await sss.blacklist.check(recipient.publicKey);
-  console.log(`   Recipient blacklisted: ${isBlacklisted}`);
+  logEntry("Recipient blacklisted", String(isBlacklisted), icons.warning);
 
   // 9. Remove from blacklist
-  console.log("\n9. Removing from blacklist...");
+  logSection("9. Removing from blacklist...");
   txSigs.blacklistRemove = await sss.blacklist.remove(recipient.publicKey);
-  console.log(`   Removed. Tx: ${txSigs.blacklistRemove}`);
+  logSuccess(`Removed. Tx: ${txSigs.blacklistRemove}`);
 
   // 10. Seize tokens
-  console.log("\n10. Seizing tokens via permanent delegate...");
+  logSection("10. Seizing tokens via permanent delegate...");
   // First mint some to recipient via their ATA
   txSigs.mintToRecipient = await sss.mintTokens(
     recipientAta,
@@ -179,21 +180,21 @@ async function main() {
     payerAta,
     BigInt(25_000_000),
   ); // Seize 25
-  console.log(`   Seized 25 tokens. Tx: ${txSigs.seize}`);
+  logSuccess(`Seized 25 tokens. Tx: ${txSigs.seize}`);
 
   // 11. Pause and unpause
-  console.log("\n11. Pause/unpause cycle...");
+  logSection("11. Pause/unpause cycle...");
   txSigs.grantPauser = await sss.roles.grant(payer.publicKey, roleType("pauser"));
   txSigs.pause = await sss.pause();
   txSigs.unpause = await sss.unpause();
-  console.log(`   Pause/unpause complete.`);
+  logSuccess("Pause/unpause complete.");
 
   // 12. Final info
-  console.log("\n12. Final state:");
+  logSection("12. Final state:");
   const info = await sss.info();
-  console.log(`   Preset: ${info.preset}`);
-  console.log(`   Supply: ${info.currentSupply}`);
-  console.log(`   Paused: ${info.paused}`);
+  logEntry("Preset", info.preset.toString());
+  logEntry("Supply", info.currentSupply.toString());
+  logEntry("Paused", info.paused.toString());
 
   // Save proof
   const proof: ProofResult = {
@@ -213,11 +214,11 @@ async function main() {
   );
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify(proof, null, 2));
-  console.log(`\nProof saved to: ${outPath}`);
-  console.log("\n=== SSS-2 Lifecycle Proof Complete ===");
+  logSuccess(`Proof saved to: ${outPath}`);
+  logHeader("SSS-2 Lifecycle Proof Complete");
 }
 
 main().catch((err) => {
-  console.error("SSS-2 proof failed:", err);
+  logError("SSS-2 proof failed:", err);
   process.exit(1);
 });
