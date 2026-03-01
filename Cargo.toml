@@ -3,8 +3,6 @@ members = [
     "sss-programs/sss-core",
     "sss-programs/sss-transfer-hook",
     "trident-tests",
-    "cli",
-    "tui",
 ]
 resolver = "2"
 
