@@ -13,6 +13,10 @@ import {
   createInitializePermanentDelegateInstruction,
   getMintLen,
   ExtensionType,
+  createSetAuthorityInstruction,
+  AuthorityType,
+  TYPE_SIZE,
+  LENGTH_SIZE,
 } from "@solana/spl-token";
 import {
   createInitializeInstruction,
@@ -141,8 +145,9 @@ export async function createSss3MintTransaction(
     additionalMetadata: [],
     updateAuthority: configPda,
   };
+  // Token-2022 extension requires exactly TYPE_SIZE (2) + LENGTH_SIZE (2) + data length bytes
   const metadataLen = pack(metadata).length;
-  const totalLen = mintLen + metadataLen;
+  const totalLen = mintLen + TYPE_SIZE + LENGTH_SIZE + metadataLen;
 
   const lamports =
     await connection.getMinimumBalanceForRentExemption(totalLen);
@@ -180,8 +185,8 @@ export async function createSss3MintTransaction(
     createInitializeMint2Instruction(
       mintKeypair.publicKey,
       decimals,
-      configPda, // mint authority = config PDA
-      configPda, // freeze authority = config PDA
+      payer, // mint authority = payer temporarily
+      payer, // freeze authority = payer temporarily
       TOKEN_2022_PROGRAM_ID,
     ),
     // 6. Initialize on-chain token metadata
@@ -192,9 +197,27 @@ export async function createSss3MintTransaction(
       name: options.name,
       symbol: options.symbol,
       uri: options.uri ?? "",
-      mintAuthority: configPda,
-      updateAuthority: configPda,
+      mintAuthority: payer, // payer signs
+      updateAuthority: configPda, // update authority set to configPda immediately
     }),
+    // 7. Transfer mint authority to configPda
+    createSetAuthorityInstruction(
+      mintKeypair.publicKey,
+      payer,
+      AuthorityType.MintTokens,
+      configPda,
+      [],
+      TOKEN_2022_PROGRAM_ID,
+    ),
+    // 8. Transfer freeze authority to configPda
+    createSetAuthorityInstruction(
+      mintKeypair.publicKey,
+      payer,
+      AuthorityType.FreezeAccount,
+      configPda,
+      [],
+      TOKEN_2022_PROGRAM_ID,
+    ),
   );
 
   return tx;

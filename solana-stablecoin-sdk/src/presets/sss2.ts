@@ -15,6 +15,10 @@ import {
   getMintLen,
   ExtensionType,
   AccountState,
+  createSetAuthorityInstruction,
+  AuthorityType,
+  TYPE_SIZE,
+  LENGTH_SIZE,
 } from "@solana/spl-token";
 import {
   createInitializeInstruction,
@@ -68,8 +72,9 @@ export async function createSss2MintTransaction(
     additionalMetadata: [],
     updateAuthority: configPda,
   };
+  // Token-2022 extension requires exactly TYPE_SIZE (2) + LENGTH_SIZE (2) + data length bytes
   const metadataLen = pack(metadata).length;
-  const totalLen = mintLen + metadataLen;
+  const totalLen = mintLen + TYPE_SIZE + LENGTH_SIZE + metadataLen;
 
   const lamports =
     await connection.getMinimumBalanceForRentExemption(totalLen);
@@ -107,10 +112,11 @@ export async function createSss2MintTransaction(
     createInitializeMint2Instruction(
       mintKeypair.publicKey,
       decimals,
-      configPda, // mint authority = config PDA
-      configPda, // freeze authority = config PDA
+      payer, // mint authority = payer temporarily
+      payer, // freeze authority = payer temporarily
       TOKEN_2022_PROGRAM_ID,
     ),
+    // Initialize on-chain token metadata (requires mint authority to sign)
     createInitializeInstruction({
       programId: TOKEN_2022_PROGRAM_ID,
       mint: mintKeypair.publicKey,
@@ -118,9 +124,27 @@ export async function createSss2MintTransaction(
       name: options.name,
       symbol: options.symbol,
       uri: options.uri ?? "",
-      mintAuthority: configPda,
-      updateAuthority: configPda,
+      mintAuthority: payer, // payer signs
+      updateAuthority: configPda, // update authority set to configPda immediately
     }),
+    // Transfer mint authority to configPda
+    createSetAuthorityInstruction(
+      mintKeypair.publicKey,
+      payer,
+      AuthorityType.MintTokens,
+      configPda,
+      [],
+      TOKEN_2022_PROGRAM_ID,
+    ),
+    // Transfer freeze authority to configPda
+    createSetAuthorityInstruction(
+      mintKeypair.publicKey,
+      payer,
+      AuthorityType.FreezeAccount,
+      configPda,
+      [],
+      TOKEN_2022_PROGRAM_ID,
+    ),
   );
 
   return tx;

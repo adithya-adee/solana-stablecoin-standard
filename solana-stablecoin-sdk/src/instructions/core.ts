@@ -69,6 +69,7 @@ export function buildMintTokensIx(
   minter: PublicKey,
   to: PublicKey,
   amount: BN,
+  priceUpdate: PublicKey | null = null,
 ) {
   const [configPda] = deriveConfigPda(mint, program.programId);
   const [minterRolePda] = deriveRolePda(
@@ -86,6 +87,7 @@ export function buildMintTokensIx(
       minterRole: minterRolePda,
       to,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
+      priceUpdate: priceUpdate ?? null,
     })
     .instruction();
 }
