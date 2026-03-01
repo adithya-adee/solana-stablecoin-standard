@@ -1,0 +1,20 @@
+{
+  "preset": "sss-1",
+  "mint": "78t8FZQJSsXpvyrtXzQAKpdF85baSjRpe8ckHQsE7pVE",
+  "config": "EM5Rim3kWAL4GGRdJVh593Audvv1srXp4mzHdXZx6c8a",
+  "transactions": {
+    "initialize": "see-explorer",
+    "grantMinter": "55SMBh5zdZtj87xU54ugGpvhV8DyqwcmNP8GCTeT2ebfh1dtmpbNJseAE92xf9koCPXv6BJ33UCaQHBrXnqw89KZ",
+    "mint": "3eVM1x1onzR34juW8tQvcKWgPsuoxFFPQasoDuESYXejwFKLEyTRMF2t2JP5WjJgQPBXTKPv5CHsq3jLJwMDJojW",
+    "grantBurner": "3nTgFbqs2jZRzT15mGJwYHkAnnVgNGKWZraF1iTNpjkKtaJpxTmjM8PSCXesrVtRvDrze4X7gAWva7fx9c2g5JAp",
+    "burn": "2uLgQ9KiHHSAoTM6xLbFLvvrtUt7FDk2dXHjus9CJKe21c6D4jRYWE2a58u9Pg8HwCYpiJp9BgTFyHLKQwC5jc7J",
+    "grantFreezer": "5SxUgf6KCYVwagETmRJbJkCUbNJwHbpN8hfuijfPdLi38VaxiVXycTuRqJmsjReSBeA9XEM41zk52MY8CrqYvXuG",
+    "freeze": "3dp5fwMCqMEca1eZVVrkExMSCHAG9UHLBLUnncRKhLPndot98HTHeDQgywgGrML1nn2onf2HVDeUsRdH6bqtAu1T",
+    "thaw": "4pCuZj6mj7QNH94Twg2q5xbkqCejWuJWNgcNqktxaqSQhSesMWCyNFSCaDjT7RyxuLW8R4AWEcayJazddjgjM6xz",
+    "grantPauser": "5LpFAWjtHgBu3bnnyvdaFheeWWmVQmkPJTtWW5TMyndnRwVEkhqmqu5KeX7LXzTSewnyaaMZ1q64CGZrEzVE6jnN",
+    "pause": "3Uerypr6qoSprikYvH3hiSQJ5kkgEaCnVb3AKtCs5Yj62scNqR8wSxKYxFewK2yXcravFyCEUNSLTYQgURstRXEo",
+    "unpause": "2KSvhHn1N2yRhGMVB3kc3izuP4AbuRfhH9Ce9TVLcRVjEDcarB2aYzSXvD2KrxYTueahijTWNUcf3HHBQhsodJVB"
+  },
+  "timestamp": "2026-03-01T07:08:44.895Z",
+  "cluster": "devnet"
+}

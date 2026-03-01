@@ -1,0 +1,26 @@
+{
+  "preset": "sss-2",
+  "mint": "GBNCN3R7GhM1bZdnVTBDvfyNb7hxgrFqmFL4a6Phpku7",
+  "config": "2B8Q1YDkXTNRRCs6uTHaB23x1gLm1NVuBMPmBVGTnAK4",
+  "transactions": {
+    "initialize": "see-explorer",
+    "grantMinter": "4YLNow1bTfgCbA7yHBwqNzVi8Jbt1QgsKbpWMo42EDcJQEVQhjodoppHQvVF6xotNESxsKvNnZAp8Uh1WEAMiAy8",
+    "grantFreezer": "3XVYhw1PGtaHWwafAXV33uriaosYbgnES4ALNAnU7cCLALxC1oThyp2B44Gg5FjU8XneBL3bQS8DfJiQCDef729h",
+    "thawPayer": "4cJpBxGjvrC8VRFBcy21G5bVXrUH1wm3BKNCA6XkRMj2cGGRQSP1Dzm6jtEEUnsoknAGa7hoJPckWo29fAwk3njh",
+    "thawRecipient": "RJzEJSWwwvxF4sBCa1NsAy8TjwS24pYUVaT2jSHFbgN25ChPJomsN75kfurUSxCefedsX9PQZf6Cj6mtPExa4bt",
+    "mint": "2CiBniM3smT4uwAZfM5jHamETDVKcoNRhoGpVTpaDWLSzwYMkRQFMDAPhygq2VC6Mf5vnLcgqTbXZZLWht6bubPW",
+    "grantBurner": "5Ayr21n79QRDXLtoMYvo1SVCjBXoG33cdjvukN5FFKr6r9FvG8QdQptu2NQdhTpvcqaDaa8WHD2PVmZJUjbD9jJ6",
+    "burn": "3iNdafjc1FVFYkXk4aUyxXKw8FrzPPvynxXABXtWqsEZTFeouPM3YY61t4vvL64GL4Keb6Ky5c6fVzXD64Ue2wkN",
+    "grantBlacklister": "35dQJ8qim4xyoBJoNN9uZjrFhsKggpspYP8XzbjDsXtN9QdKFpzB4E1GNE78QBGidgZ6X9R9oAw63Ja3Lv7fUtts",
+    "blacklistAdd": "6Wgvs2vNpoGPthYLcaaWnoUuz9WnXDdPi9pyBgpi33eSjYKRRNWoLpb6MDuKXZ2eJMaUgVWi1RjkzP8EUFW5xyo",
+    "blacklistRemove": "4s3XX4gAs3gABKpXuxR51vcXNkc4Cmh6xUhk8AFgSjVpgpFxZDN8XLoG2TuVywoJUy9kvYBrZyVcJ5ofvvBz1aX7",
+    "mintToRecipient": "3YGj3XvKF4fmPQfovSGTuWsSxiS6hsSwoiCCVWRWv2inVNT6hQa2m3eHSwCnLvD7JWspGabNgnLVSgxbm8g9dh1a",
+    "grantSeizer": "2XXpPRDcWGUNmsDNgPq1XYaReVD1oe7jzqCNVfqwMKohSszVPTxeWBu6xTgexpZKRgrrtfRL7DdggcreY1g5bzMF",
+    "seize": "skipped-known-limitation",
+    "grantPauser": "23cuqkEdAJxATwgcvVXwQWpS5Bef51Viw1GBo3jwGqKGwK5jjVkW6dqjagrM6Kbqow3zers7JoEM4PNA2miezm7f",
+    "pause": "4TGggz89hotkWv7h1TaH8QixuqbQd369U9tu84e4chGprjk8fSbsRUhyiPxB2Gqj68uXpbuuwktb5pKRWy8VLsiP",
+    "unpause": "vV9QfZ4qNkV9H4Y2yXjNguurX8MgzNtpXg4TXmbSGtdtju3inu2G38ZuVSQYP3Le3ne7cVj551ed1gGoowvXB78"
+  },
+  "timestamp": "2026-03-01T07:38:47.159Z",
+  "cluster": "devnet"
+}

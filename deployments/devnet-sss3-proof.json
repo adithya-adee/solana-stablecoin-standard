@@ -1,0 +1,24 @@
+{
+  "preset": "sss-3",
+  "mint": "922HhLWzm6z4AwVnLkhLKQjHGv4uVB6uoj9HH1oWnSQp",
+  "config": "Z4q7UTjugwiBcHdubFYaZ3FuRRTuznDUaRXPwBndMJy",
+  "transactions": {
+    "initialize": "see-explorer",
+    "grantMinter": "3WbC4H1d15nCtx2nhKqLv8vjntpSAB8ciFaPs9Mrocy5HjtQxyMQyUzLJbjgNMX7wAWnXtk5BPbtSWxVzRTJsbf7",
+    "mint": "466b1omFV9Lc61eEa3ZbrURkYCQKdmz2eSVuZL2A8r6n8tS3FrkSjYhCHe5vUrnphZgid3gAKMBSBTJvH9tCuRzB",
+    "deposit": "skipped-needs-account-config",
+    "applyPending": "skipped-depends-on-deposit",
+    "grantBurner": "3yf4MxJD2HHyaqzjvrHyNtBGLdEBSM5kQFzzPdtS4dt4ZGBj9zvxeJrUoFtU47sVPbbkbhjZV3fbmKNeHKC6wn7r",
+    "burn": "3vM1n2zUoCt9AM1TDQw6YmECXvEZ65WG9SN7rSkFJjbFvDTSrK7guv1AxJSX8ACELS8ZKXirEo13kT7KLaisMvzA"
+  },
+  "notes": [
+    "SSS-3 uses confidential transfers (twisted ElGamal encryption)",
+    "Auditor key enables regulatory compliance without breaking privacy",
+    "Deposit moves tokens from public to pending confidential balance (no ZK proofs needed)",
+    "Confidential deposit requires account to be configured for confidential transfers first",
+    "ApplyPendingBalance credits pending into available confidential balance (no ZK proofs needed)",
+    "Full confidential transfer and withdraw require Rust ZK proof service (solana-zk-sdk)"
+  ],
+  "timestamp": "2026-03-01T07:19:07.806Z",
+  "cluster": "devnet"
+}
