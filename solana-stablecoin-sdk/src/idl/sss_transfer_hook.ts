@@ -344,7 +344,7 @@ export type SssTransferHook = {
           {
             "name": "reason",
             "docs": [
-              "Compliance reason for blacklisting (max 128 chars)."
+              "Compliance reason for blacklisting (max 512 chars)."
             ],
             "type": "string"
           },
