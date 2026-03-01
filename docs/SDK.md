@@ -341,7 +341,7 @@ import { Connection } from '@solana/web3.js';
 // Retrieve hermes feed for SOL/USD
 const priceUpdateAuth = await fetchPythPrice(
   new Connection('https://api.devnet.solana.com'),
-  PYTH_FEEDS.devnet.SOL_USD
+  PYTH_FEEDS.devnet.SOL_USD,
 );
 
 // This priceUpdate authorization needs to be passed to standard mint transactions!

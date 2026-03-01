@@ -183,7 +183,7 @@ sss-token roles list --mint <MINT> --address <ADDR>
 
 ```bash
 # Configure environment
-cp backend/.env.example .env
+cp solana-stablecoin-backend/.env.example .env
 # Edit .env with your RPC URL, keypair path, and API key
 
 docker compose up    # Backend with health check at :3000/health
@@ -249,18 +249,20 @@ docker compose up    # Backend with health check at :3000/health
 | ---------------------------- | --------------------------------------------------------------------------------------- |
 | **SSS-3 Private Stablecoin** | Token-2022 ConfidentialTransfer + auditor key + scoped allowlists (documented as PoC)   |
 | **Oracle Integration**       | Pyth price feeds for USD-denominated supply caps (`parsePythPrice`, `usdToTokenAmount`) |
-| **Interactive Admin TUI**    | ratatui terminal dashboard for real-time monitoring                                     |
+| **Interactive Admin TUI**    | React Ink-based terminal dashboard for real-time monitoring and exact execution         |
 | **Example Frontend**         | Next.js 15 scaffold for stablecoin creation and management                              |
 
-#### TUI Dashboard (ratatui)
+#### Interactive Admin TUI (Ink)
 
-Real-time terminal dashboard for monitoring stablecoin config, supply stats, roles, and events.
+Real-time terminal dashboard for monitoring stablecoin config, supply stats, roles, and executing compliance operations directly. It supports interactive forms and confirmation overlays.
 
 ![TUI Demo](docs/images/tui-demo.gif)
 
 ```bash
-cargo install --path tui
-sss-tui <MINT_ADDRESS> --rpc-url https://api.devnet.solana.com
+cd solana-stablecoin-cli
+pnpm dev
+# or if linked:
+# sss-token tui
 ```
 
 #### Frontend Admin Panel (Next.js 15)
@@ -274,7 +276,7 @@ Web-based admin interface with wallet integration for all stablecoin operations.
 | ![Dashboard](docs/images/frontend-dashboard.png) | ![Operations](docs/images/frontend-operations.png) | ![Confidential](docs/images/frontend-confidential.png) |
 
 ```bash
-cd frontend && pnpm dev    # http://localhost:3001
+cd solana-stablecoin-frontend && pnpm dev    # http://localhost:3001
 ```
 
 ---
@@ -315,15 +317,13 @@ SDK unit test breakdown: `pda.test.ts` (13) · `errors.test.ts` (12) · `types.t
 
 ```
 solana-stablecoin-standard/
-  programs/
+  sss-programs/
     sss-core/                # Core stablecoin program (Anchor)
     sss-transfer-hook/       # Transfer hook program (Anchor)
-  sdk/                       # TypeScript SDK (@stbr/sss-token)
-  solana-stablecoin-cli/     # TypeScript/Ink CLI (new)
-  cli/                       # Legacy Rust CLI (deprecated)
-  backend/                   # Express REST API + event listener + webhooks
-  tui/                       # ratatui terminal UI
-  frontend/                  # Next.js 15 frontend
+  solana-stablecoin-sdk/     # TypeScript SDK (@stbr/sss-token)
+  solana-stablecoin-cli/     # TypeScript/Ink CLI + Interactive TUI
+  solana-stablecoin-backend/ # Express REST API + event listener + webhooks
+  solana-stablecoin-frontend/# Next.js 15 frontend
   tests/                     # Integration tests
   trident-tests/             # Property-based fuzz tests (proptest)
   deployments/               # Devnet deployment proof

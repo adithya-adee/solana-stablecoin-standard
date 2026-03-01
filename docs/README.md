@@ -1,9 +1,11 @@
 # Solana Stablecoin Standard (SSS)
 
 ## Overview
+
 The Solana Stablecoin Standard (SSS) is a comprehensive, production-ready framework for issuing and managing stablecoins on the Solana blockchain. Built on top of the Token-2022 (Token Extensions) program, SSS provides institutional-grade controls, compliance features, and privacy options through a unified interface.
 
 ## Quick Start
+
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/your-repo/solana-stablecoin-standard.git
@@ -29,17 +31,19 @@ The Solana Stablecoin Standard (SSS) is a comprehensive, production-ready framew
    ```
 
 ## Preset Comparison
-| Feature | SSS-1 (Minimal) | SSS-2 (Compliant) | SSS-3 (Private) |
-|---------|---------|---------|---------|
-| Minting/Burning | Yes | Yes | Yes |
-| Role Management | Yes | Yes | Yes |
-| Freeze/Thaw | Yes | Yes | Yes |
-| Transfer Hook Blacklist | No | Yes | No |
-| Permanent Delegate (Seize) | No | Yes | Yes |
-| Confidential Transfers | No | No | Yes |
-| Use Case | Simple payments | Regulated stablecoins | Institutional/Private txs |
+
+| Feature                    | SSS-1 (Minimal) | SSS-2 (Compliant)     | SSS-3 (Private)           |
+| -------------------------- | --------------- | --------------------- | ------------------------- |
+| Minting/Burning            | Yes             | Yes                   | Yes                       |
+| Role Management            | Yes             | Yes                   | Yes                       |
+| Freeze/Thaw                | Yes             | Yes                   | Yes                       |
+| Transfer Hook Blacklist    | No              | Yes                   | No                        |
+| Permanent Delegate (Seize) | No              | Yes                   | Yes                       |
+| Confidential Transfers     | No              | No                    | Yes                       |
+| Use Case                   | Simple payments | Regulated stablecoins | Institutional/Private txs |
 
 ## Architecture Diagram
+
 ```mermaid
 graph TD
     Client[Client Apps / CLI / Frontend] --> SDK[@stbr/sss-token SDK]
