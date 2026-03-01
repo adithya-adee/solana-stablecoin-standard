@@ -33,7 +33,8 @@ import {
 import { SSS, generateTestElGamalKeypair, generateTestAesKey, preset, roleType, type Preset } from "../solana-stablecoin-sdk/src";
 import { logHeader, logSection, logEntry, logSuccess, logError, logInfo, logWarning, icons } from "./utils/logging";
 
-const DEVNET_RPC = process.env.DEVNET_RPC || clusterApiUrl("devnet");
+const CLUSTER = process.env.CLUSTER || "devnet";
+const RPC_URL = process.env.RPC_URL || (CLUSTER === "localnet" ? "http://127.0.0.1:8899" : clusterApiUrl(CLUSTER as any));
 
 interface ProofResult {
   preset: Preset;
@@ -51,11 +52,13 @@ async function main() {
   // Load keypair
   const keypairPath = process.env.ANCHOR_WALLET
     || process.env.KEYPAIR_PATH
-    || path.join(process.env.HOME!, ".config/solana/sss-devnet-keypair.json");
+    || (CLUSTER === "localnet" 
+      ? path.join(process.env.HOME!, ".config/solana/id.json") 
+      : path.join(process.env.HOME!, ".config/solana/sss-devnet-keypair.json"));
   const rawKey = JSON.parse(fs.readFileSync(keypairPath, "utf-8"));
   const payer = Keypair.fromSecretKey(Uint8Array.from(rawKey));
 
-  const connection = new Connection(DEVNET_RPC, "confirmed");
+  const connection = new Connection(RPC_URL, "confirmed");
   const wallet = new Wallet(payer);
   const provider = new AnchorProvider(connection, wallet, {
     commitment: "confirmed",
@@ -152,6 +155,7 @@ async function main() {
 
   // 6. Burn some tokens
   logSection("6. Burning tokens...");
+  txSigs.grantBurner = await sss.roles.grant(payer.publicKey, roleType("burner"));
   txSigs.burn = await sss.burn(ata, BigInt(50_000_000)); // 50 tokens
   logSuccess(`Burned 50 tokens. Tx: ${txSigs.burn}`);
 

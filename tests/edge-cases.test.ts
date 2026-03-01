@@ -172,7 +172,6 @@ describe("Edge Cases", () => {
           from: recipientAta,
           to: treasuryAta,
           tokenProgram: TOKEN_2022_PROGRAM_ID,
-          priceUpdate: null,
         })
         .rpc();
       expect.fail("Should have thrown ZeroAmount");
