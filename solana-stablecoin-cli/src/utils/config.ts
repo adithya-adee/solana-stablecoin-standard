@@ -58,3 +58,12 @@ export function formatAmount(raw: bigint, decimals = 6): string {
   const fracStr = frac.toString().padStart(decimals, '0').replace(/0+$/, '');
   return fracStr ? `${whole}.${fracStr}` : whole.toString();
 }
+
+export function formatExplorerUrl(signature: string): string {
+  const cluster = process.env.SOLANA_CLUSTER ?? 'devnet';
+  let url = `https://explorer.solana.com/tx/${signature}`;
+  if (cluster !== 'mainnet-beta') {
+    url += `?cluster=${cluster}`;
+  }
+  return url;
+}

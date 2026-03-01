@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Text, Newline } from 'ink';
+import Link from 'ink-link';
+import { formatExplorerUrl } from '../utils/config.js';
 
 // ─── Brand bar ──────────────────────────────────────────────────────────────
 
@@ -7,9 +9,6 @@ export function Header() {
   return (
     <Box flexDirection="column" marginBottom={1}>
       <Box>
-        <Text bold color="cyanBright">
-          ◆{' '}
-        </Text>
         <Text bold color="white">
           SSS
         </Text>
@@ -54,12 +53,14 @@ export function Success({ label = 'Success', value }: ResultProps) {
     <Box flexDirection="column" marginTop={1}>
       <Box>
         <Text color="greenBright" bold>
-          ✓ {label}
+          {label}
         </Text>
       </Box>
       <Box marginLeft={2}>
         <Text color="gray">tx: </Text>
-        <Text color="white">{value}</Text>
+        <Link url={formatExplorerUrl(value)}>
+          <Text color="white">{value}</Text>
+        </Link>
       </Box>
     </Box>
   );
@@ -69,7 +70,7 @@ export function Err({ message }: { message: string }) {
   return (
     <Box marginTop={1}>
       <Text color="redBright" bold>
-        ✗ Error:{' '}
+        Error:{' '}
       </Text>
       <Text color="red">{message}</Text>
     </Box>
@@ -105,9 +106,6 @@ export function Card({ title, children }: CardProps) {
   return (
     <Box flexDirection="column" marginTop={1}>
       <Box marginBottom={0}>
-        <Text color="cyanBright" bold>
-          ┌{' '}
-        </Text>
         <Text color="white" bold>
           {title}
         </Text>
@@ -122,7 +120,7 @@ export function Card({ title, children }: CardProps) {
 // ─── Table ───────────────────────────────────────────────────────────────────
 
 interface TableProps {
-  rows: { key: string; value: string; highlight?: boolean }[];
+  rows: { key: string; value: React.ReactNode; highlight?: boolean }[];
 }
 export function Table({ rows }: TableProps) {
   const maxKey = Math.max(...rows.map((r) => r.key.length));
@@ -131,7 +129,7 @@ export function Table({ rows }: TableProps) {
       {rows.map((r, i) => (
         <Box key={i}>
           <Text color="gray">{r.key.padEnd(maxKey + 2, ' ')}</Text>
-          <Text color={r.highlight ? 'yellowBright' : 'white'}>{r.value}</Text>
+          {typeof r.value === 'string' ? <Text color={r.highlight ? 'yellowBright' : 'white'}>{r.value}</Text> : r.value}
         </Box>
       ))}
     </Box>
@@ -140,12 +138,13 @@ export function Table({ rows }: TableProps) {
 
 // ─── Badge ───────────────────────────────────────────────────────────────────
 
-type BadgeVariant = 'success' | 'warning' | 'error' | 'info';
+type BadgeVariant = 'success' | 'warning' | 'error' | 'info' | 'confidential';
 const BADGE_COLORS: Record<BadgeVariant, string> = {
   success: 'greenBright',
   warning: 'yellowBright',
   error: 'redBright',
   info: 'cyanBright',
+  confidential: 'magentaBright',
 };
 
 export function Badge({ label, variant }: { label: string; variant: BadgeVariant }) {
@@ -156,3 +155,4 @@ export function Badge({ label, variant }: { label: string; variant: BadgeVariant
     </Text>
   );
 }
+

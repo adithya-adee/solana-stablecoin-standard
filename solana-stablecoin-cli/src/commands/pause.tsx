@@ -12,7 +12,7 @@ interface PauseOptions {
 
 export default function Pause({ options }: { options: PauseOptions }) {
   const action = options.unpause ? 'unpause' : 'pause';
-  const [phase, setPhase] = useState<'running' | 'done' | 'error'>('running');
+  const [phase, setPhase] = useState<'running' | 'confirming' | 'done' | 'error'>('running');
   const [sig, setSig] = useState('');
   const [error, setError] = useState('');
 
@@ -22,8 +22,18 @@ export default function Pause({ options }: { options: PauseOptions }) {
         const provider = loadProvider();
         const mint = new PublicKey(options.mint);
         const sss = await SSS.load(provider, mint as any);
-        const tx = options.unpause ? await sss.unpause() : await sss.pause();
-        setSig(tx);
+        
+        const txSig = options.unpause ? await sss.unpause() : await sss.pause();
+        setSig(txSig);
+        setPhase('confirming');
+
+        const latestBlockHash = await provider.connection.getLatestBlockhash();
+        await provider.connection.confirmTransaction({
+          blockhash: latestBlockHash.blockhash,
+          lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+          signature: txSig,
+        });
+
         setPhase('done');
       } catch (e: any) {
         setError(e.message ?? String(e));
@@ -38,6 +48,7 @@ export default function Pause({ options }: { options: PauseOptions }) {
       {phase === 'running' && (
         <Spinner label={`${action === 'pause' ? 'Pausing' : 'Unpausing'} stablecoin...`} />
       )}
+      {phase === 'confirming' && <Spinner label="Confirming transaction..." />}
       {phase === 'done' && (
         <Success label={action === 'pause' ? 'Paused' : 'Unpaused'} value={sig} />
       )}

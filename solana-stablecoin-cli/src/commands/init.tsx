@@ -7,6 +7,7 @@ import { loadProvider, parseAmount, formatAmount } from '../utils/config.js';
 import { preset as mkPreset } from '@stbr/sss-token';
 import type { StablecoinCreateOptions } from '@stbr/sss-token';
 import fs from 'fs';
+import toml from 'smol-toml';
 
 type PresetChoice = 'sss-1' | 'sss-2' | 'sss-3';
 
@@ -22,6 +23,12 @@ interface InitOptions {
 }
 
 type Phase = 'idle' | 'creating' | 'done' | 'error';
+
+const presetBadges: Record<PresetChoice, React.ReactElement> = {
+  'sss-1': <Badge label="MINIMAL" variant="success" />,
+  'sss-2': <Badge label="COMPLIANT" variant="warning" />,
+  'sss-3': <Badge label="CONFIDENTIAL" variant="confidential" />,
+};
 
 export default function Init({ options }: { options: InitOptions }) {
   const [phase, setPhase] = useState<Phase>('idle');
@@ -47,15 +54,25 @@ export default function Init({ options }: { options: InitOptions }) {
         let createOpts: StablecoinCreateOptions;
 
         if (options.config) {
-          // Parse custom JSON config
-          const raw = JSON.parse(fs.readFileSync(options.config, 'utf-8'));
+          const configContents = fs.readFileSync(options.config, 'utf-8');
+          let raw: any;
+
+          if (options.config.endsWith('.toml')) {
+            raw = toml.parse(configContents);
+          } else {
+            raw = JSON.parse(configContents);
+          }
+
+          // The TOML file might have a top-level table, e.g. [stablecoin]
+          const configData = raw.stablecoin ?? raw;
+
           createOpts = {
             preset: mkPreset(resolvedPreset),
-            name: raw.name ?? options.name,
-            symbol: raw.symbol ?? options.symbol,
-            uri: raw.uri ?? options.uri,
-            decimals: raw.decimals ?? parseInt(options.decimals ?? '6', 10),
-            supplyCap: raw.supply_cap ? BigInt(raw.supply_cap) : undefined,
+            name: configData.name ?? options.name,
+            symbol: configData.symbol ?? options.symbol,
+            uri: configData.uri ?? options.uri,
+            decimals: configData.decimals ?? parseInt(options.decimals ?? '6', 10),
+            supplyCap: configData.supply_cap ? BigInt(configData.supply_cap) : undefined,
           };
         } else {
           createOpts = {
@@ -71,6 +88,16 @@ export default function Init({ options }: { options: InitOptions }) {
         const sss = await SSS.create(provider, createOpts, mintKp);
         setMintAddr(sss.mintAddress.toBase58());
         setTxSig(sss.mintAddress.toBase58()); // mint address IS the confirmation
+
+        // Write config file
+        const configPath = process.env.SSS_CONFIG ?? '.sss-config.json';
+        const config = {
+          mint: sss.mintAddress.toBase58(),
+          preset: resolvedPreset,
+          cluster: process.env.SOLANA_CLUSTER ?? 'devnet',
+        };
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+
         setPhase('done');
       } catch (e: any) {
         setError(e.message ?? String(e));
@@ -89,7 +116,7 @@ export default function Init({ options }: { options: InitOptions }) {
         <Card title="Stablecoin Created">
           <Table
             rows={[
-              { key: 'Preset', value: resolvedPreset.toUpperCase(), highlight: true },
+              { key: 'Preset', value: presetBadges[resolvedPreset] },
               { key: 'Name', value: options.name },
               { key: 'Symbol', value: options.symbol },
               { key: 'Decimals', value: options.decimals ?? '6' },
@@ -107,3 +134,4 @@ export default function Init({ options }: { options: InitOptions }) {
     </Box>
   );
 }
+

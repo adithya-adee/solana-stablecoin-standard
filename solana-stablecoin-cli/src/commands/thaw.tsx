@@ -12,7 +12,7 @@ interface ThawOptions {
 }
 
 export default function Thaw({ options }: { options: ThawOptions }) {
-  const [phase, setPhase] = useState<'running' | 'done' | 'error'>('running');
+  const [phase, setPhase] = useState<'running' | 'confirming' | 'done' | 'error'>('running');
   const [sig, setSig] = useState('');
   const [error, setError] = useState('');
 
@@ -24,8 +24,18 @@ export default function Thaw({ options }: { options: ThawOptions }) {
         const target = new PublicKey(options.address);
         const sss = await SSS.load(provider, mint as any);
         const ata = getAssociatedTokenAddressSync(mint, target, false, TOKEN_2022_PROGRAM_ID);
-        const tx = await sss.thaw(ata);
-        setSig(tx);
+
+        const txSig = await sss.thaw(ata);
+        setSig(txSig);
+        setPhase('confirming');
+
+        const latestBlockHash = await provider.connection.getLatestBlockhash();
+        await provider.connection.confirmTransaction({
+          blockhash: latestBlockHash.blockhash,
+          lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+          signature: txSig,
+        });
+
         setPhase('done');
       } catch (e: any) {
         setError(e.message ?? String(e));
@@ -38,6 +48,7 @@ export default function Thaw({ options }: { options: ThawOptions }) {
     <Box flexDirection="column">
       <Header />
       {phase === 'running' && <Spinner label={`Thawing ${options.address.slice(0, 8)}...`} />}
+      {phase === 'confirming' && <Spinner label="Confirming transaction..." />}
       {phase === 'done' && <Success label="Account thawed" value={sig} />}
       {phase === 'error' && <Err message={error} />}
     </Box>

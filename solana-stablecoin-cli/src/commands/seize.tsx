@@ -14,7 +14,7 @@ interface SeizeOptions {
 }
 
 export default function Seize({ options }: { options: SeizeOptions }) {
-  const [phase, setPhase] = useState<'running' | 'done' | 'error'>('running');
+  const [phase, setPhase] = useState<'running' | 'confirming' | 'done' | 'error'>('running');
   const [sig, setSig] = useState('');
   const [error, setError] = useState('');
 
@@ -29,8 +29,18 @@ export default function Seize({ options }: { options: SeizeOptions }) {
         const fromAta = getAssociatedTokenAddressSync(mint, from, false, TOKEN_2022_PROGRAM_ID);
         const toAta = getAssociatedTokenAddressSync(mint, to, false, TOKEN_2022_PROGRAM_ID);
         const amount = parseAmount(options.amount);
-        const tx = await sss.seize(fromAta, toAta, amount);
-        setSig(tx);
+
+        const txSig = await sss.seize(fromAta, toAta, amount);
+        setSig(txSig);
+        setPhase('confirming');
+
+        const latestBlockHash = await provider.connection.getLatestBlockhash();
+        await provider.connection.confirmTransaction({
+          blockhash: latestBlockHash.blockhash,
+          lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+          signature: txSig,
+        });
+
         setPhase('done');
       } catch (e: any) {
         setError(e.message ?? String(e));
@@ -45,6 +55,7 @@ export default function Seize({ options }: { options: SeizeOptions }) {
       {phase === 'running' && (
         <Spinner label={`Seizing funds from ${options.from.slice(0, 8)}...`} />
       )}
+      {phase === 'confirming' && <Spinner label="Confirming transaction..." />}
       {phase === 'done' && <Success label="Seized" value={sig} />}
       {phase === 'error' && <Err message={error} />}
     </Box>

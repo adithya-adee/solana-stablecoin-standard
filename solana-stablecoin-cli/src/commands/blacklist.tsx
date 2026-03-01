@@ -15,7 +15,7 @@ interface BlacklistOptions {
 }
 
 export default function Blacklist({ options }: { options: BlacklistOptions }) {
-  const [phase, setPhase] = useState<'running' | 'done' | 'error'>('running');
+  const [phase, setPhase] = useState<'running' | 'confirming' | 'done' | 'error'>('running');
   const [sig, setSig] = useState('');
   const [error, setError] = useState('');
 
@@ -40,9 +40,25 @@ export default function Blacklist({ options }: { options: BlacklistOptions }) {
 
         if (options.action === 'add') {
           const reason = options.reason ?? '';
-          setSig(await sss.blacklist.add(addr, reason));
+          const txSig = await sss.blacklist.add(addr, reason);
+          setSig(txSig);
+          setPhase('confirming');
+          const latestBlockHash = await provider.connection.getLatestBlockhash();
+          await provider.connection.confirmTransaction({
+            blockhash: latestBlockHash.blockhash,
+            lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+            signature: txSig,
+          });
         } else if (options.action === 'remove') {
-          setSig(await sss.blacklist.remove(addr));
+          const txSig = await sss.blacklist.remove(addr);
+          setSig(txSig);
+          setPhase('confirming');
+          const latestBlockHash = await provider.connection.getLatestBlockhash();
+          await provider.connection.confirmTransaction({
+            blockhash: latestBlockHash.blockhash,
+            lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+            signature: txSig,
+          });
         } else {
           const isBlacklisted = await sss.blacklist.check(addr);
           setSig(
@@ -61,6 +77,7 @@ export default function Blacklist({ options }: { options: BlacklistOptions }) {
     <Box flexDirection="column">
       <Header />
       {phase === 'running' && <Spinner label={`Blacklist: ${options.action}...`} />}
+      {phase === 'confirming' && <Spinner label="Confirming transaction..." />}
       {phase === 'done' && <Success label={`Blacklist: ${options.action}`} value={sig} />}
       {phase === 'error' && <Err message={error} />}
     </Box>

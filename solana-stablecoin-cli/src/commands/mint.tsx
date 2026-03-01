@@ -13,7 +13,7 @@ interface MintOptions {
 }
 
 export default function Mint({ options }: { options: MintOptions }) {
-  const [phase, setPhase] = useState<'running' | 'done' | 'error'>('running');
+  const [phase, setPhase] = useState<'running' | 'confirming' | 'done' | 'error'>('running');
   const [sig, setSig] = useState('');
   const [error, setError] = useState('');
 
@@ -26,8 +26,18 @@ export default function Mint({ options }: { options: MintOptions }) {
         const sss = await SSS.load(provider, mint as any);
         const ata = getAssociatedTokenAddressSync(mint, recipient, false, TOKEN_2022_PROGRAM_ID);
         const amount = parseAmount(options.amount);
-        const tx = await sss.mintTokens(ata, amount);
-        setSig(tx);
+
+        const txSig = await sss.mintTokens(ata, amount);
+        setSig(txSig);
+        setPhase('confirming');
+
+        const latestBlockHash = await provider.connection.getLatestBlockhash();
+        await provider.connection.confirmTransaction({
+          blockhash: latestBlockHash.blockhash,
+          lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+          signature: txSig,
+        });
+
         setPhase('done');
       } catch (e: any) {
         setError(e.message ?? String(e));
@@ -43,6 +53,9 @@ export default function Mint({ options }: { options: MintOptions }) {
         <Spinner
           label={`Minting ${options.amount} tokens to ${options.recipient.slice(0, 8)}...`}
         />
+      )}
+      {phase === 'confirming' && (
+        <Spinner label="Confirming transaction..." />
       )}
       {phase === 'done' && <Success label="Minted" value={sig} />}
       {phase === 'error' && <Err message={error} />}

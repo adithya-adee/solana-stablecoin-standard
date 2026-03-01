@@ -25,7 +25,7 @@ interface RolesOptions {
 }
 
 export default function Roles({ options }: { options: RolesOptions }) {
-  const [phase, setPhase] = useState<'running' | 'done' | 'error'>('running');
+  const [phase, setPhase] = useState<'running' | 'confirming' | 'done' | 'error'>('running');
   const [sig, setSig] = useState('');
   const [roleInfos, setRoleInfos] = useState<{ address: string; role: string }[]>([]);
   const [error, setError] = useState('');
@@ -50,6 +50,7 @@ export default function Roles({ options }: { options: RolesOptions }) {
             if (has) results.push({ address: addr.toBase58(), role: r });
           }
           setRoleInfos(results);
+          setPhase('done');
         } else {
           if (!options.address || !options.role) {
             throw new Error('--address and --role are required');
@@ -57,15 +58,31 @@ export default function Roles({ options }: { options: RolesOptions }) {
           const addr = new PublicKey(options.address);
           const role = roleType(options.role as ValidRole);
           if (options.action === 'grant') {
-            setSig(await sss.roles.grant(addr, role));
+            const txSig = await sss.roles.grant(addr, role);
+            setSig(txSig);
+            setPhase('confirming');
+            const latestBlockHash = await provider.connection.getLatestBlockhash();
+            await provider.connection.confirmTransaction({
+              blockhash: latestBlockHash.blockhash,
+              lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+              signature: txSig,
+            });
           } else if (options.action === 'revoke') {
-            setSig(await sss.roles.revoke(addr, role));
-          } else {
+            const txSig = await sss.roles.revoke(addr, role);
+            setSig(txSig);
+            setPhase('confirming');
+            const latestBlockHash = await provider.connection.getLatestBlockhash();
+            await provider.connection.confirmTransaction({
+              blockhash: latestBlockHash.blockhash,
+              lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+              signature: txSig,
+            });
+          } else { // check
             const has = await sss.roles.check(addr, role);
             setSig(has ? 'Yes — role is active' : 'No — role not found');
           }
+          setPhase('done');
         }
-        setPhase('done');
       } catch (e: any) {
         setError(e.message ?? String(e));
         setPhase('error');
@@ -77,6 +94,7 @@ export default function Roles({ options }: { options: RolesOptions }) {
     <Box flexDirection="column">
       <Header />
       {phase === 'running' && <Spinner label={`Roles: ${options.action}...`} />}
+      {phase === 'confirming' && <Spinner label="Confirming transaction..." />}
       {phase === 'done' && options.action === 'list' && (
         <Card title={`Active roles for ${options.address?.slice(0, 8)}...`}>
           {roleInfos.length === 0 ? (
