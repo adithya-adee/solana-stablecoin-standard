@@ -1,4 +1,4 @@
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, Keypair } from "@solana/web3.js";
 
 declare const __brand: unique symbol;
 export type Brand<T, B extends string> = T & { readonly [__brand]: B };
@@ -28,6 +28,7 @@ export interface StablecoinCreateOptions {
   uri?: string;
   decimals?: number;
   supplyCap?: bigint;
+  mint?: Keypair;
 }
 
 export interface StablecoinInfo {
