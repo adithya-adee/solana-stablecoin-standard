@@ -642,4 +642,19 @@ program
     r(<AuditLog options={{ mint, limit: opts.limit }} />);
   });
 
-program.parse(process.argv);
+import Tui from './tui.js';
+
+// ─── TUI ──────────────────────────────────────────────────────────────────────
+program
+  .command('tui')
+  .description('Launch the interactive admin dashboard')
+  .action(() => {
+    r(<Tui />);
+  });
+
+// Launch TUI by default if no args are provided
+if (process.argv.length <= 2) {
+  r(<Tui />);
+} else {
+  program.parse(process.argv);
+}
