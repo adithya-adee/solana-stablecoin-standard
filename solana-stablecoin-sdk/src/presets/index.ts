@@ -1,8 +1,8 @@
-export { createSss1MintTransaction } from './sss1';
-export type { Sss1MintOptions } from './sss1';
+export { assembleTier1MintTx } from './sss1';
+export type { Tier1MintParams } from './sss1';
 
-export { createSss2MintTransaction } from './sss2';
-export type { Sss2MintOptions } from './sss2';
+export { assembleTier2MintTx } from './sss2';
+export type { Tier2MintParams } from './sss2';
 
-export { createSss3MintTransaction } from './sss3';
-export type { Sss3MintOptions } from './sss3';
+export { assembleTier3MintTx, compileConfidentialMintInstruction } from './sss3';
+export type { Tier3MintParams } from './sss3';

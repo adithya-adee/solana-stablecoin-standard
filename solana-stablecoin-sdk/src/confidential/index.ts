@@ -16,10 +16,10 @@ export class PrivacyOpsBuilder {
     decimals: number,
   ): TransactionInstruction {
     const data = Buffer.alloc(11);
-    data.writeUInt8(27, 0); 
-    data.writeUInt8(5, 1); 
-    data.writeBigUInt64LE(amount, 2); 
-    data.writeUInt8(decimals, 10); 
+    data.writeUInt8(27, 0);
+    data.writeUInt8(5, 1);
+    data.writeBigUInt64LE(amount, 2);
+    data.writeUInt8(decimals, 10);
 
     return new TransactionInstruction({
       programId: TOKEN_2022_PROGRAM_ID,
@@ -34,8 +34,8 @@ export class PrivacyOpsBuilder {
 
   compileSettlePendingInstruction(tokenAccount: PublicKey): TransactionInstruction {
     const data = Buffer.alloc(2);
-    data.writeUInt8(27, 0); 
-    data.writeUInt8(8, 1); 
+    data.writeUInt8(27, 0);
+    data.writeUInt8(8, 1);
 
     return new TransactionInstruction({
       programId: TOKEN_2022_PROGRAM_ID,

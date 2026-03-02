@@ -1,5 +1,11 @@
 import { PublicKey } from '@solana/web3.js';
-import type { AccessRole, TokenMintKey, ConfigAccountKey, RoleAccountKey, DenyListKey } from './types';
+import type {
+  AccessRole,
+  TokenMintKey,
+  ConfigAccountKey,
+  RoleAccountKey,
+  DenyListKey,
+} from './types';
 import { ROLE_ID_MAP } from './types';
 
 export const STBL_CORE_PROGRAM_ID = new PublicKey('SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP');

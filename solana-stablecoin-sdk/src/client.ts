@@ -1,5 +1,11 @@
 import { Program, AnchorProvider, BN } from '@coral-xyz/anchor';
 import { PublicKey, Keypair, Transaction, TransactionInstruction } from '@solana/web3.js';
+import {
+  getAssociatedTokenAddressSync,
+  createAssociatedTokenAccountInstruction,
+  TOKEN_2022_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+} from '@solana/spl-token';
 import type { SssCore } from './idl/sss_core';
 import type { SssTransferHook } from './idl/sss_transfer_hook';
 import { SssCoreIdl, SssTransferHookIdl } from './idl';
@@ -52,9 +58,17 @@ export class StablecoinClient {
     this.anchorProvider = anchorProvider;
   }
 
-  private async dispatchInstruction(ix: TransactionInstruction): Promise<string> {
+  private async dispatchInstruction(
+    ixs: TransactionInstruction | TransactionInstruction[],
+  ): Promise<string> {
     try {
-      return await this.anchorProvider.sendAndConfirm(new Transaction().add(ix));
+      const tx = new Transaction();
+      if (Array.isArray(ixs)) {
+        ixs.forEach((ix) => tx.add(ix));
+      } else {
+        tx.add(ixs);
+      }
+      return await this.anchorProvider.sendAndConfirm(tx);
     } catch (err) {
       throw translateAnchorError(err);
     }
@@ -79,7 +93,11 @@ export class StablecoinClient {
     mintKeypair?: Keypair,
   ): Promise<StablecoinClient> {
     if ('extensions' in options && options.extensions) {
-      return StablecoinClient.initFromExtensions(provider, options as TokenExtensionOptions, mintKeypair);
+      return StablecoinClient.initFromExtensions(
+        provider,
+        options as TokenExtensionOptions,
+        mintKeypair,
+      );
     }
     const opts = options as TokenDeployOptions;
     const { ledgerProgram, guardProgram } = StablecoinClient.buildProgramPair(provider);
@@ -225,46 +243,95 @@ export class StablecoinClient {
 
   async issueTokens(to: PublicKey, amount: bigint): Promise<string> {
     const minter = this.anchorProvider.publicKey;
-    const ix = await coreix.compileIssuanceInstruction(
+    const ixs: TransactionInstruction[] = [];
+
+    // Derive ATA
+    const ata = getAssociatedTokenAddressSync(
+      this.mintAddress,
+      to,
+      false,
+      TOKEN_2022_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+
+    // Check if ATA exists
+    const accountInfo = await this.anchorProvider.connection.getAccountInfo(ata);
+    if (!accountInfo) {
+      ixs.push(
+        createAssociatedTokenAccountInstruction(
+          this.anchorProvider.publicKey,
+          ata,
+          to,
+          this.mintAddress,
+          TOKEN_2022_PROGRAM_ID,
+          ASSOCIATED_TOKEN_PROGRAM_ID,
+        ),
+      );
+    }
+
+    const mintIx = await coreix.compileIssuanceInstruction(
       this.ledgerProgram,
       this.mintAddress,
       minter,
-      to,
+      ata,
       new BN(amount.toString()),
     );
-    return this.dispatchInstruction(ix);
+    ixs.push(mintIx);
+
+    return this.dispatchInstruction(ixs);
   }
 
   async burn(from: PublicKey, amount: bigint): Promise<string> {
     const burner = this.anchorProvider.publicKey;
+    const ata = getAssociatedTokenAddressSync(
+      this.mintAddress,
+      from,
+      false,
+      TOKEN_2022_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
     const ix = await coreix.compileRedemptionInstruction(
       this.ledgerProgram,
       this.mintAddress,
       burner,
-      from,
+      ata,
       new BN(amount.toString()),
     );
     return this.dispatchInstruction(ix);
   }
 
-  async freeze(tokenAccount: PublicKey): Promise<string> {
+  async freeze(address: PublicKey): Promise<string> {
     const freezer = this.anchorProvider.publicKey;
+    const ata = getAssociatedTokenAddressSync(
+      this.mintAddress,
+      address,
+      false,
+      TOKEN_2022_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
     const ix = await coreix.compileFreezeInstruction(
       this.ledgerProgram,
       this.mintAddress,
       freezer,
-      tokenAccount,
+      ata,
     );
     return this.dispatchInstruction(ix);
   }
 
-  async thaw(tokenAccount: PublicKey): Promise<string> {
+  async thaw(address: PublicKey): Promise<string> {
     const freezer = this.anchorProvider.publicKey;
+    const ata = getAssociatedTokenAddressSync(
+      this.mintAddress,
+      address,
+      false,
+      TOKEN_2022_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
     const ix = await coreix.compileThawInstruction(
       this.ledgerProgram,
       this.mintAddress,
       freezer,
-      tokenAccount,
+      ata,
     );
     return this.dispatchInstruction(ix);
   }
@@ -283,21 +350,61 @@ export class StablecoinClient {
 
   async seize(from: PublicKey, to: PublicKey, amount: bigint): Promise<string> {
     const seizer = this.anchorProvider.publicKey;
-    const ix = await coreix.compileSeizeInstruction(
+    const ixs: TransactionInstruction[] = [];
+
+    // Destination ATA check/create
+    const toAta = getAssociatedTokenAddressSync(
+      this.mintAddress,
+      to,
+      false,
+      TOKEN_2022_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+    const toAccountInfo = await this.anchorProvider.connection.getAccountInfo(toAta);
+    if (!toAccountInfo) {
+      ixs.push(
+        createAssociatedTokenAccountInstruction(
+          this.anchorProvider.publicKey,
+          toAta,
+          to,
+          this.mintAddress,
+          TOKEN_2022_PROGRAM_ID,
+          ASSOCIATED_TOKEN_PROGRAM_ID,
+        ),
+      );
+    }
+
+    // Source ATA (must exist)
+    const fromAta = getAssociatedTokenAddressSync(
+      this.mintAddress,
+      from,
+      false,
+      TOKEN_2022_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+
+    const seizeIx = await coreix.compileSeizeInstruction(
       this.ledgerProgram,
       this.mintAddress,
       seizer,
-      from,
-      to,
+      fromAta,
+      toAta,
       new BN(amount.toString()),
     );
-    return this.dispatchInstruction(ix);
+    ixs.push(seizeIx);
+
+    return this.dispatchInstruction(ixs);
   }
 
   async updateSupplyCap(newSupplyCap: bigint | null): Promise<string> {
     const admin = this.anchorProvider.publicKey;
     const capBN = newSupplyCap !== null ? new BN(newSupplyCap.toString()) : null;
-    const ix = await coreix.compileCapUpdateInstruction(this.ledgerProgram, this.configPda, admin, capBN);
+    const ix = await coreix.compileCapUpdateInstruction(
+      this.ledgerProgram,
+      this.configPda,
+      admin,
+      capBN,
+    );
     return this.dispatchInstruction(ix);
   }
 
@@ -331,7 +438,7 @@ export class StablecoinClient {
     };
   }
 
-  async fetchCirculatingSupply(): Promise<bigint> {
+  async getTotalSupply(): Promise<bigint> {
     const state = await this.fetchConfig();
     return state.currentSupply;
   }
@@ -367,7 +474,12 @@ export class StablecoinClient {
     },
 
     check: async (address: PublicKey, role: AccessRole): Promise<boolean> => {
-      const [rolePda] = resolveRoleAccount(this.configPda, address, role, this.ledgerProgram.programId);
+      const [rolePda] = resolveRoleAccount(
+        this.configPda,
+        address,
+        role,
+        this.ledgerProgram.programId,
+      );
       const account = await this.ledgerProgram.account.roleAccount.fetchNullable(rolePda);
       return account !== null;
     },
@@ -410,7 +522,7 @@ export class StablecoinClient {
     },
   };
 
-  get enforcement() {
+  get compliance() {
     return {
       blacklistAdd: (address: PublicKey, reason: string) => this.denyList.add(address, reason),
       blacklistRemove: (address: PublicKey) => this.denyList.remove(address),
@@ -458,11 +570,13 @@ export class StablecoinClient {
   };
 
   // Backwards compat aliases for older functions missing from the new client mapping
-  async info(): Promise<TokenStateSnapshot> { return this.fetchConfig(); }
-  async getTotalSupply(): Promise<bigint> { return this.fetchCirculatingSupply(); }
+  async info(): Promise<TokenStateSnapshot> {
+    return this.fetchConfig();
+  }
   roles = this.accessControl;
   blacklist = this.denyList;
-  compliance = this.enforcement;
   confidential = this.privacyOps;
-  mintTokens(to: PublicKey, amount: bigint): Promise<string> { return this.issueTokens(to, amount); }
+  mintTokens(to: PublicKey, amount: bigint): Promise<string> {
+    return this.issueTokens(to, amount);
+  }
 }

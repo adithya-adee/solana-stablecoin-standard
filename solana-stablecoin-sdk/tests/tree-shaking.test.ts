@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-export { }
+export {};
 
 // Simulate consuming specific paths through dynamic imports
 // In a real project with node environment, Vitest uses ESM

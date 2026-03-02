@@ -26,7 +26,12 @@ export function compileInitInstruction(
   },
 ) {
   const [configPda] = resolveConfigAccount(mint, program.programId);
-  const [adminRolePda] = resolveRoleAccount(configPda, authority, asRole('admin'), program.programId);
+  const [adminRolePda] = resolveRoleAccount(
+    configPda,
+    authority,
+    asRole('admin'),
+    program.programId,
+  );
 
   return program.methods
     .initialize({
@@ -61,7 +66,12 @@ export function compileIssuanceInstruction(
   priceUpdate: PublicKey | null = null,
 ) {
   const [configPda] = resolveConfigAccount(mint, program.programId);
-  const [minterRolePda] = resolveRoleAccount(configPda, minter, asRole('minter'), program.programId);
+  const [minterRolePda] = resolveRoleAccount(
+    configPda,
+    minter,
+    asRole('minter'),
+    program.programId,
+  );
 
   return program.methods
     .mintTokens(amount)
@@ -87,7 +97,12 @@ export function compileRedemptionInstruction(
   amount: BN,
 ) {
   const [configPda] = resolveConfigAccount(mint, program.programId);
-  const [burnerRolePda] = resolveRoleAccount(configPda, burner, asRole('burner'), program.programId);
+  const [burnerRolePda] = resolveRoleAccount(
+    configPda,
+    burner,
+    asRole('burner'),
+    program.programId,
+  );
 
   return program.methods
     .burnTokens(amount)
@@ -162,8 +177,17 @@ export function compileThawInstruction(
 /**
  * Build the `pause` instruction.
  */
-export function compilePauseInstruction(program: Program<SssCore>, configPda: ConfigAccountKey, pauser: PublicKey) {
-  const [pauserRolePda] = resolveRoleAccount(configPda, pauser, asRole('pauser'), program.programId);
+export function compilePauseInstruction(
+  program: Program<SssCore>,
+  configPda: ConfigAccountKey,
+  pauser: PublicKey,
+) {
+  const [pauserRolePda] = resolveRoleAccount(
+    configPda,
+    pauser,
+    asRole('pauser'),
+    program.programId,
+  );
 
   return program.methods
     .pause()
@@ -178,8 +202,17 @@ export function compilePauseInstruction(program: Program<SssCore>, configPda: Co
 /**
  * Build the `unpause` instruction.
  */
-export function compileResumeInstruction(program: Program<SssCore>, configPda: ConfigAccountKey, pauser: PublicKey) {
-  const [pauserRolePda] = resolveRoleAccount(configPda, pauser, asRole('pauser'), program.programId);
+export function compileResumeInstruction(
+  program: Program<SssCore>,
+  configPda: ConfigAccountKey,
+  pauser: PublicKey,
+) {
+  const [pauserRolePda] = resolveRoleAccount(
+    configPda,
+    pauser,
+    asRole('pauser'),
+    program.programId,
+  );
 
   return program.methods
     .unpause()
@@ -203,7 +236,12 @@ export function compileSeizeInstruction(
   amount: BN,
 ) {
   const [configPda] = resolveConfigAccount(mint, program.programId);
-  const [seizerRolePda] = resolveRoleAccount(configPda, seizer, asRole('seizer'), program.programId);
+  const [seizerRolePda] = resolveRoleAccount(
+    configPda,
+    seizer,
+    asRole('seizer'),
+    program.programId,
+  );
 
   return program.methods
     .seize(amount)

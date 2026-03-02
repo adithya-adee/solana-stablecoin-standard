@@ -51,7 +51,9 @@ export function compileConfidentialMintInstruction(
   offset += 1;
   if (auditorElGamalPubkey) {
     if (auditorElGamalPubkey.length !== 32) {
-      throw new Error(`Auditor ElGamal pubkey must be 32 bytes, got ${auditorElGamalPubkey.length}`);
+      throw new Error(
+        `Auditor ElGamal pubkey must be 32 bytes, got ${auditorElGamalPubkey.length}`,
+      );
     }
     Buffer.from(auditorElGamalPubkey).copy(data, offset);
   }
@@ -115,12 +117,7 @@ export async function assembleTier3MintTx(
       configPda,
       TOKEN_2022_PROGRAM_ID,
     ),
-    compileConfidentialMintInstruction(
-      mintKeypair.publicKey,
-      configPda,
-      autoApprove,
-      auditorKey,
-    ),
+    compileConfidentialMintInstruction(mintKeypair.publicKey, configPda, autoApprove, auditorKey),
     createInitializeMint2Instruction(
       mintKeypair.publicKey,
       decimals,
