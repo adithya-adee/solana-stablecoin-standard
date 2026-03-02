@@ -1,27 +1,27 @@
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { AnchorProvider, Wallet } from '@coral-xyz/anchor';
-import { SSS, MintAddress } from '@stbr/sss-token';
+import { StablecoinClient, TokenMintKey } from '@stbr/sss-token';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { logger } from './logger';
+import { appLogger } from './logger';
 
-export interface SolanaService {
+export interface ChainConnector {
   connection: Connection;
   provider: AnchorProvider;
   keypair: Keypair;
   coreProgramId: PublicKey;
   hookProgramId: PublicKey;
-  loadStablecoin: (mint: PublicKey) => Promise<SSS>;
+  getStablecoinHandle: (mint: PublicKey) => Promise<StablecoinClient>;
 }
 
-let instance: SolanaService | null = null;
-const stablecoinCache = new Map<string, SSS>();
+let connectorInstance: ChainConnector | null = null;
+const mintHandleCache = new Map<string, StablecoinClient>();
 
 /**
  * Load a Keypair from the filesystem path specified by KEYPAIR_PATH env var.
  * Supports `~` home directory expansion.
  */
-function loadKeypair(): Keypair {
+function readSignerKeypair(): Keypair {
   const keypairPath = process.env.KEYPAIR_PATH;
   if (!keypairPath) {
     throw new Error('KEYPAIR_PATH environment variable is required');
@@ -45,7 +45,7 @@ function loadKeypair(): Keypair {
  * Initialize the singleton Solana service.
  * Creates connection, loads keypair, and sets up the AnchorProvider.
  */
-function initSolanaService(): SolanaService {
+function createChainConnector(): ChainConnector {
   const rpcUrl = process.env.SOLANA_RPC_URL;
   if (!rpcUrl) {
     throw new Error('SOLANA_RPC_URL environment variable is required');
@@ -64,14 +64,14 @@ function initSolanaService(): SolanaService {
     wsEndpoint: wsUrl,
   });
 
-  const keypair = loadKeypair();
+  const keypair = readSignerKeypair();
   const wallet = new Wallet(keypair);
   const provider = new AnchorProvider(connection, wallet, {
     commitment: 'confirmed',
     preflightCommitment: 'confirmed',
   });
 
-  logger.info('Solana service initialized', {
+  appLogger.info('Solana service initialized', {
     rpc: rpcUrl,
     wallet: keypair.publicKey.toBase58(),
     coreProgram: coreProgramId.toBase58(),
@@ -84,14 +84,14 @@ function initSolanaService(): SolanaService {
     keypair,
     coreProgramId,
     hookProgramId,
-    loadStablecoin: async (mint: PublicKey) => {
+    getStablecoinHandle: async (mint: PublicKey) => {
       const mintStr = mint.toBase58();
-      if (stablecoinCache.has(mintStr)) {
-        return stablecoinCache.get(mintStr)!;
+      if (mintHandleCache.has(mintStr)) {
+        return mintHandleCache.get(mintStr)!;
       }
-      const sss = await SSS.load(provider, mint as MintAddress);
-      stablecoinCache.set(mintStr, sss);
-      return sss;
+      const handle = await StablecoinClient.load(provider, mint as TokenMintKey);
+      mintHandleCache.set(mintStr, handle);
+      return handle;
     },
   };
 }
@@ -100,9 +100,9 @@ function initSolanaService(): SolanaService {
  * Get or create the singleton Solana service instance.
  * Throws if required env vars are missing.
  */
-export function getSolanaService(): SolanaService {
-  if (!instance) {
-    instance = initSolanaService();
+export function getChainConnector(): ChainConnector {
+  if (!connectorInstance) {
+    connectorInstance = createChainConnector();
   }
-  return instance;
+  return connectorInstance;
 }

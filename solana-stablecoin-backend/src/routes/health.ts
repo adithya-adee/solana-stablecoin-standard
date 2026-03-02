@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { logger } from '../services/logger';
-import { getSolanaService } from '../services/solana';
+import { appLogger } from '../services/logger';
+import { getChainConnector } from '../services/solana';
 
 const router = Router();
 
@@ -14,11 +14,11 @@ router.get('/', async (_req: Request, res: Response) => {
   let slot: number | undefined;
 
   try {
-    const solana = getSolanaService();
+    const solana = getChainConnector();
     slot = await solana.connection.getSlot();
     solanaStatus = 'connected';
   } catch (err) {
-    logger.warn('Health check: Solana connection failed', {
+    appLogger.warn('Health check: Solana connection failed', {
       error: err instanceof Error ? err.message : String(err),
     });
   }
@@ -32,4 +32,4 @@ router.get('/', async (_req: Request, res: Response) => {
   });
 });
 
-export { router as healthRouter };
+export { router as statusRouter };

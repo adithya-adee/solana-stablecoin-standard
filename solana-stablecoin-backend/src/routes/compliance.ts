@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { PublicKey, type ConfirmedSignatureInfo } from '@solana/web3.js';
-import { logger } from '../services/logger';
-import { getSolanaService } from '../services/solana';
-import { getComplianceProvider } from '../services/compliance-provider';
+import { appLogger } from '../services/logger';
+import { getChainConnector } from '../services/solana';
+import { getRegulatoryGateway } from '../services/compliance-provider';
 import { publicKeySchema } from '../utils/validation';
 
 const router = Router();
@@ -20,7 +20,7 @@ function handleRouteError(res: Response, err: unknown, operation: string) {
     message.includes('Unauthorized') ||
     message.includes('already exists');
   const status = isClientError ? 400 : 500;
-  logger.error(`${operation} failed`, { error: message, status });
+  appLogger.error(`${operation} failed`, { error: message, status });
   res.status(status).json({ error: isClientError ? message : 'Internal server error' });
 }
 
@@ -50,10 +50,10 @@ router.post('/blacklist/add', async (req: Request, res: Response) => {
 
   try {
     const { mint, address, reason } = parsed.data;
-    const solana = getSolanaService();
-    const sss = await solana.loadStablecoin(new PublicKey(mint));
+    const connector = getChainConnector();
+    const sss = await connector.getStablecoinHandle(new PublicKey(mint));
     const signature = await sss.blacklist.add(new PublicKey(address), reason);
-    logger.info('Blacklist add completed', { mint, address, reason, signature });
+    appLogger.info('Blacklist add completed', { mint, address, reason, signature });
     res.json({ success: true, signature });
   } catch (err) {
     handleRouteError(res, err, 'Blacklist add');
@@ -72,10 +72,10 @@ router.post('/blacklist/remove', async (req: Request, res: Response) => {
 
   try {
     const { mint, address } = parsed.data;
-    const solana = getSolanaService();
-    const sss = await solana.loadStablecoin(new PublicKey(mint));
+    const connector = getChainConnector();
+    const sss = await connector.getStablecoinHandle(new PublicKey(mint));
     const signature = await sss.blacklist.remove(new PublicKey(address));
-    logger.info('Blacklist remove completed', { mint, address, signature });
+    appLogger.info('Blacklist remove completed', { mint, address, signature });
     res.json({ success: true, signature });
   } catch (err) {
     handleRouteError(res, err, 'Blacklist remove');
@@ -97,8 +97,8 @@ router.get('/status/:mint/:address', async (req: Request, res: Response) => {
   try {
     const mint = new PublicKey(req.params.mint);
     const address = new PublicKey(req.params.address);
-    const solana = getSolanaService();
-    const sss = await solana.loadStablecoin(mint);
+    const connector = getChainConnector();
+    const sss = await connector.getStablecoinHandle(mint);
     const blacklisted = await sss.blacklist.check(address);
     res.json({ blacklisted });
   } catch (err) {
@@ -119,12 +119,12 @@ router.get('/screen/:address', async (req: Request, res: Response) => {
   }
 
   try {
-    const compliance = getComplianceProvider();
-    const result = await compliance.screenAddress(address);
+    const gateway = getRegulatoryGateway();
+    const result = await gateway.screenAddress(address);
     res.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    logger.error('Screening failed', { address, error: message });
+    appLogger.error('Screening failed', { address, error: message });
     res.status(500).json({ error: message });
   }
 });
@@ -154,12 +154,12 @@ router.get('/audit-trail/:mint', async (req: Request, res: Response) => {
   try {
     const mint = new PublicKey(req.params.mint);
     const { action, limit, before } = queryResult.data;
-    const solana = getSolanaService();
+    const connector = getChainConnector();
 
     // Derive config PDA to query its transaction history
     const [configPda] = PublicKey.findProgramAddressSync(
       [Buffer.from('sss-config'), mint.toBuffer()],
-      solana.coreProgramId,
+      connector.coreProgramId,
     );
 
     const sigOptions: { limit: number; before?: string } = { limit };
@@ -167,7 +167,7 @@ router.get('/audit-trail/:mint', async (req: Request, res: Response) => {
       sigOptions.before = before;
     }
 
-    const signatures = await solana.connection.getSignaturesForAddress(configPda, sigOptions);
+    const signatures = await connector.connection.getSignaturesForAddress(configPda, sigOptions);
 
     // Map known event names from program logs
     const EVENT_NAMES = [
@@ -218,4 +218,4 @@ router.get('/audit-trail/:mint', async (req: Request, res: Response) => {
   }
 });
 
-export { router as complianceRouter };
+export { router as enforcementRouter };

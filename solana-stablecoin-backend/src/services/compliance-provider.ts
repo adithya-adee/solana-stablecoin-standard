@@ -1,4 +1,4 @@
-import { logger } from './logger';
+import { appLogger } from './logger';
 
 export interface ScreeningResult {
   approved: boolean;
@@ -7,7 +7,7 @@ export interface ScreeningResult {
   checkedAt: Date;
 }
 
-export interface ComplianceProvider {
+export interface RegulatoryGateway {
   screenAddress(address: string): Promise<ScreeningResult>;
   screenTransaction(params: {
     from?: string;
@@ -21,9 +21,9 @@ export interface ComplianceProvider {
  * Default no-op provider. Replace with Chainalysis, Elliptic, or TRM Labs
  * integration for production use.
  */
-class DefaultComplianceProvider implements ComplianceProvider {
+class DefaultRegulatoryGateway implements RegulatoryGateway {
   async screenAddress(address: string): Promise<ScreeningResult> {
-    logger.info('Compliance screening (no-op)', { address });
+    appLogger.info('Compliance screening (no-op)', { address });
     return {
       approved: true,
       provider: 'default',
@@ -37,7 +37,7 @@ class DefaultComplianceProvider implements ComplianceProvider {
     amount: string;
     action: 'mint' | 'burn' | 'transfer';
   }): Promise<ScreeningResult> {
-    logger.info('Transaction screening (no-op)', params);
+    appLogger.info('Transaction screening (no-op)', params);
     return {
       approved: true,
       provider: 'default',
@@ -46,17 +46,17 @@ class DefaultComplianceProvider implements ComplianceProvider {
   }
 }
 
-let provider: ComplianceProvider = new DefaultComplianceProvider();
+let provider: RegulatoryGateway = new DefaultRegulatoryGateway();
 
-logger.warn(
+appLogger.warn(
   'Using default no-op compliance provider — not suitable for production. ' +
-    'Integrate Chainalysis, Elliptic, or TRM Labs via setComplianceProvider().',
+    'Integrate Chainalysis, Elliptic, or TRM Labs via setRegulatoryGateway().',
 );
 
-export function setComplianceProvider(p: ComplianceProvider): void {
+export function setRegulatoryGateway(p: RegulatoryGateway): void {
   provider = p;
 }
 
-export function getComplianceProvider(): ComplianceProvider {
+export function getRegulatoryGateway(): RegulatoryGateway {
   return provider;
 }

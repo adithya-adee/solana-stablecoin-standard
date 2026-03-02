@@ -1,8 +1,8 @@
 import { Connection, PublicKey, Logs } from '@solana/web3.js';
-import { logger } from './logger';
-import { sendWebhook } from './webhook';
+import { appLogger } from './logger';
+import { dispatchWebhookNotification } from './webhook';
 
-export interface ParsedEvent {
+export interface ChainEvent {
   program: 'sss-core' | 'sss-transfer-hook';
   type: string;
   signature: string;
@@ -11,7 +11,7 @@ export interface ParsedEvent {
 }
 
 // Known event prefixes emitted by the programs
-const CORE_EVENT_PREFIXES = [
+const LEDGER_EVENT_TAGS = [
   'Initialized',
   'TokensMinted',
   'TokensBurned',
@@ -25,18 +25,18 @@ const CORE_EVENT_PREFIXES = [
   'SupplyCapUpdated',
 ];
 
-const HOOK_EVENT_PREFIXES = ['BlacklistAdded', 'BlacklistRemoved', 'TransferChecked'];
+const HOOK_EVENT_TAGS = ['BlacklistAdded', 'BlacklistRemoved', 'TransferChecked'];
 
 /**
  * WebSocket event listener for on-chain SSS program events.
  * Subscribes to program log events and parses known event types.
  */
-export class EventListener {
+export class ProgramEventMonitor {
   private connection: Connection;
   private coreProgramId: PublicKey;
   private hookProgramId: PublicKey;
-  private coreSubscriptionId: number | null = null;
-  private hookSubscriptionId: number | null = null;
+  private ledgerSubId: number | null = null;
+  private guardSubId: number | null = null;
 
   constructor(connection: Connection, coreProgramId: PublicKey, hookProgramId: PublicKey) {
     this.connection = connection;
@@ -47,20 +47,20 @@ export class EventListener {
   /**
    * Start listening for program log events via WebSocket.
    */
-  start(): void {
-    this.coreSubscriptionId = this.connection.onLogs(
+  activate(): void {
+    this.ledgerSubId = this.connection.onLogs(
       this.coreProgramId,
-      (logs) => this.handleLogs(logs, 'sss-core', CORE_EVENT_PREFIXES),
+      (logs) => this.processLogEntry(logs, 'sss-core', LEDGER_EVENT_TAGS),
       'confirmed',
     );
 
-    this.hookSubscriptionId = this.connection.onLogs(
+    this.guardSubId = this.connection.onLogs(
       this.hookProgramId,
-      (logs) => this.handleLogs(logs, 'sss-transfer-hook', HOOK_EVENT_PREFIXES),
+      (logs) => this.processLogEntry(logs, 'sss-transfer-hook', HOOK_EVENT_TAGS),
       'confirmed',
     );
 
-    logger.info('Event listener subscriptions active', {
+    appLogger.info('Event listener subscriptions active', {
       core: this.coreProgramId.toBase58(),
       hook: this.hookProgramId.toBase58(),
     });
@@ -69,28 +69,28 @@ export class EventListener {
   /**
    * Stop listening for events and remove WebSocket subscriptions.
    */
-  async stop(): Promise<void> {
-    if (this.coreSubscriptionId !== null) {
-      await this.connection.removeOnLogsListener(this.coreSubscriptionId);
-      this.coreSubscriptionId = null;
+  async deactivate(): Promise<void> {
+    if (this.ledgerSubId !== null) {
+      await this.connection.removeOnLogsListener(this.ledgerSubId);
+      this.ledgerSubId = null;
     }
-    if (this.hookSubscriptionId !== null) {
-      await this.connection.removeOnLogsListener(this.hookSubscriptionId);
-      this.hookSubscriptionId = null;
+    if (this.guardSubId !== null) {
+      await this.connection.removeOnLogsListener(this.guardSubId);
+      this.guardSubId = null;
     }
-    logger.info('Event listener subscriptions removed');
+    appLogger.info('Event listener subscriptions removed');
   }
 
   /**
    * Parse program logs for known event patterns.
    */
-  private handleLogs(
+  private processLogEntry(
     logs: Logs,
-    program: 'sss-core' | 'sss-transfer-hook',
-    knownPrefixes: string[],
+    source: 'sss-core' | 'sss-transfer-hook',
+    tags: string[],
   ): void {
     if (logs.err) {
-      logger.debug('Transaction with error, skipping event parse', {
+      appLogger.debug('Transaction with error, skipping event parse', {
         signature: logs.signature,
         error: JSON.stringify(logs.err),
       });
@@ -106,25 +106,25 @@ export class EventListener {
 
       const message = log.replace(/^Program (log|data): /, '');
 
-      for (const prefix of knownPrefixes) {
-        if (message.includes(prefix)) {
-          const event: ParsedEvent = {
-            program,
-            type: prefix,
+      for (const tag of tags) {
+        if (message.includes(tag)) {
+          const event: ChainEvent = {
+            program: source,
+            type: tag,
             signature: logs.signature,
-            data: this.extractEventData(message),
+            data: this.parseEventPayload(message),
             timestamp: Date.now(),
           };
 
-          logger.info('On-chain event detected', {
+          appLogger.info('On-chain event detected', {
             program: event.program,
             type: event.type,
             signature: event.signature,
           });
 
           // Fire-and-forget webhook notification
-          sendWebhook(event).catch((err) => {
-            logger.warn('Webhook dispatch failed', {
+          dispatchWebhookNotification(event).catch((err) => {
+            appLogger.warn('Webhook dispatch failed', {
               error: err instanceof Error ? err.message : String(err),
             });
           });
@@ -140,7 +140,7 @@ export class EventListener {
    * Anchor events are base64-encoded, but program log messages may contain
    * human-readable data. This handles both gracefully.
    */
-  private extractEventData(message: string): Record<string, string> {
+  private parseEventPayload(message: string): Record<string, string> {
     const data: Record<string, string> = {};
 
     // Try to parse as key=value pairs (common in program log messages)

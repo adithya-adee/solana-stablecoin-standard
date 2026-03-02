@@ -2,14 +2,14 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
-import { logger } from './services/logger';
-import { operationsRouter } from './routes/operations';
-import { complianceRouter } from './routes/compliance';
-import { healthRouter } from './routes/health';
-import { authMiddleware } from './middleware/auth';
-import { createRateLimiter } from './middleware/rate-limit';
-import { EventListener } from './services/event-listener';
-import { getSolanaService } from './services/solana';
+import { appLogger } from './services/logger';
+import { tokenOpsRouter } from './routes/operations';
+import { enforcementRouter } from './routes/compliance';
+import { statusRouter } from './routes/health';
+import { requireApiKey } from './middleware/auth';
+import { buildRateLimiter } from './middleware/rate-limit';
+import { ProgramEventMonitor } from './services/event-listener';
+import { getChainConnector } from './services/solana';
 
 dotenv.config();
 
@@ -26,41 +26,41 @@ app.use(
 app.use(express.json());
 
 // Public routes
-app.use('/health', healthRouter);
+app.use('/health', statusRouter);
 
 // Protected routes
-app.use('/operations', authMiddleware, createRateLimiter(), operationsRouter);
-app.use('/compliance', authMiddleware, createRateLimiter(), complianceRouter);
+app.use('/operations', requireApiKey, buildRateLimiter(), tokenOpsRouter);
+app.use('/compliance', requireApiKey, buildRateLimiter(), enforcementRouter);
 
 // Global error handler
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  logger.error('Unhandled error', {
+  appLogger.error('Unhandled error', {
     message: err.message,
     stack: err.stack,
   });
   res.status(500).json({ error: 'Internal server error' });
 });
 
-let eventListenerRef: EventListener | null = null;
+let monitorRef: ProgramEventMonitor | null = null;
 
 const server = app.listen(port, () => {
-  logger.info(`SSS Backend listening on port ${port}`);
+  appLogger.info(`SSS Backend listening on port ${port}`);
 
-  // Start event listener if WebSocket URL is configured
+  // Start event monitor if WebSocket URL is configured
   const wsUrl = process.env.SOLANA_WS_URL;
   if (wsUrl) {
     try {
-      const solanaService = getSolanaService();
-      const eventListener = new EventListener(
-        solanaService.connection,
-        solanaService.coreProgramId,
-        solanaService.hookProgramId,
+      const connector = getChainConnector();
+      const monitor = new ProgramEventMonitor(
+        connector.connection,
+        connector.coreProgramId,
+        connector.hookProgramId,
       );
-      eventListener.start();
-      eventListenerRef = eventListener;
-      logger.info('Event listener started');
+      monitor.activate();
+      monitorRef = monitor;
+      appLogger.info('Event monitor started');
     } catch (err) {
-      logger.warn('Event listener not started — Solana connection unavailable', {
+      appLogger.warn('Event monitor not started — Solana connection unavailable', {
         error: err instanceof Error ? err.message : String(err),
       });
     }
@@ -68,22 +68,22 @@ const server = app.listen(port, () => {
 });
 
 // Graceful shutdown
-async function shutdown(signal: string) {
-  logger.info(`Received ${signal}, shutting down gracefully`);
-  if (eventListenerRef) {
-    await eventListenerRef.stop();
-    logger.info('Event listener stopped');
+async function gracefulShutdown(signal: string) {
+  appLogger.info(`Received ${signal}, shutting down gracefully`);
+  if (monitorRef) {
+    await monitorRef.deactivate();
+    appLogger.info('Event monitor stopped');
   }
   server.close(() => {
-    logger.info('Server closed');
+    appLogger.info('Server closed');
     process.exit(0);
   });
   // Force exit after 10s
   setTimeout(() => {
-    logger.error('Forced shutdown after timeout');
+    appLogger.error('Forced shutdown after timeout');
     process.exit(1);
   }, 10_000);
 }
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

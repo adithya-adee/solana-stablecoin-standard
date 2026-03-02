@@ -13,8 +13,7 @@ const pinoLogger = pino({
   },
 });
 
-// Provide a Winston-compatible interface so we don't have to rewrite the codebase
-export const logger = {
+export const appLogger = {
   info: (msg: string, meta?: any) => (meta ? pinoLogger.info(meta, msg) : pinoLogger.info(msg)),
   error: (msg: string, meta?: any) => (meta ? pinoLogger.error(meta, msg) : pinoLogger.error(msg)),
   warn: (msg: string, meta?: any) => (meta ? pinoLogger.warn(meta, msg) : pinoLogger.warn(msg)),

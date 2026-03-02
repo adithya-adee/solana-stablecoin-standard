@@ -1,5 +1,5 @@
-import { logger } from './logger';
-import type { ParsedEvent } from './event-listener';
+import { appLogger } from './logger';
+import type { ChainEvent } from './event-listener';
 
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1_000;
@@ -13,7 +13,7 @@ const REQUEST_TIMEOUT_MS = 5_000;
  * Retries with exponential backoff (1s, 2s, 4s) on failure.
  * Failures after all retries are logged but do not throw.
  */
-export async function sendWebhook(event: ParsedEvent): Promise<void> {
+export async function dispatchWebhookNotification(event: ChainEvent): Promise<void> {
   const webhookUrls = process.env.WEBHOOK_URLS;
   if (!webhookUrls) {
     return;
@@ -60,7 +60,7 @@ async function deliverWithRetry(url: string, payload: string, eventType: string)
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
-        logger.debug('Webhook delivered', { url, event: eventType, attempt });
+        appLogger.debug('Webhook delivered', { url, event: eventType, attempt });
         return;
       } finally {
         clearTimeout(timeout);
@@ -70,7 +70,7 @@ async function deliverWithRetry(url: string, payload: string, eventType: string)
 
       if (attempt < MAX_RETRIES) {
         const delay = BASE_DELAY_MS * Math.pow(2, attempt);
-        logger.warn('Webhook delivery failed, retrying', {
+        appLogger.warn('Webhook delivery failed, retrying', {
           url,
           event: eventType,
           attempt: attempt + 1,
@@ -80,7 +80,7 @@ async function deliverWithRetry(url: string, payload: string, eventType: string)
         });
         await sleep(delay);
       } else {
-        logger.error('Webhook delivery failed after all retries', {
+        appLogger.error('Webhook delivery failed after all retries', {
           url,
           event: eventType,
           totalAttempts: MAX_RETRIES + 1,

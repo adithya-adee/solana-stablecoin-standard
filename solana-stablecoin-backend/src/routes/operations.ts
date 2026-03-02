@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { PublicKey } from '@solana/web3.js';
-import { logger } from '../services/logger';
-import { getSolanaService } from '../services/solana';
-import { getComplianceProvider } from '../services/compliance-provider';
+import { appLogger } from '../services/logger';
+import { getChainConnector } from '../services/solana';
+import { getRegulatoryGateway } from '../services/compliance-provider';
 import { publicKeySchema } from '../utils/validation';
 
 const router = Router();
@@ -57,7 +57,7 @@ function handleRouteError(res: Response, err: unknown, operation: string) {
     message.includes('Unauthorized') ||
     message.includes('already exists');
   const status = isClientError ? 400 : 500;
-  logger.error(`${operation} failed`, { error: message, status });
+  appLogger.error(`${operation} failed`, { error: message, status });
   res.status(status).json({ error: isClientError ? message : 'Internal server error' });
 }
 
@@ -75,25 +75,25 @@ router.post('/mint', async (req: Request, res: Response) => {
     const { mint, to, amount } = parsed.data;
 
     // Step: VERIFY — compliance screening
-    const compliance = getComplianceProvider();
-    const screening = await compliance.screenTransaction({
+    const gateway = getRegulatoryGateway();
+    const screening = await gateway.screenTransaction({
       to,
       amount,
       action: 'mint',
     });
     if (!screening.approved) {
-      logger.warn('Mint blocked by compliance', { mint, to, amount, reason: screening.reason });
+      appLogger.warn('Mint blocked by compliance', { mint, to, amount, reason: screening.reason });
       res.status(403).json({ error: 'Compliance check failed', reason: screening.reason });
       return;
     }
 
     // Step: EXECUTE — on-chain mint
-    const solana = getSolanaService();
-    const sss = await solana.loadStablecoin(new PublicKey(mint));
-    const signature = await sss.mintTokens(new PublicKey(to), BigInt(amount));
+    const connector = getChainConnector();
+    const sss = await connector.getStablecoinHandle(new PublicKey(mint));
+    const signature = await sss.mint({ recipient: new PublicKey(to), amount: BigInt(amount) });
 
     // Step: LOG — record result with compliance metadata
-    logger.info('Mint operation completed', { mint, to, amount, signature });
+    appLogger.info('Mint operation completed', { mint, to, amount, signature });
     res.json({
       success: true,
       signature,
@@ -118,26 +118,31 @@ router.post('/burn', async (req: Request, res: Response) => {
     const { mint, from, amount } = parsed.data;
 
     // Step: VERIFY — compliance screening
-    const compliance = getComplianceProvider();
-    const screening = await compliance.screenTransaction({
+    const gateway = getRegulatoryGateway();
+    const screening = await gateway.screenTransaction({
       from,
       to: from, // burn target is the source account
       amount,
       action: 'burn',
     });
     if (!screening.approved) {
-      logger.warn('Burn blocked by compliance', { mint, from, amount, reason: screening.reason });
+      appLogger.warn('Burn blocked by compliance', {
+        mint,
+        from,
+        amount,
+        reason: screening.reason,
+      });
       res.status(403).json({ error: 'Compliance check failed', reason: screening.reason });
       return;
     }
 
     // Step: EXECUTE — on-chain burn
-    const solana = getSolanaService();
-    const sss = await solana.loadStablecoin(new PublicKey(mint));
+    const connector = getChainConnector();
+    const sss = await connector.getStablecoinHandle(new PublicKey(mint));
     const signature = await sss.burn(new PublicKey(from), BigInt(amount));
 
     // Step: LOG — record result with compliance metadata
-    logger.info('Burn operation completed', { mint, from, amount, signature });
+    appLogger.info('Burn operation completed', { mint, from, amount, signature });
     res.json({
       success: true,
       signature,
@@ -160,10 +165,10 @@ router.post('/freeze', async (req: Request, res: Response) => {
 
   try {
     const { mint, account } = parsed.data;
-    const solana = getSolanaService();
-    const sss = await solana.loadStablecoin(new PublicKey(mint));
+    const connector = getChainConnector();
+    const sss = await connector.getStablecoinHandle(new PublicKey(mint));
     const signature = await sss.freeze(new PublicKey(account));
-    logger.info('Freeze operation completed', { mint, account, signature });
+    appLogger.info('Freeze operation completed', { mint, account, signature });
     res.json({ success: true, signature });
   } catch (err) {
     handleRouteError(res, err, 'Freeze');
@@ -182,10 +187,10 @@ router.post('/thaw', async (req: Request, res: Response) => {
 
   try {
     const { mint, account } = parsed.data;
-    const solana = getSolanaService();
-    const sss = await solana.loadStablecoin(new PublicKey(mint));
+    const connector = getChainConnector();
+    const sss = await connector.getStablecoinHandle(new PublicKey(mint));
     const signature = await sss.thaw(new PublicKey(account));
-    logger.info('Thaw operation completed', { mint, account, signature });
+    appLogger.info('Thaw operation completed', { mint, account, signature });
     res.json({ success: true, signature });
   } catch (err) {
     handleRouteError(res, err, 'Thaw');
@@ -204,10 +209,10 @@ router.post('/pause', async (req: Request, res: Response) => {
 
   try {
     const { mint } = parsed.data;
-    const solana = getSolanaService();
-    const sss = await solana.loadStablecoin(new PublicKey(mint));
+    const connector = getChainConnector();
+    const sss = await connector.getStablecoinHandle(new PublicKey(mint));
     const signature = await sss.pause();
-    logger.info('Pause operation completed', { mint, signature });
+    appLogger.info('Pause operation completed', { mint, signature });
     res.json({ success: true, signature });
   } catch (err) {
     handleRouteError(res, err, 'Pause');
@@ -226,10 +231,10 @@ router.post('/unpause', async (req: Request, res: Response) => {
 
   try {
     const { mint } = parsed.data;
-    const solana = getSolanaService();
-    const sss = await solana.loadStablecoin(new PublicKey(mint));
+    const connector = getChainConnector();
+    const sss = await connector.getStablecoinHandle(new PublicKey(mint));
     const signature = await sss.unpause();
-    logger.info('Unpause operation completed', { mint, signature });
+    appLogger.info('Unpause operation completed', { mint, signature });
     res.json({ success: true, signature });
   } catch (err) {
     handleRouteError(res, err, 'Unpause');
@@ -248,14 +253,14 @@ router.post('/seize', async (req: Request, res: Response) => {
 
   try {
     const { mint, from, to, amount } = parsed.data;
-    const solana = getSolanaService();
-    const sss = await solana.loadStablecoin(new PublicKey(mint));
+    const connector = getChainConnector();
+    const sss = await connector.getStablecoinHandle(new PublicKey(mint));
     const signature = await sss.seize(new PublicKey(from), new PublicKey(to), BigInt(amount));
-    logger.info('Seize operation completed', { mint, from, to, amount, signature });
+    appLogger.info('Seize operation completed', { mint, from, to, amount, signature });
     res.json({ success: true, signature });
   } catch (err) {
     handleRouteError(res, err, 'Seize');
   }
 });
 
-export { router as operationsRouter };
+export { router as tokenOpsRouter };
