@@ -4,7 +4,7 @@
 
 **Enterprise-Ready Toolkit for On-Chain Fiat and Compliant Tokens on Solana via Token-2022**
 
-*Modular Architecture · 3 Compliance Tiers · Privacy Modes · API & Webhooks · Full TUI Dashboard*
+_Modular Architecture · 3 Compliance Tiers · Privacy Modes · API & Webhooks · Full TUI Dashboard_
 
 [![CI](https://github.com/solanabr/solana-stablecoin-standard/actions/workflows/ci.yml/badge.svg)](https://github.com/solanabr/solana-stablecoin-standard/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -54,25 +54,27 @@ The project is structured in three composable layers to ensure maximum flexibili
 
 ## 🎛 The Three Tiers
 
-| Capability Snapshot              | Tier 1 (Utility) | Tier 2 (Regulated) | Tier 3 (Private) |
-| :---                             | :---:            | :---:              | :---:            |
-| **Core Lifecycle (Mint/Burn)**   | ✅               | ✅                 | ✅               |
-| **Account Freeze/Thaw**          | ✅               | ✅                 | ✅               |
-| **Global Emergency Pause**       | ✅               | ✅                 | ✅               |
-| **Supply Caps & Oracle Locks**   | ✅               | ✅                 | ✅               |
-| **Permanent Delegate (Seize)**   | ✅               | ✅                 | ✅               |
-| **Denylist (Transfer Hooks)**    | -                | ✅                 | -                |
-| **Default Frozen Accounts**      | -                | ✅                 | -                |
-| **Confidential ZK Transfers**    | -                | -                  | ✅               |
-| **Auditor Keys**                 | -                | -                  | ✅               |
-| *Target Audience*                | *DAO Treasuries* | *Fiat Stablecoins* | *Dark Pools*     |
+| Capability Snapshot            | Tier 1 (Utility) | Tier 2 (Regulated) | Tier 3 (Private) |
+| :----------------------------- | :--------------: | :----------------: | :--------------: |
+| **Core Lifecycle (Mint/Burn)** |        ✅        |         ✅         |        ✅        |
+| **Account Freeze/Thaw**        |        ✅        |         ✅         |        ✅        |
+| **Global Emergency Pause**     |        ✅        |         ✅         |        ✅        |
+| **Supply Caps & Oracle Locks** |        ✅        |         ✅         |        ✅        |
+| **Permanent Delegate (Seize)** |        ✅        |         ✅         |        ✅        |
+| **Denylist (Transfer Hooks)**  |        -         |         ✅         |        -         |
+| **Default Frozen Accounts**    |        -         |         ✅         |        -         |
+| **Confidential ZK Transfers**  |        -         |         -          |        ✅        |
+| **Auditor Keys**               |        -         |         -          |        ✅        |
+| _Target Audience_              | _DAO Treasuries_ | _Fiat Stablecoins_ |   _Dark Pools_   |
 
 ---
 
 ## 🚀 Quick Setup Guide
 
 ### Dependencies
+
 Make sure your environment has:
+
 - **Rust** >= 1.75
 - **Solana CLI** >= 1.18
 - **Anchor Framework** >= 0.32
@@ -153,6 +155,7 @@ sss-token blacklist add --mint <MINT_ADDRESS> --address <TARGET_WALLET> --reason
 ## 🔌 Backend Integrations
 
 The backend service is an Express.js application designed to run in a Docker container alongside your infrastructure. It features:
+
 - **Event Monitors:** WebSocket connections that parse raw log streams into clean webhook payloads.
 - **Webhooks:** Automated notifications with configurable backoff arrays.
 - **REST Endpoints:** Hardened endpoints with API-key middleware and built-in rate limiters.
@@ -172,9 +175,9 @@ docker compose up
 
 The core programs are already deployed and rigorously verified on the Solana Devnet. You can review the raw transaction receipts spanning all three tiers in [`deployments/devnet-proof.json`](deployments/devnet-proof.json).
 
-| Smart Contract | Address on Devnet |
-| :--- | :--- |
-| `sss-core` | `SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP` |
+| Smart Contract      | Address on Devnet                              |
+| :------------------ | :--------------------------------------------- |
+| `sss-core`          | `SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP`  |
 | `sss-transfer-hook` | `HookFvKFaoF9KL8TUXUnQK5r2mJoMYdBENu549seRyXW` |
 
 ---
