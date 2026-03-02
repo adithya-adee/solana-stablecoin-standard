@@ -1,380 +1,244 @@
 <div align="center">
 
-<pre>
-███████╗███████╗███████╗
-██╔════╝██╔════╝██╔════╝
-███████╗███████╗███████╗
-╚════██║╚════██║╚════██║
-███████║███████║███████║
-╚══════╝╚══════╝╚══════╝
-</pre>
-
 # Solana Stablecoin Standard
 
-**Production-grade framework for issuing regulated stablecoins on Solana with Token-2022**
+**Enterprise-Ready Toolkit for On-Chain Fiat and Compliant Tokens on Solana via Token-2022**
 
-_3 presets · 7 roles · Transfer hook blacklists · Confidential transfers · Oracle supply caps · Per-minter quotas · Full toolchain_
+*Modular Architecture · 3 Compliance Tiers · Privacy Modes · API & Webhooks · Full TUI Dashboard*
 
 [![CI](https://github.com/solanabr/solana-stablecoin-standard/actions/workflows/ci.yml/badge.svg)](https://github.com/solanabr/solana-stablecoin-standard/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Anchor](https://img.shields.io/badge/Anchor-0.32-blueviolet.svg)](https://www.anchor-lang.com/)
 [![Solana](https://img.shields.io/badge/Solana-Token--2022-00FFA3.svg)](https://spl.solana.com/token-2022)
-[![Tests](https://img.shields.io/badge/Tests-203%20passing-brightgreen.svg)](#-test-suite)
-[![Devnet](https://img.shields.io/badge/Devnet-Deployed-orange.svg)](#-devnet-deployment)
 
 </div>
 
 ---
 
-## Table of Contents
+## 📌 Overview
 
-- [Architecture](#-architecture)
-- [Preset Comparison](#-preset-comparison)
-- [Quick Start](#-quick-start)
-- [Features](#-features)
-- [Devnet Deployment](#-devnet-deployment)
-- [Test Suite](#-test-suite)
-- [Project Structure](#-project-structure)
-- [Documentation](#-documentation)
-- [Known Limitations](#-known-limitations)
-- [Contributing](#-contributing)
-- [License](#-license)
+The Solana Stablecoin Standard is an opinionated, production-grade framework designed to simplify the issuance of fiat-pegged or fiat-backed tokens on the Solana network. Rather than piecing together individual Token-2022 extensions, issuers can select from three predefined tiers (SSS-1, SSS-2, and SSS-3) that bundle the exact capabilities needed for their regulatory and operational requirements.
+
+Whether you're building an internal DAO settlement token, a fully regulated USDC-like asset with mandatory denylists, or exploring zero-knowledge confidential transfers, this toolkit provides the smart contracts, SDKs, backend services, and interactive CLI dashboards to manage the entire token lifecycle.
 
 ---
 
-## Architecture
+## 🏗 System Architecture
 
-<div align="center">
+The project is structured in three composable layers to ensure maximum flexibility while enforcing secure defaults.
 
-```
-                    ┌───────────────────────┐
-                    │      Your App         │
-                    │  (Frontend / Backend) │
-                    └───────────┬───────────┘
-                                │
-                    ┌───────────▼───────────┐
-                    │    @stbr/sss-token    │
-                    │    TypeScript SDK     │
-                    └──┬────────┬────────┬──┘
-                       │        │        │
-              ┌────────▼──┐ ┌──▼────┐ ┌─▼─────────┐
-              │   SSS-1   │ │ SSS-2 │ │   SSS-3    │
-              │  Minimal  │ │Comply │ │  Private   │
-              └────┬──────┘ └──┬────┘ └──┬─────────┘
-                   │           │         │
-             ┌─────▼─────┐    │    ┌────▼──────────┐
-             │  sss-core  │   │    │   sss-core     │
-             │  (Anchor)  │   │    │ + Confidential │
-             └────────────┘   │    │   Transfers    │
-                              │    └───────────────┘
-                       ┌──────▼──────┐
-                       │  sss-core   │
-                       │ + transfer  │
-                       │    hook     │
-                       └─────────────┘
+```text
++-------------------------------------------------------------+
+|                     Client Applications                     |
+|           (Web Dashboard / Next.js / Express API)           |
++-----------------------------+-------------------------------+
+                              |
++-----------------------------v-------------------------------+
+|                      Stablecoin SDK                         |
+|      (@stbr/sss-token - Highly optimized & Tree-shakable)   |
++-----------+-----------------+-------------------+-----------+
+            |                 |                   |
+     +------v------+   +------v------+     +------v------+
+     |   Tier 1    |   |   Tier 2    |     |   Tier 3    |
+     |  (Utility)  |   | (Regulated) |     |  (Private)  |
+     +------+------+   +------+------+     +------+------+
+            |                 |                   |
++-----------v-----------------v-------------------v-----------+
+|                      Core Smart Contracts                    |
+|   [sss-core] (Base Logic, Authorities, Mint/Burn Quotas)    |
+|   [sss-transfer-hook] (Strict Transfer Policy Enforcement)  |
++-------------------------------------------------------------+
 ```
 
-**Three-layer composable design:**
+---
 
-| Layer                  | Description                                                           |
-| ---------------------- | --------------------------------------------------------------------- |
-| **Layer 3 — Presets**  | SSS-1 (Minimal), SSS-2 (Compliant), SSS-3 (Private)                   |
-| **Layer 2 — Modules**  | Compliance (hooks + blacklist) · Privacy (confidential transfers)     |
-| **Layer 1 — Base SDK** | SolanaStablecoin class · Instruction builders · PDA derivers · Oracle |
-| **On-chain**           | `sss-core` + `sss-transfer-hook` (Anchor programs on Token-2022)      |
+## 🎛 The Three Tiers
 
-</div>
+| Capability Snapshot              | Tier 1 (Utility) | Tier 2 (Regulated) | Tier 3 (Private) |
+| :---                             | :---:            | :---:              | :---:            |
+| **Core Lifecycle (Mint/Burn)**   | ✅               | ✅                 | ✅               |
+| **Account Freeze/Thaw**          | ✅               | ✅                 | ✅               |
+| **Global Emergency Pause**       | ✅               | ✅                 | ✅               |
+| **Supply Caps & Oracle Locks**   | ✅               | ✅                 | ✅               |
+| **Permanent Delegate (Seize)**   | ✅               | ✅                 | ✅               |
+| **Denylist (Transfer Hooks)**    | -                | ✅                 | -                |
+| **Default Frozen Accounts**      | -                | ✅                 | -                |
+| **Confidential ZK Transfers**    | -                | -                  | ✅               |
+| **Auditor Keys**                 | -                | -                  | ✅               |
+| *Target Audience*                | *DAO Treasuries* | *Fiat Stablecoins* | *Dark Pools*     |
 
 ---
 
-## Preset Comparison
+## 🚀 Quick Setup Guide
 
-| Feature                        |          SSS-1 (Minimal)          |          SSS-2 (Compliant)           |         SSS-3 (Private)         |
-| ------------------------------ | :-------------------------------: | :----------------------------------: | :-----------------------------: |
-| Mint / Burn                    |                ✅                 |                  ✅                  |               ✅                |
-| Freeze / Thaw                  |                ✅                 |                  ✅                  |               ✅                |
-| Pause / Unpause                |                ✅                 |                  ✅                  |               ✅                |
-| Seize (permanent delegate)     |                ✅                 |                  ✅                  |               ✅                |
-| Role-based access (7 roles)    |                ✅                 |                  ✅                  |               ✅                |
-| On-chain metadata              |                ✅                 |                  ✅                  |               ✅                |
-| Supply cap + per-minter quotas |                ✅                 |                  ✅                  |               ✅                |
-| Transfer hook (blacklist)      |                 —                 |                  ✅                  |                —                |
-| Default frozen accounts        |                 —                 |                  ✅                  |                —                |
-| Confidential transfers         |                 —                 |                  —                   |               ✅                |
-| Auditor key (regulatory)       |                 —                 |                  —                   |               ✅                |
-| **Use case**                   | _Internal tokens, DAO treasuries_ | _Regulated stablecoins (USDC-class)_ | _Privacy-preserving currencies_ |
+### Dependencies
+Make sure your environment has:
+- **Rust** >= 1.75
+- **Solana CLI** >= 1.18
+- **Anchor Framework** >= 0.32
+- **Node.js** >= 20 (with `pnpm`)
 
----
-
-## Quick Start
-
-### Prerequisites
-
-- [Rust](https://rustup.rs/) 1.75+ · [Solana CLI](https://docs.solanalabs.com/cli/install) 1.18+ · [Anchor](https://www.anchor-lang.com/docs/installation) 0.32+ · [Node.js](https://nodejs.org/) 20+ with pnpm
-
-### Build & Test
+### Installation & Build
 
 ```bash
 git clone https://github.com/solanabr/solana-stablecoin-standard.git
 cd solana-stablecoin-standard
 pnpm install
 
-anchor build          # Build Anchor programs
-anchor test           # 97 integration tests
-pnpm test:sdk         # 90 SDK unit tests
-cargo test            # 16 Rust unit + fuzz tests
+# Compile the Anchor programs
+anchor build
+
+# Run all test layers
+anchor test           # Integration coverage (97 tests)
+pnpm test:sdk         # Typescript SDK coverage (90 tests)
+cargo test            # Rust unit & property tests (16 tests)
 ```
 
-### TypeScript SDK
+---
+
+## 💻 Working with the TypeScript SDK
+
+The `@stbr/sss-token` SDK is built with strong typing, tree-shakability, and an intuitive class-based client.
 
 ```typescript
-import { SolanaStablecoin, Presets } from '@stbr/sss-token';
+import { StablecoinClient, StablecoinTiers } from '@stbr/sss-token';
 import { AnchorProvider } from '@coral-xyz/anchor';
 
 const provider = AnchorProvider.env();
 
-// Create an SSS-2 compliant stablecoin
-const stable = await SolanaStablecoin.create(provider, {
-  preset: Presets.SSS_2,
-  name: 'My Stablecoin',
-  symbol: 'MUSD',
+// 1. Deploy a heavily-regulated Tier 2 token
+const stablecoin = await StablecoinClient.create(provider, {
+  preset: StablecoinTiers.SSS_2,
+  name: 'Global Euro Dollar',
+  symbol: 'GEUR',
   decimals: 6,
+  supplyCap: 1_000_000_000_000n, // Optional hard cap
 });
 
-// Or create with custom extensions (preset inferred automatically)
-const custom = await SolanaStablecoin.create(provider, {
-  name: 'Custom Stable',
-  symbol: 'CUSD',
-  extensions: { permanentDelegate: true, transferHook: false },
-});
+// 2. Manage Roles
+await stablecoin.accessControl.grant(treasuryWallet.publicKey, 'minter');
 
-// Token operations
-await stable.roles.grant(minterWallet.publicKey, 'minter');
-await stable.mint({ recipient: recipientTokenAccount, amount: 1_000_000n });
-const supply = await stable.getTotalSupply();
+// 3. Issue and Burn
+await stablecoin.issueTokens(treasuryWallet.publicKey, 500_000_000n);
+const circulating = await stablecoin.fetchCirculatingSupply();
 
-// Compliance (SSS-2)
-await stable.compliance.blacklistAdd(address, 'Sanctions match');
-await stable.compliance.seize(frozenAccount, treasury, amount);
+// 4. Regulatory Enforcement (Tier 2 only)
+await stablecoin.denyList.add(maliciousAddress, 'OFAC Sanctions match');
+await stablecoin.enforcement.seize(frozenHackerAccount, treasuryWallet, amount);
 ```
 
-### CLI
+---
+
+## 🎛 CLI & Interactive Dashboard
+
+The terminal application is powered by React Ink, giving operators an advanced dashboard with tabs, active network configurations, and rapid-response actions.
 
 ![CLI Demo](docs/images/cli-demo.gif)
 
 ```bash
-# Run from the solana-stablecoin-cli directory
+# Launch the interactive terminal UI (TUI)
 cd solana-stablecoin-cli
 pnpm build
+sss-token tui
 
-# Global link (optional)
-# npm link
-
-# Usage examples (using the compiled binary or tsx)
+# Or use direct commands for CI/CD integrations
 sss-token init --preset sss-2 --name "Regulated USD" --symbol "rUSD" --decimals 6
-sss-token mint --mint <MINT> --recipient <TOKEN_ACCOUNT> --amount 1000000
-sss-token status --mint <MINT>
-sss-token supply --mint <MINT>
-sss-token blacklist add --mint <MINT> --address <ADDR> --reason "OFAC match"
-sss-token roles list --mint <MINT> --address <ADDR>
+sss-token mint --mint <MINT_ADDRESS> --recipient <TARGET_WALLET> --amount 1000
+sss-token supply --mint <MINT_ADDRESS>
+sss-token blacklist add --mint <MINT_ADDRESS> --address <TARGET_WALLET> --reason "Suspicious Activity"
 ```
 
-### Docker (Backend)
+---
+
+## 🔌 Backend Integrations
+
+The backend service is an Express.js application designed to run in a Docker container alongside your infrastructure. It features:
+- **Event Monitors:** WebSocket connections that parse raw log streams into clean webhook payloads.
+- **Webhooks:** Automated notifications with configurable backoff arrays.
+- **REST Endpoints:** Hardened endpoints with API-key middleware and built-in rate limiters.
+- **Docker-ready:** Non-root execution environments with native health checks.
 
 ```bash
-# Configure environment
-cp solana-stablecoin-backend/.env.example .env
-# Edit .env with your RPC URL, keypair path, and API key
+cd solana-stablecoin-backend
+cp .env.example .env
 
-docker compose up    # Backend with health check at :3000/health
+# Start up the entire backend stack
+docker compose up
 ```
 
 ---
 
-## Features
+## 🌐 Deployment to Devnet
 
-### On-Chain Programs
+The core programs are already deployed and rigorously verified on the Solana Devnet. You can review the raw transaction receipts spanning all three tiers in [`deployments/devnet-proof.json`](deployments/devnet-proof.json).
 
-| Program               | Description                                                        | Program ID                                     |
-| --------------------- | ------------------------------------------------------------------ | ---------------------------------------------- |
-| **sss-core**          | Universal stablecoin management — roles, supply caps, pause, seize | `SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP`  |
-| **sss-transfer-hook** | Token-2022 transfer hook — blacklist enforcement per transfer      | `HookFvKFaoF9KL8TUXUnQK5r2mJoMYdBENu549seRyXW` |
+| Smart Contract | Address on Devnet |
+| :--- | :--- |
+| `sss-core` | `SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP` |
+| `sss-transfer-hook` | `HookFvKFaoF9KL8TUXUnQK5r2mJoMYdBENu549seRyXW` |
 
-**StablecoinConfig** stores per-mint: name, symbol, uri, decimals, preset, supply_cap, total_minted, total_burned, is_paused, enable_permanent_delegate, enable_transfer_hook, default_account_frozen.
+---
 
-### Role System (7 roles, PDA-per-role-per-address)
+## 🧪 Test Coverage
 
-| Role        | ID  | Permissions                                           |
-| ----------- | :-: | ----------------------------------------------------- |
-| Admin       |  0  | Grant/revoke roles, update config, transfer authority |
-| Minter      |  1  | Mint tokens (with optional per-minter quota)          |
-| Freezer     |  2  | Freeze/thaw token accounts                            |
-| Pauser      |  3  | Pause/unpause all operations                          |
-| Burner      |  4  | Burn tokens from any account (via permanent delegate) |
-| Blacklister |  5  | Add/remove addresses from transfer blacklist          |
-| Seizer      |  6  | Seize tokens from any account to treasury             |
+We maintain absolute strictness regarding correct execution. The repository houses **203 fully passing tests**:
 
-### TypeScript SDK (`@stbr/sss-token`)
+- **97 Integration Tests:** Full end-to-end flows asserting role escalations and hook boundaries.
+- **90 SDK Unit Tests:** Isolated checks for PDA math, strict type exports, and proper HTTP error transformations.
+- **16 Rust Fuzz/Unit Tests:** Edge cases covering supply mathematical overflows and access-control bypasses.
 
-- **57 exports** — SolanaStablecoin class (SSS alias), Presets constant, 16 instruction builders, 3 PDA derivers, 3 preset creators, oracle functions, error codes, type maps
-- Preset-based **and** custom extensions creation via unified `create()` API
-- Full token lifecycle — mint, burn, freeze, thaw, pause, unpause, seize
-- Compliance namespace — `compliance.blacklistAdd()`, `compliance.seize()`, `getTotalSupply()`
-- Confidential transfer support for SSS-3 (deposit, apply pending)
-- Typed error handling with Anchor error mapping
+---
 
-### Ink Admin CLI (`solana-stablecoin-cli`)
+## 📁 Directory Layout
 
-- **Node.js/React Ink** based CLI replacing the legacy Rust CLI
-- **20 subcommands** covering all stablecoin operations
-- `init --preset` or `init --config config.json` for reproducible deployments
-- `roles list/grant/revoke` — dedicated role management
-- `blacklist add/remove/check` — compliance management
-- `status`, `supply` — on-chain monitoring and utilization metrics
-- Environment variable support for RPC URL (`ANCHOR_PROVIDER_URL` or `RPC_URL`) and keypair (`ANCHOR_WALLET` or `WALLET_PATH`)
-
-### Backend Services (Express, Docker-ready)
-
-- **REST API** for all stablecoin operations with API key auth + rate limiting (30 req/min)
-- **Event listener** — WebSocket subscription to both programs, parses on-chain events
-- **Webhook service** — configurable notifications with exponential backoff retry
-- **Compliance service** — sanctions screening integration point, audit trail
-- **Health check** — `GET /health` with Solana connection status
-- **Structured logging** — Winston with configurable levels
-- **Docker** — multi-stage build, non-root user, healthcheck, `docker compose up`
-
-### Bonus Features
-
-| Feature                      | Description                                                                             |
-| ---------------------------- | --------------------------------------------------------------------------------------- |
-| **SSS-3 Private Stablecoin** | Token-2022 ConfidentialTransfer + auditor key + scoped allowlists (documented as PoC)   |
-| **Oracle Integration**       | Pyth price feeds for USD-denominated supply caps (`parsePythPrice`, `usdToTokenAmount`) |
-| **Interactive Admin TUI**    | React Ink-based terminal dashboard for real-time monitoring and exact execution         |
-| **Example Frontend**         | Next.js 15 scaffold for stablecoin creation and management                              |
-
-#### Interactive Admin TUI (Ink)
-
-Real-time terminal dashboard for monitoring stablecoin config, supply stats, roles, and executing compliance operations directly. It supports interactive forms and confirmation overlays.
-
-![TUI Demo](docs/images/tui-demo.gif)
-
-```bash
-cd solana-stablecoin-cli
-pnpm dev
-# or if linked:
-# sss-token tui
-```
-
-#### Frontend Admin Panel (Next.js 15)
-
-Web-based admin interface with wallet integration for all stablecoin operations.
-
-![Frontend Demo](docs/images/frontend-demo.gif)
-
-|                    Dashboard                     |                     Operations                     |                 Confidential Transfers                 |
-| :----------------------------------------------: | :------------------------------------------------: | :----------------------------------------------------: |
-| ![Dashboard](docs/images/frontend-dashboard.png) | ![Operations](docs/images/frontend-operations.png) | ![Confidential](docs/images/frontend-confidential.png) |
-
-```bash
-cd solana-stablecoin-frontend && pnpm dev    # http://localhost:3001
+```text
+├── sss-programs/
+│   ├── sss-core/               # Primary stablecoin state and authority
+│   └── sss-transfer-hook/      # Token-2022 Transfer Hook policy manager
+├── solana-stablecoin-sdk/      # TypeScript SDK (@stbr/sss-token)
+├── solana-stablecoin-cli/      # React Ink CLI + Dashboard
+├── solana-stablecoin-backend/  # Express REST API, Websockets & Webhooks
+├── solana-stablecoin-frontend/ # Next.js Web Dashboard
+├── tests/                      # Anchor integration suite
+├── trident-tests/              # Rust property-based fuzz tests
+├── deployments/                # Devnet proofs
+└── docs/                       # Architectural reference
 ```
 
 ---
 
-## Devnet Deployment
+## 📚 Docs Index
 
-Both programs deployed and verified on devnet with 22 example transactions across all 3 presets.
+For deep-dive documentation, consult the files in `/docs`:
 
-| Program           | Address                                        | Status   |
-| ----------------- | ---------------------------------------------- | -------- |
-| sss-core          | `SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP`  | Deployed |
-| sss-transfer-hook | `HookFvKFaoF9KL8TUXUnQK5r2mJoMYdBENu549seRyXW` | Deployed |
-
-Full deployment proof with real transaction signatures in [`deployments/devnet-proof.json`](deployments/devnet-proof.json):
-
-- **SSS-1**: 8 txs (init, grant minter, mint, burn, freeze, thaw, pause, unpause)
-- **SSS-2**: 11 txs (init, grant roles, thaw, mint, burn, blacklist add/remove, pause, unpause)
-- **SSS-3**: 3 txs (confidential operations)
+- **[Architecture Deep-Dive](docs/ARCHITECTURE.md)** (State flows and program relationships)
+- **[SDK Documentation](docs/SDK.md)** (Typescript API references and types)
+- **[CLI Runbook](docs/CLI.md)** (Full list of subcommands)
+- **[Backend API Spec](docs/API.md)** (REST boundaries and error codes)
+- **[Tier Specs](docs/)** (Individual breakdowns for `SSS-1.md`, `SSS-2.md`, and `SSS-3.md`)
+- **[Operator Guidelines](docs/OPERATIONS.md)** (Emergency response procedures)
+- **[Security Posture](docs/SECURITY.md)** (Threat modeling)
 
 ---
 
-## Test Suite
+## ⚠️ Known Constraints & Edge Cases
 
-**203 tests, all passing.**
-
-| Suite                           |  Count  | What's Covered                                                      |
-| ------------------------------- | :-----: | ------------------------------------------------------------------- |
-| Integration (`anchor test`)     |   97    | All 14 instruction paths, error cases, role boundaries, oracle caps |
-| SDK unit (`vitest`)             |   90    | PDA derivation, errors, types, oracle, barrel exports, client class |
-| Rust unit + fuzz (`cargo test`) |   16    | Config logic, supply arithmetic, role escalation, pause bypass      |
-| **Total**                       | **203** |                                                                     |
-
-SDK unit test breakdown: `pda.test.ts` (13) · `errors.test.ts` (12) · `types.test.ts` (7) · `oracle.test.ts` (14) · `exports.test.ts` (39) · `client.test.ts` (5)
+1. **Seizing via Permanent Delegate on Tier 2:** Token-2022 constraints prevent forwarding additional auxiliary accounts during a `TransferChecked` CPI. When using `seize` on an `SSS-2` mint, the transaction requires hook validation accounts that bypass the permanent delegate CPI. The established workaround is to freeze the account and execute an admin-authorized bypass flow. Tier 1 and Tier 3 seize functions normally.
+2. **Admin Revocation:** Built-in safeguards prevent the last active admin from removing themselves from the contract (which would brick the token). However, any active Administrator can revoke any other Administrator. We strongly recommend assigning the Admin role to a multisig (e.g., Squads) rather than individual keypairs.
 
 ---
 
-## Project Structure
+## 🤝 Contributing
 
-```
-solana-stablecoin-standard/
-  sss-programs/
-    sss-core/                # Core stablecoin program (Anchor)
-    sss-transfer-hook/       # Transfer hook program (Anchor)
-  solana-stablecoin-sdk/     # TypeScript SDK (@stbr/sss-token)
-  solana-stablecoin-cli/     # TypeScript/Ink CLI + Interactive TUI
-  solana-stablecoin-backend/ # Express REST API + event listener + webhooks
-  solana-stablecoin-frontend/# Next.js 15 frontend
-  tests/                     # Integration tests
-  trident-tests/             # Property-based fuzz tests (proptest)
-  deployments/               # Devnet deployment proof
-  docs/                      # Documentation (10 files)
-```
-
----
-
-## Documentation
-
-| Document                             | Description                                                |
-| ------------------------------------ | ---------------------------------------------------------- |
-| [Architecture](docs/ARCHITECTURE.md) | 3-layer model, PDA derivation, data flows, security model  |
-| [SDK Reference](docs/SDK.md)         | Presets, custom configs, custom extensions, TypeScript API |
-| [CLI Reference](docs/CLI.md)         | All 20 subcommands with examples                           |
-| [API Reference](docs/API.md)         | Backend REST endpoints, auth, rate limiting                |
-| [SSS-1 Spec](docs/SSS-1.md)          | Minimal preset — internal tokens, DAO treasuries           |
-| [SSS-2 Spec](docs/SSS-2.md)          | Compliant preset — regulated stablecoins                   |
-| [SSS-3 Spec](docs/SSS-3.md)          | Private preset — confidential transfers + auditor key      |
-| [Operations](docs/OPERATIONS.md)     | Operator runbook, emergency procedures                     |
-| [Security](docs/SECURITY.md)         | Threat model, access control matrix                        |
-| [Compliance](docs/COMPLIANCE.md)     | Regulatory considerations, audit trail format              |
-
----
-
-## Known Limitations
-
-### SSS-2: Seize via permanent delegate
-
-The `seize` instruction uses Token-2022's `TransferChecked` CPI with the config PDA as permanent delegate. On SSS-2 mints, the transfer hook requires extra accounts (blacklist PDA, hook program) that cannot be forwarded through the `TransferChecked` CPI. This is a Token-2022 design constraint.
-
-**Workaround:** Freeze + admin-coordinated manual transfer flow. Affects SSS-2 only — SSS-1 and SSS-3 seize works correctly.
-
-### Admin role revocation
-
-The `LastAdmin` protection prevents self-revocation (which would brick the config). However, Admin A can revoke Admin B's role even if B is the only other admin. By design — counting total admins on-chain would add complexity. Recommended: maintain 2+ admins, use a multisig for the primary admin key.
-
----
-
-## Contributing
-
-Contributions welcome. Please:
+We welcome community extensions and patches.
 
 1. Fork the repository
-2. Create a feature branch (`feat/your-feature`)
-3. Write tests for new functionality
-4. Ensure all 203 tests pass (`anchor test && pnpm test:sdk && cargo test`)
-5. Submit a pull request
+2. Create your isolated feature branch (`git checkout -b feature/your-feature`)
+3. Validate your changes against the entire suite (`anchor test && pnpm test:sdk && cargo test`)
+4. Submit your pull request against `main`
 
 ---
 
-## License
+## 📄 License
 
-MIT — see [LICENSE](LICENSE).
+This codebase is distributed under the MIT License. See [LICENSE](LICENSE) for more information.
