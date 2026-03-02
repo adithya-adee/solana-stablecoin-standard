@@ -27,7 +27,8 @@ The Solana Stablecoin Standard (SSS) is a comprehensive, production-ready framew
 5. **Use the CLI to deploy a stablecoin:**
    ```bash
    cd solana-stablecoin-cli
-   cargo run -- init --preset sss-1 --name "My USD" --symbol MUSD --decimals 6
+   pnpm build
+   sss-token init --preset sss-1 --name "My USD" --symbol MUSD --decimals 6
    ```
 
 ## Preset Comparison

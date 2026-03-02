@@ -41,11 +41,11 @@ The foundation layer provides token creation, lifecycle management, and role-bas
 
 **Client Tooling**
 
-- **CLI** (`sss-token`): Rust-based deployment system bridged with a rich Node ecosystem CLI. We utilized `ink` + `commander` to create a beautiful, highly interactive UI using React-like code directly in the terminal—far surpassing standard text-only workflows.
-- **TypeScript SDK** (`@stbr/sss-token`): Programmatic access to all SSS functionality, including fully integrated Pyth v2 oracle types, branded types, and tree-shakable architectures.
-- **Backend**: Express service for sanctions screening and fiat lifecycle verification.
-- **TUI**: ratatui-based terminal dashboard.
-- **Frontend**: Next.js (App Router) client meticulously built to be extremely concise and easily understood by operators at a glance. Features a unified, single-box UI across Operations, Roles, Blacklist, and Confidential interfaces powered by `framer-motion` for fluid, dynamic transitions.
+- **CLI** (`sss-token`): A unified TypeScript CLI that provides both direct command-line access and a rich, interactive Terminal User Interface (TUI).
+- **TUI Dashboard**: Built with **React Ink**, providing a high-fidelity, component-based dashboard directly in the terminal for real-time monitoring and operations.
+- **TypeScript SDK** (`@stbr/sss-token`): Programmatic access to all SSS functionality, with automatic ATA handling, Pyth oracle integration, and tree-shakable architecture.
+- **Backend Service**: Express.js application providing REST APIs, WebSocket event listeners, and webhook notifications.
+- **Frontend Dashboard**: A premium Next.js (App Router) interface with a unified management console and fluid `framer-motion` transitions.
 
 ### Layer 2 — Modules
 

@@ -1,35 +1,112 @@
 # Backend API Reference
 
-The backend API handles indexing, state verification, and advanced metadata serving for the Solana Stablecoin Standard platform.
+The backend API (located in `solana-stablecoin-backend`) provides RESTful endpoints for token operations, compliance management, and auditing. It serves as a hardened gateway between your business logic and the Solana blockchain.
 
-_(Note: API implementations will vary based on backend indexing architecture. The following represents the standard expected REST endpoints for the UI to consume)._
+## Base URL
+`http://localhost:3000` (Default)
 
-## Endpoints
+## Authentication
+All requests require an API key passed in the `x-api-key` header.
+```bash
+-H "x-api-key: your-secure-api-key"
+```
 
-### `GET /api/v1/mints`
+---
 
-Returns all SSS-managed mints deployed by the connected issuer wallet.
+## Operations Endpoints
 
-### `GET /api/v1/mint/:mintAddress/holders`
+### `POST /operations/mint`
+Mint tokens to a recipient.
+- **Body:**
+  ```json
+  {
+    "mint": "Mint address",
+    "to": "Recipient Wallet OR Token Account",
+    "amount": "1000000" (string, in base units)
+  }
+  ```
+- **Note:** Automatically creates an ATA for the recipient if it doesn't exist.
 
-Returns the current token holders, their balances, and config statuses.
-_(Requires an external indexer mapping `TokenAccount`s to `Mint`s)_.
+### `POST /operations/burn`
+Burn tokens from a wallet.
+- **Body:**
+  ```json
+  {
+    "mint": "Mint address",
+    "from": "Holder Wallet OR Token Account",
+    "amount": "500000"
+  }
+  ```
 
-### `GET /api/v1/mint/:mintAddress/operations`
+### `POST /operations/seize`
+Forcibly transfer tokens between wallets.
+- **Body:**
+  ```json
+  {
+    "mint": "Mint address",
+    "from": "Source Wallet OR Token Account",
+    "to": "Destination Wallet OR Token Account",
+    "amount": "1000000"
+  }
+  ```
 
-Fetches a historical ledger of all administrative events (mints, burns, freezes, role changes) by parsing Solana transaction logs for Anchor events.
+### `POST /operations/freeze` / `POST /operations/thaw`
+Freeze or thaw a wallet.
+- **Body:**
+  ```json
+  {
+    "mint": "Mint address",
+    "account": "Wallet OR Token Account"
+  }
+  ```
 
-### `POST /api/v1/compliance/check`
+### `POST /operations/pause` / `POST /operations/unpause`
+Pause all operations for a stablecoin.
+- **Body:**
+  ```json
+  {
+    "mint": "Mint address"
+  }
+  ```
 
-Validates whether a user's identity satisfies off-chain KYC criteria before the backend submits an on-chain transaction to un-blacklist or allowlist them.
+---
 
-## Indexer Architecture Recommendations
+## Compliance Endpoints
 
-The SSS platform operates trustlessly by deriving all state from on-chain data. To power the `/operations` and `/holders` endpoints with low latency, you must implement a robust indexer.
+### `POST /compliance/blacklist/add`
+Add an address to the blacklist.
+- **Body:**
+  ```json
+  {
+    "mint": "Mint address",
+    "address": "Wallet address",
+    "reason": "Compliance reason"
+  }
+  ```
 
-For building the fastest and most reliable indexer, we strongly recommend implementing your pipeline utilizing:
+### `POST /compliance/blacklist/remove`
+Remove an address from the blacklist.
 
-1. **Yellowstone Geyser (gRPC)**: The industry standard for high-performance, low-latency data streaming directly from Solana validator nodes.
-2. **Helius Enhanced RPCs / Webhooks**: An excellent, managed alternative providing parsed token transaction streams if operating a dedicated gRPC node is too resource-intensive.
+### `GET /compliance/status/:mint/:address`
+Check if an address is blacklisted.
 
-_Security Note:_ Proof generation for SSS-3 (Confidential Transfers) **must** remain entirely on the client side (e.g., via native CLI or hardware-accelerated desktop environments) to guarantee a trustless environment. Offloading proof generation to a centralized server introduces critical security vulnerabilities and trust assumptions that contradict the protocol design.
+### `GET /compliance/audit-trail/:mint`
+Fetch historical events (mints, burns, freezes, etc.) for a stablecoin.
+- **Query Params:**
+  - `action`: Filter by event type (e.g., `TokensMinted`)
+  - `limit`: Number of entries (default 25)
+
+---
+
+## Utility Endpoints
+
+### `GET /health`
+Returns the health status of the backend and its connection to Solana.
+
+---
+
+## Implementation Notes
+
+1. **Wallet-Awareness**: The backend leverages the SSS SDK to automatically resolve Associated Token Accounts (ATAs). You can pass a standard wallet `PublicKey` to any `to`, `from`, or `account` field.
+2. **Atomic Execution**: Operations like `mint` that require ATA creation are executed as a single atomic transaction on Solana.
+3. **Screening**: The `/operations/mint` and `/operations/burn` endpoints include a pluggable compliance screening step that can block transactions based on automated risk scores.

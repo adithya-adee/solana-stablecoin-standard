@@ -79,7 +79,8 @@ await sss.roles.grant(freezerWallet, 'freezer');
 await sss.roles.grant(pauserWallet, 'pauser');
 
 // Mint
-await sss.mint({ recipient: recipientTokenAccount, amount: 100_000_000n });
+// Recipient can be a wallet address; ATA is created automatically if needed
+await sss.mint({ recipient: walletPublicKey, amount: 100_000_000n });
 
 // Check info
 const info = await sss.info();

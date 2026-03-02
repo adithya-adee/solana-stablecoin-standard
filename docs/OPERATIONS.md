@@ -107,16 +107,16 @@ Assign roles to different wallets to enforce separation of duties:
 
 ```bash
 # Admin wallet: manages roles and emergency operations
-sss roles grant --mint <MINT> --address <ADMIN_2> --role admin
+sss-token roles grant --mint <MINT> --address <ADMIN_2> --role admin
 
 # Minting wallet: dedicated to mint/burn operations
-sss roles grant --mint <MINT> --address <MINTER> --role minter
+sss-token roles grant --mint <MINT> --address <MINTER> --role minter
 
 # Compliance wallet: freeze/thaw for KYC enforcement
-sss roles grant --mint <MINT> --address <COMPLIANCE> --role freezer
+sss-token roles grant --mint <MINT> --address <COMPLIANCE> --role freezer
 
 # Operations wallet: pause/unpause for circuit breaker
-sss roles grant --mint <MINT> --address <OPS> --role pauser
+sss-token roles grant --mint <MINT> --address <OPS> --role pauser
 ```
 
 ### Multi-Admin Setup
@@ -124,7 +124,7 @@ sss roles grant --mint <MINT> --address <OPS> --role pauser
 Always maintain at least two admin wallets to prevent lockout:
 
 ```bash
-sss roles grant --mint <MINT> --address <ADMIN_BACKUP> --role admin
+sss-token roles grant --mint <MINT> --address <ADMIN_BACKUP> --role admin
 ```
 
 Self-revocation of admin role is blocked by the program. To rotate admins: grant the new admin first, then have the new admin revoke the old one.
@@ -134,7 +134,7 @@ Self-revocation of admin role is blocked by the program. To rotate admins: grant
 Periodically verify role assignments:
 
 ```bash
-sss roles list --mint <MINT>
+sss-token roles list --mint <MINT>
 ```
 
 ## Emergency Procedures
@@ -144,8 +144,8 @@ sss roles list --mint <MINT>
 When a security incident is detected, immediately pause the stablecoin:
 
 ```bash
-# If .sss-config.json is present, --mint is automatically inferred
-sss pause
+# If .env or environment variables are set, --mint can be inferred
+sss-token pause
 ```
 
 This blocks: mint, burn, freeze, and thaw operations. Seize remains functional for asset recovery.
@@ -164,10 +164,10 @@ curl -X POST http://localhost:3000/operations/pause \
 During a pause, admins can forcibly transfer tokens using the permanent delegate:
 
 ```bash
-sss seize \
-  <COMPROMISED_ACCOUNT> \
-  <TREASURY_ACCOUNT> \
-  <AMOUNT>
+sss-token seize \
+  --from <COMPROMISED_WALLET> \
+  --to <TREASURY_WALLET> \
+  --amount <AMOUNT>
 ```
 
 ### Blacklist an Address (SSS-2)

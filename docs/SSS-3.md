@@ -223,9 +223,10 @@ const sss = await SSS.create(provider, {
   decimals: 6,
 });
 
-// Grant minter role and mint tokens (public balance)
+// Grant minter role and mint tokens
+// Recipient can be a wallet address; ATA is created automatically if needed
 await sss.roles.grant(minterWallet, 'minter');
-await sss.mint({ recipient: userTokenAccount, amount: 10_000_000n });
+await sss.mint({ recipient: userWalletAddress, amount: 10_000_000n });
 
 // Move tokens into confidential balance
 await sss.confidential.deposit(userTokenAccount, 10_000_000n, 6);

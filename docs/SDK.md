@@ -124,17 +124,19 @@ const sss = await SSS.create(
 ### Mint Tokens
 
 Caller must have the `minter` role. Blocked when paused.
+**Automatic ATA Handling:** If the recipient does not have an Associated Token Account (ATA) yet, the SDK automatically adds an initialization instruction to the transaction.
 
 ```typescript
 // Object-style (recommended)
+// recipient can be a wallet address or an ATA
 const signature = await sss.mint({
-  recipient: recipientTokenAccount,
+  recipient: walletPublicKey,
   amount: 1_000_000n,
 });
 
 // Positional-style (also available)
-const signature = await sss.mintTokens(
-  recipientTokenAccount, // PublicKey of the token account
+const signature = await sss.issueTokens(
+  walletPublicKey, 
   1_000_000n, // Amount in base units
 );
 ```
@@ -142,10 +144,11 @@ const signature = await sss.mintTokens(
 ### Burn Tokens
 
 Caller must have the `minter` role (minters can burn). Burns via permanent delegate authority. Blocked when paused.
+**Automatic ATA Derivation:** The SDK derives the ATA from the provided wallet address.
 
 ```typescript
 const signature = await sss.burn(
-  tokenAccount, // PublicKey of the token account to burn from
+  walletPublicKey, // Wallet address of the token holder
   500_000n, // Amount in base units
 );
 ```
@@ -155,7 +158,7 @@ const signature = await sss.burn(
 Caller must have the `freezer` role. Blocked when paused.
 
 ```typescript
-const signature = await sss.freeze(tokenAccount);
+const signature = await sss.freeze(walletPublicKey);
 ```
 
 ### Thaw Account
@@ -163,7 +166,7 @@ const signature = await sss.freeze(tokenAccount);
 Caller must have the `freezer` role. Blocked when paused.
 
 ```typescript
-const signature = await sss.thaw(tokenAccount);
+const signature = await sss.thaw(walletPublicKey);
 ```
 
 ### Pause
@@ -185,9 +188,14 @@ const signature = await sss.unpause();
 ### Seize
 
 Admin-only. Forcibly transfers tokens using the permanent delegate. Works even when paused.
+**Automatic ATA Handling:** If the destination wallet lacks an ATA, it is automatically created.
 
 ```typescript
-const signature = await sss.seize(fromTokenAccount, toTokenAccount, 1_000_000n);
+const signature = await sss.seize(
+  fromWalletPublicKey, 
+  toWalletPublicKey, 
+  1_000_000n
+);
 ```
 
 ### Update Supply Cap

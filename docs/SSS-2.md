@@ -157,10 +157,12 @@ await sss.roles.grant(complianceWallet, 'freezer');
 await sss.roles.grant(minterWallet, 'minter');
 
 // KYC flow: thaw an account after verification
-await sss.thaw(userTokenAccount);
+// Supports direct wallet addresses
+await sss.thaw(userWalletAddress);
 
 // Mint tokens to verified user
-await sss.mint({ recipient: userTokenAccount, amount: 1_000_000n });
+// Recipient can be a wallet address; ATA is created automatically if needed
+await sss.mint({ recipient: userWalletAddress, amount: 1_000_000n });
 
 // Blacklist a sanctioned address
 await sss.blacklist.add(sanctionedWallet, 'OFAC SDN list');
