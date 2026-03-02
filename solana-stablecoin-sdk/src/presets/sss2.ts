@@ -15,10 +15,10 @@ import {
   LENGTH_SIZE,
 } from '@solana/spl-token';
 import { createInitializeInstruction, pack, type TokenMetadata } from '@solana/spl-token-metadata';
-import type { MintAddress } from '../types';
-import { deriveConfigPda, SSS_HOOK_PROGRAM_ID } from '../pda';
+import type { TokenMintKey } from '../types';
+import { resolveConfigAccount, STBL_HOOK_PROGRAM_ID } from '../pda';
 
-export interface Sss2MintOptions {
+export interface Tier2MintParams {
   name: string;
   symbol: string;
   uri?: string;
@@ -26,24 +26,15 @@ export interface Sss2MintOptions {
   hookProgramId?: PublicKey;
 }
 
-/**
- * Build a transaction that creates a Token-2022 mint for SSS-2 (Compliant preset).
- *
- * Extensions: MetadataPointer, PermanentDelegate, TransferHook, DefaultAccountState(Frozen)
- * Metadata: on-chain Token Metadata
- *
- * New token accounts start frozen (DefaultAccountState.Frozen), requiring explicit thaw
- * by a freezer before the holder can transact. The transfer hook enforces blacklist checks.
- */
-export async function createSss2MintTransaction(
+export async function assembleTier2MintTx(
   connection: Connection,
   payer: PublicKey,
   mintKeypair: Keypair,
-  options: Sss2MintOptions,
+  options: Tier2MintParams,
   coreProgramId: PublicKey,
 ): Promise<Transaction> {
-  const [configPda] = deriveConfigPda(mintKeypair.publicKey as MintAddress, coreProgramId);
-  const hookProgramId = options.hookProgramId ?? SSS_HOOK_PROGRAM_ID;
+  const [configPda] = resolveConfigAccount(mintKeypair.publicKey as TokenMintKey, coreProgramId);
+  const hookProgramId = options.hookProgramId ?? STBL_HOOK_PROGRAM_ID;
   const decimals = options.decimals ?? 6;
 
   const extensions = [
@@ -62,7 +53,6 @@ export async function createSss2MintTransaction(
     additionalMetadata: [],
     updateAuthority: configPda,
   };
-  // Token-2022 extension requires exactly TYPE_SIZE (2) + LENGTH_SIZE (2) + data length bytes
   const metadataLen = pack(metadata).length;
   const totalLen = mintLen + TYPE_SIZE + LENGTH_SIZE + metadataLen;
 
@@ -101,11 +91,10 @@ export async function createSss2MintTransaction(
     createInitializeMint2Instruction(
       mintKeypair.publicKey,
       decimals,
-      payer, // mint authority = payer temporarily
-      payer, // freeze authority = payer temporarily
+      payer,
+      payer,
       TOKEN_2022_PROGRAM_ID,
     ),
-    // Initialize on-chain token metadata (requires mint authority to sign)
     createInitializeInstruction({
       programId: TOKEN_2022_PROGRAM_ID,
       mint: mintKeypair.publicKey,
@@ -113,10 +102,9 @@ export async function createSss2MintTransaction(
       name: options.name,
       symbol: options.symbol,
       uri: options.uri ?? '',
-      mintAuthority: payer, // payer signs
-      updateAuthority: configPda, // update authority set to configPda immediately
+      mintAuthority: payer,
+      updateAuthority: configPda,
     }),
-    // Transfer mint authority to configPda
     createSetAuthorityInstruction(
       mintKeypair.publicKey,
       payer,
@@ -125,7 +113,6 @@ export async function createSss2MintTransaction(
       [],
       TOKEN_2022_PROGRAM_ID,
     ),
-    // Transfer freeze authority to configPda
     createSetAuthorityInstruction(
       mintKeypair.publicKey,
       payer,

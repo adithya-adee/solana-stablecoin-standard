@@ -3,26 +3,26 @@ import { PublicKey, Keypair } from '@solana/web3.js';
 declare const __brand: unique symbol;
 export type Brand<T, B extends string> = T & { readonly [__brand]: B };
 
-export type Preset = Brand<'sss-1' | 'sss-2' | 'sss-3', 'Preset'>;
-export type RoleType = Brand<
+export type TierLabel = Brand<'sss-1' | 'sss-2' | 'sss-3', 'TierLabel'>;
+export type AccessRole = Brand<
   'admin' | 'minter' | 'freezer' | 'pauser' | 'burner' | 'blacklister' | 'seizer',
-  'RoleType'
+  'AccessRole'
 >;
-export type RoleId = Brand<0 | 1 | 2 | 3 | 4 | 5 | 6, 'RoleId'>;
+export type AccessRoleId = Brand<0 | 1 | 2 | 3 | 4 | 5 | 6, 'AccessRoleId'>;
 
-export const preset = (v: 'sss-1' | 'sss-2' | 'sss-3') => v as Preset;
-export const roleType = (
+export const asTier = (v: 'sss-1' | 'sss-2' | 'sss-3') => v as TierLabel;
+export const asRole = (
   v: 'admin' | 'minter' | 'freezer' | 'pauser' | 'burner' | 'blacklister' | 'seizer',
-) => v as RoleType;
-export const roleId = (v: 0 | 1 | 2 | 3 | 4 | 5 | 6) => v as RoleId;
+) => v as AccessRole;
+export const asRoleId = (v: 0 | 1 | 2 | 3 | 4 | 5 | 6) => v as AccessRoleId;
 
-export type MintAddress = Brand<PublicKey, 'MintAddress'>;
-export type ConfigPda = Brand<PublicKey, 'ConfigPda'>;
-export type RolePda = Brand<PublicKey, 'RolePda'>;
-export type BlacklistPda = Brand<PublicKey, 'BlacklistPda'>;
+export type TokenMintKey = Brand<PublicKey, 'TokenMintKey'>;
+export type ConfigAccountKey = Brand<PublicKey, 'ConfigAccountKey'>;
+export type RoleAccountKey = Brand<PublicKey, 'RoleAccountKey'>;
+export type DenyListKey = Brand<PublicKey, 'DenyListKey'>;
 
-export interface StablecoinCreateOptions {
-  preset: Preset;
+export interface TokenDeployOptions {
+  preset: TierLabel;
   name: string;
   symbol: string;
   uri?: string;
@@ -31,10 +31,10 @@ export interface StablecoinCreateOptions {
   mint?: Keypair;
 }
 
-export interface StablecoinInfo {
-  mint: MintAddress;
+export interface TokenStateSnapshot {
+  mint: TokenMintKey;
   authority: PublicKey;
-  preset: Preset;
+  preset: TierLabel;
   paused: boolean;
   supplyCap: bigint | null;
   totalMinted: bigint;
@@ -42,62 +42,62 @@ export interface StablecoinInfo {
   currentSupply: bigint;
 }
 
-export interface RoleInfo {
-  config: ConfigPda;
+export interface AccessRoleInfo {
+  config: ConfigAccountKey;
   address: PublicKey;
-  role: RoleType;
+  role: AccessRole;
   grantedBy: PublicKey;
   grantedAt: Date;
 }
 
-export interface BlacklistInfo {
-  mint: MintAddress;
+export interface DenyListInfo {
+  mint: TokenMintKey;
   address: PublicKey;
   addedBy: PublicKey;
   addedAt: Date;
   reason: string;
 }
 
-export const ROLE_MAP = {
-  admin: roleId(0),
-  minter: roleId(1),
-  freezer: roleId(2),
-  pauser: roleId(3),
-  burner: roleId(4),
-  blacklister: roleId(5),
-  seizer: roleId(6),
-} as Record<RoleType, RoleId>;
+export const ROLE_ID_MAP = {
+  admin: asRoleId(0),
+  minter: asRoleId(1),
+  freezer: asRoleId(2),
+  pauser: asRoleId(3),
+  burner: asRoleId(4),
+  blacklister: asRoleId(5),
+  seizer: asRoleId(6),
+} as Record<AccessRole, AccessRoleId>;
 
-export const PRESET_MAP = {
+export const TIER_ORDINAL_MAP = {
   'sss-1': 1,
   'sss-2': 2,
   'sss-3': 3,
-} as Record<Preset, number>;
+} as Record<TierLabel, number>;
 
-export const REVERSE_PRESET_MAP: Record<number, Preset> = {
-  1: preset('sss-1'),
-  2: preset('sss-2'),
-  3: preset('sss-3'),
+export const ORDINAL_TO_TIER_MAP: Record<number, TierLabel> = {
+  1: asTier('sss-1'),
+  2: asTier('sss-2'),
+  3: asTier('sss-3'),
 };
 
-export const Presets = {
-  SSS_1: preset('sss-1'),
-  SSS_2: preset('sss-2'),
-  SSS_3: preset('sss-3'),
+export const StablecoinTiers = {
+  SSS_1: asTier('sss-1'),
+  SSS_2: asTier('sss-2'),
+  SSS_3: asTier('sss-3'),
 } as const;
 
-export interface StablecoinExtensionConfig {
+export interface ExtensionFlags {
   permanentDelegate?: boolean;
   transferHook?: boolean;
   defaultAccountFrozen?: boolean;
   confidentialTransfer?: boolean;
 }
 
-export interface StablecoinCustomOptions {
+export interface TokenExtensionOptions {
   name: string;
   symbol: string;
   uri?: string;
   decimals?: number;
   supplyCap?: bigint;
-  extensions: StablecoinExtensionConfig;
+  extensions: ExtensionFlags;
 }

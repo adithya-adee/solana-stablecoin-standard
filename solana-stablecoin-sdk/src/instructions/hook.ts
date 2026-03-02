@@ -1,26 +1,22 @@
 import { Program } from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
 import type { SssTransferHook } from '../idl/sss_transfer_hook';
-import type { MintAddress } from '../types';
+import type { TokenMintKey } from '../types';
 import {
-  deriveBlacklistPda,
-  deriveConfigPda,
-  deriveExtraAccountMetasPda,
-  deriveRolePda,
-  SSS_CORE_PROGRAM_ID,
+  resolveDenyListAccount,
+  resolveConfigAccount,
+  resolveHookMetaAccount,
+  resolveRoleAccount,
+  STBL_CORE_PROGRAM_ID,
 } from '../pda';
-import { roleType } from '../types';
+import { asRole } from '../types';
 
 /**
  * Build the `initializeExtraAccountMetas` instruction.
- * Creates the ExtraAccountMetaList PDA required for Token-2022 transfer hooks.
- * Must be called once per mint after mint creation.
- *
- * Auto-resolved by Anchor: extraAccountMetas (PDA), systemProgram (known address)
  */
-export function buildInitializeExtraAccountMetasIx(
+export function compileHookMetaInitInstruction(
   program: Program<SssTransferHook>,
-  mint: MintAddress,
+  mint: TokenMintKey,
   payer: PublicKey,
 ) {
   return program.methods
@@ -34,25 +30,20 @@ export function buildInitializeExtraAccountMetasIx(
 
 /**
  * Build the `addToBlacklist` instruction.
- * Adds an address to the blacklist for a given mint. Blacklister-only (verified via core program).
- *
- * Auto-resolved by Anchor: blacklistEntry (PDA), systemProgram (known address)
  */
-export function buildAddToBlacklistIx(
+export function compileDenyListAddInstruction(
   program: Program<SssTransferHook>,
-  mint: MintAddress,
+  mint: TokenMintKey,
   blacklister: PublicKey,
   address: PublicKey,
   reason: string,
-  coreProgramId: PublicKey = SSS_CORE_PROGRAM_ID,
+  coreProgramId: PublicKey = STBL_CORE_PROGRAM_ID,
 ) {
-  // The hook program verifies blacklister authorization by checking the
-  // blacklister_role PDA exists and is owned by the sss-core program.
-  const [configPda] = deriveConfigPda(mint, coreProgramId);
-  const [blacklisterRolePda] = deriveRolePda(
+  const [configPda] = resolveConfigAccount(mint, coreProgramId);
+  const [blacklisterRolePda] = resolveRoleAccount(
     configPda,
     blacklister,
-    roleType('blacklister'),
+    asRole('blacklister'),
     coreProgramId,
   );
 
@@ -69,29 +60,24 @@ export function buildAddToBlacklistIx(
 
 /**
  * Build the `removeFromBlacklist` instruction.
- * Removes an address from the blacklist. Blacklister-only (verified via core program).
- *
- * Auto-resolved by Anchor: blacklistEntry (PDA)
  */
-export function buildRemoveFromBlacklistIx(
+export function compileDenyListRemoveInstruction(
   program: Program<SssTransferHook>,
-  mint: MintAddress,
+  mint: TokenMintKey,
   blacklister: PublicKey,
   address: PublicKey,
-  coreProgramId: PublicKey = SSS_CORE_PROGRAM_ID,
+  coreProgramId: PublicKey = STBL_CORE_PROGRAM_ID,
 ) {
-  const [blacklistEntryPda] = deriveBlacklistPda(mint, address, program.programId);
+  const [blacklistEntryPda] = resolveDenyListAccount(mint, address, program.programId);
 
-  const [configPda] = deriveConfigPda(mint, coreProgramId);
-  const [blacklisterRolePda] = deriveRolePda(
+  const [configPda] = resolveConfigAccount(mint, coreProgramId);
+  const [blacklisterRolePda] = resolveRoleAccount(
     configPda,
     blacklister,
-    roleType('blacklister'),
+    asRole('blacklister'),
     coreProgramId,
   );
 
-  // blacklistEntry PDA has self-referential seeds (blacklist_entry.address),
-  // so Anchor cannot auto-resolve it. Use accountsPartial to override.
   return program.methods
     .removeFromBlacklist()
     .accountsPartial({

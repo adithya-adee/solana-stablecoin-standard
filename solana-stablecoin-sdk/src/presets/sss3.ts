@@ -19,76 +19,42 @@ import {
   LENGTH_SIZE,
 } from '@solana/spl-token';
 import { createInitializeInstruction, pack, type TokenMetadata } from '@solana/spl-token-metadata';
-import type { MintAddress } from '../types';
-import { deriveConfigPda } from '../pda';
+import type { TokenMintKey } from '../types';
+import { resolveConfigAccount } from '../pda';
 
-export interface Sss3MintOptions {
+export interface Tier3MintParams {
   name: string;
   symbol: string;
   uri?: string;
   decimals?: number;
-  /** 32-byte ElGamal public key for the auditor. If omitted, a 32-byte zero key is used (demo/testing). */
   auditorElGamalPubkey?: Uint8Array;
-  /** Whether new token accounts auto-approve for confidential transfers. Defaults to true. */
   autoApproveNewAccounts?: boolean;
 }
 
-/**
- * Build the InitializeConfidentialTransferMint instruction manually.
- *
- * The `@solana/spl-token` library knows the extension type and size
- * but does NOT provide an instruction builder for this operation.
- *
- * Instruction data layout (Pod / #[repr(C)] — fixed size, no tags):
- *   [27]       - ConfidentialTransferExtension discriminator
- *   [0]        - InitializeMint sub-instruction
- *   [32 bytes] - OptionalNonZeroPubkey authority (all zeros = None)
- *   [1 byte]   - PodBool auto_approve_new_accounts (0 or 1)
- *   [32 bytes] - OptionalNonZeroElGamalPubkey auditor (all zeros = None)
- *
- * Total: 2 + 32 + 1 + 32 = 67 bytes (always fixed)
- * Accounts: [mint (writable)]
- */
-export function createInitializeConfidentialTransferMintInstruction(
+export function compileConfidentialMintInstruction(
   mint: PublicKey,
   authority: PublicKey | null,
   autoApproveNewAccounts: boolean,
   auditorElGamalPubkey: Uint8Array | null,
 ): TransactionInstruction {
-  // Fixed-size Pod layout: 2 + 32 + 1 + 32 = 67 bytes
   const data = Buffer.alloc(67);
-
   let offset = 0;
-
-  // Discriminator: ConfidentialTransferExtension = 27
   data.writeUInt8(27, offset);
   offset += 1;
-
-  // Sub-instruction: InitializeMint = 0
   data.writeUInt8(0, offset);
   offset += 1;
-
-  // OptionalNonZeroPubkey authority (32 bytes, zeros = None)
   if (authority) {
     authority.toBuffer().copy(data, offset);
   }
-  // else: already zeros from Buffer.alloc
   offset += 32;
-
-  // PodBool auto_approve_new_accounts (1 byte)
   data.writeUInt8(autoApproveNewAccounts ? 1 : 0, offset);
   offset += 1;
-
-  // OptionalNonZeroElGamalPubkey auditor (32 bytes, zeros = None)
   if (auditorElGamalPubkey) {
     if (auditorElGamalPubkey.length !== 32) {
-      throw new Error(
-        `Auditor ElGamal pubkey must be 32 bytes, got ${auditorElGamalPubkey.length}`,
-      );
+      throw new Error(`Auditor ElGamal pubkey must be 32 bytes, got ${auditorElGamalPubkey.length}`);
     }
     Buffer.from(auditorElGamalPubkey).copy(data, offset);
   }
-  // else: already zeros from Buffer.alloc
   offset += 32;
 
   return new TransactionInstruction({
@@ -98,32 +64,16 @@ export function createInitializeConfidentialTransferMintInstruction(
   });
 }
 
-/**
- * Build a transaction that creates a Token-2022 mint for SSS-3 (Confidential preset).
- *
- * Extensions: MetadataPointer, PermanentDelegate, ConfidentialTransferMint
- * Metadata: on-chain Token Metadata
- *
- * SSS-3 uses the ConfidentialTransferMint extension for privacy-preserving
- * transfers with an auditor key for regulatory compliance. Transfer hooks
- * are intentionally excluded because they are incompatible with confidential
- * transfers in Token-2022.
- *
- * The config PDA acts as mint authority, freeze authority, permanent delegate,
- * and confidential transfer mint authority.
- */
-export async function createSss3MintTransaction(
+export async function assembleTier3MintTx(
   connection: Connection,
   payer: PublicKey,
   mintKeypair: Keypair,
-  options: Sss3MintOptions,
+  options: Tier3MintParams,
   coreProgramId: PublicKey,
 ): Promise<Transaction> {
-  const [configPda] = deriveConfigPda(mintKeypair.publicKey as MintAddress, coreProgramId);
+  const [configPda] = resolveConfigAccount(mintKeypair.publicKey as TokenMintKey, coreProgramId);
   const decimals = options.decimals ?? 6;
   const autoApprove = options.autoApproveNewAccounts ?? true;
-
-  // Use provided auditor key or a 32-byte zero key for demo/testing
   const auditorKey = options.auditorElGamalPubkey ?? new Uint8Array(32);
 
   const extensions = [
@@ -141,14 +91,12 @@ export async function createSss3MintTransaction(
     additionalMetadata: [],
     updateAuthority: configPda,
   };
-  // Token-2022 extension requires exactly TYPE_SIZE (2) + LENGTH_SIZE (2) + data length bytes
   const metadataLen = pack(metadata).length;
   const totalLen = mintLen + TYPE_SIZE + LENGTH_SIZE + metadataLen;
 
   const lamports = await connection.getMinimumBalanceForRentExemption(totalLen);
 
   const tx = new Transaction().add(
-    // 1. Create the mint account
     SystemProgram.createAccount({
       fromPubkey: payer,
       newAccountPubkey: mintKeypair.publicKey,
@@ -156,35 +104,30 @@ export async function createSss3MintTransaction(
       lamports,
       programId: TOKEN_2022_PROGRAM_ID,
     }),
-    // 2. Initialize MetadataPointer (config PDA as authority, mint as metadata address)
     createInitializeMetadataPointerInstruction(
       mintKeypair.publicKey,
       configPda,
       mintKeypair.publicKey,
       TOKEN_2022_PROGRAM_ID,
     ),
-    // 3. Initialize PermanentDelegate (config PDA)
     createInitializePermanentDelegateInstruction(
       mintKeypair.publicKey,
       configPda,
       TOKEN_2022_PROGRAM_ID,
     ),
-    // 4. Initialize ConfidentialTransferMint (config PDA as authority, auditor key)
-    createInitializeConfidentialTransferMintInstruction(
+    compileConfidentialMintInstruction(
       mintKeypair.publicKey,
-      configPda, // confidential transfer mint authority
+      configPda,
       autoApprove,
       auditorKey,
     ),
-    // 5. Initialize the mint itself (must come AFTER all extension inits)
     createInitializeMint2Instruction(
       mintKeypair.publicKey,
       decimals,
-      payer, // mint authority = payer temporarily
-      payer, // freeze authority = payer temporarily
+      payer,
+      payer,
       TOKEN_2022_PROGRAM_ID,
     ),
-    // 6. Initialize on-chain token metadata
     createInitializeInstruction({
       programId: TOKEN_2022_PROGRAM_ID,
       mint: mintKeypair.publicKey,
@@ -192,10 +135,9 @@ export async function createSss3MintTransaction(
       name: options.name,
       symbol: options.symbol,
       uri: options.uri ?? '',
-      mintAuthority: payer, // payer signs
-      updateAuthority: configPda, // update authority set to configPda immediately
+      mintAuthority: payer,
+      updateAuthority: configPda,
     }),
-    // 7. Transfer mint authority to configPda
     createSetAuthorityInstruction(
       mintKeypair.publicKey,
       payer,
@@ -204,7 +146,6 @@ export async function createSss3MintTransaction(
       [],
       TOKEN_2022_PROGRAM_ID,
     ),
-    // 8. Transfer freeze authority to configPda
     createSetAuthorityInstruction(
       mintKeypair.publicKey,
       payer,

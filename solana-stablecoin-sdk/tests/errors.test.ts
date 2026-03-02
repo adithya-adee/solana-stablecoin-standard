@@ -1,17 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import {
-  SssError,
+  StablecoinError,
   PausedError,
   SupplyCapExceededError,
   UnauthorizedError,
   SenderBlacklistedError,
-  mapAnchorError,
+  translateAnchorError,
 } from '../src/errors';
 
 describe('Error classes', () => {
-  it('SssError has correct name and code', () => {
-    const err = new SssError('test message', 'TestCode');
-    expect(err.name).toBe('SssError');
+  it('StablecoinError has correct name and code', () => {
+    const err = new StablecoinError('test message', 'TestCode');
+    expect(err.name).toBe('StablecoinError');
     expect(err.code).toBe('TestCode');
     expect(err.message).toBe('test message');
     expect(err instanceof Error).toBe(true);
@@ -39,12 +39,12 @@ describe('Error classes', () => {
   });
 });
 
-describe('mapAnchorError', () => {
+describe('translateAnchorError', () => {
   it('maps known core error codes', () => {
     const anchorErr = {
       error: { errorCode: { code: 'Paused' } },
     };
-    const mapped = mapAnchorError(anchorErr);
+    const mapped = translateAnchorError(anchorErr);
     expect(mapped).toBeInstanceOf(PausedError);
   });
 
@@ -52,7 +52,7 @@ describe('mapAnchorError', () => {
     const anchorErr = {
       error: { errorCode: { code: 'SenderBlacklisted' } },
     };
-    const mapped = mapAnchorError(anchorErr);
+    const mapped = translateAnchorError(anchorErr);
     expect(mapped).toBeInstanceOf(SenderBlacklistedError);
   });
 
@@ -60,7 +60,7 @@ describe('mapAnchorError', () => {
     const anchorErr = {
       error: { errorCode: { code: 'SomeUnknownError' } },
     };
-    const mapped = mapAnchorError(anchorErr);
+    const mapped = translateAnchorError(anchorErr);
     // Plain objects get wrapped since they're not Error instances
     expect(mapped).toBeInstanceOf(Error);
   });
@@ -70,24 +70,24 @@ describe('mapAnchorError', () => {
     (originalErr as unknown as Record<string, unknown>).error = {
       errorCode: { code: 'SomeUnknownError' },
     };
-    const mapped = mapAnchorError(originalErr);
+    const mapped = translateAnchorError(originalErr);
     expect(mapped).toBe(originalErr);
   });
 
   it('handles non-anchor errors gracefully', () => {
     const plainErr = new Error('plain error');
-    const mapped = mapAnchorError(plainErr);
+    const mapped = translateAnchorError(plainErr);
     expect(mapped).toBe(plainErr);
   });
 
   it('handles string errors', () => {
-    const mapped = mapAnchorError('string error');
+    const mapped = translateAnchorError('string error');
     expect(mapped).toBeInstanceOf(Error);
     expect(mapped.message).toBe('string error');
   });
 
   it('handles null/undefined', () => {
-    const mapped = mapAnchorError(null);
+    const mapped = translateAnchorError(null);
     expect(mapped).toBeInstanceOf(Error);
   });
 });

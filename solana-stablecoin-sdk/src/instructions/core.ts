@@ -2,19 +2,16 @@ import { Program, BN } from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import type { SssCore } from '../idl/sss_core';
-import { deriveConfigPda, deriveRolePda } from '../pda';
-import type { RoleType, MintAddress, ConfigPda, RolePda } from '../types';
-import { ROLE_MAP, roleType } from '../types';
+import { resolveConfigAccount, resolveRoleAccount } from '../pda';
+import type { AccessRole, TokenMintKey, ConfigAccountKey, RoleAccountKey } from '../types';
+import { ROLE_ID_MAP, asRole } from '../types';
 
 /**
  * Build the `initialize` instruction.
- * Creates the StablecoinConfig PDA and grants the authority an admin role.
- *
- * Auto-resolved by Anchor: config (PDA), systemProgram (known address)
  */
-export function buildInitializeIx(
+export function compileInitInstruction(
   program: Program<SssCore>,
-  mint: MintAddress,
+  mint: TokenMintKey,
   authority: PublicKey,
   args: {
     preset: number;
@@ -28,8 +25,8 @@ export function buildInitializeIx(
     defaultAccountFrozen?: boolean | null;
   },
 ) {
-  const [configPda] = deriveConfigPda(mint, program.programId);
-  const [adminRolePda] = deriveRolePda(configPda, authority, roleType('admin'), program.programId);
+  const [configPda] = resolveConfigAccount(mint, program.programId);
+  const [adminRolePda] = resolveRoleAccount(configPda, authority, asRole('admin'), program.programId);
 
   return program.methods
     .initialize({
@@ -54,20 +51,17 @@ export function buildInitializeIx(
 
 /**
  * Build the `mintTokens` instruction.
- * Mints new tokens to the specified token account.
- *
- * Auto-resolved by Anchor: config (PDA)
  */
-export function buildMintTokensIx(
+export function compileIssuanceInstruction(
   program: Program<SssCore>,
-  mint: MintAddress,
+  mint: TokenMintKey,
   minter: PublicKey,
   to: PublicKey,
   amount: BN,
   priceUpdate: PublicKey | null = null,
 ) {
-  const [configPda] = deriveConfigPda(mint, program.programId);
-  const [minterRolePda] = deriveRolePda(configPda, minter, roleType('minter'), program.programId);
+  const [configPda] = resolveConfigAccount(mint, program.programId);
+  const [minterRolePda] = resolveRoleAccount(configPda, minter, asRole('minter'), program.programId);
 
   return program.methods
     .mintTokens(amount)
@@ -84,19 +78,16 @@ export function buildMintTokensIx(
 
 /**
  * Build the `burnTokens` instruction.
- * Burns tokens from the specified token account. Requires burner role.
- *
- * Auto-resolved by Anchor: config (PDA)
  */
-export function buildBurnTokensIx(
+export function compileRedemptionInstruction(
   program: Program<SssCore>,
-  mint: MintAddress,
+  mint: TokenMintKey,
   burner: PublicKey,
   from: PublicKey,
   amount: BN,
 ) {
-  const [configPda] = deriveConfigPda(mint, program.programId);
-  const [burnerRolePda] = deriveRolePda(configPda, burner, roleType('burner'), program.programId);
+  const [configPda] = resolveConfigAccount(mint, program.programId);
+  const [burnerRolePda] = resolveRoleAccount(configPda, burner, asRole('burner'), program.programId);
 
   return program.methods
     .burnTokens(amount)
@@ -112,21 +103,18 @@ export function buildBurnTokensIx(
 
 /**
  * Build the `freezeAccount` instruction.
- * Freezes a token account, preventing all transfers.
- *
- * Auto-resolved by Anchor: config (PDA)
  */
-export function buildFreezeAccountIx(
+export function compileFreezeInstruction(
   program: Program<SssCore>,
-  mint: MintAddress,
+  mint: TokenMintKey,
   freezer: PublicKey,
   tokenAccount: PublicKey,
 ) {
-  const [configPda] = deriveConfigPda(mint, program.programId);
-  const [freezerRolePda] = deriveRolePda(
+  const [configPda] = resolveConfigAccount(mint, program.programId);
+  const [freezerRolePda] = resolveRoleAccount(
     configPda,
     freezer,
-    roleType('freezer'),
+    asRole('freezer'),
     program.programId,
   );
 
@@ -144,21 +132,18 @@ export function buildFreezeAccountIx(
 
 /**
  * Build the `thawAccount` instruction.
- * Thaws a frozen token account, restoring transfer capability.
- *
- * Auto-resolved by Anchor: config (PDA)
  */
-export function buildThawAccountIx(
+export function compileThawInstruction(
   program: Program<SssCore>,
-  mint: MintAddress,
+  mint: TokenMintKey,
   freezer: PublicKey,
   tokenAccount: PublicKey,
 ) {
-  const [configPda] = deriveConfigPda(mint, program.programId);
-  const [freezerRolePda] = deriveRolePda(
+  const [configPda] = resolveConfigAccount(mint, program.programId);
+  const [freezerRolePda] = resolveRoleAccount(
     configPda,
     freezer,
-    roleType('freezer'),
+    asRole('freezer'),
     program.programId,
   );
 
@@ -176,12 +161,9 @@ export function buildThawAccountIx(
 
 /**
  * Build the `pause` instruction.
- * Pauses all operations (mint, burn, freeze, thaw) for this stablecoin.
- *
- * Auto-resolved by Anchor: config (PDA, seeded by config.mint)
  */
-export function buildPauseIx(program: Program<SssCore>, configPda: ConfigPda, pauser: PublicKey) {
-  const [pauserRolePda] = deriveRolePda(configPda, pauser, roleType('pauser'), program.programId);
+export function compilePauseInstruction(program: Program<SssCore>, configPda: ConfigAccountKey, pauser: PublicKey) {
+  const [pauserRolePda] = resolveRoleAccount(configPda, pauser, asRole('pauser'), program.programId);
 
   return program.methods
     .pause()
@@ -195,12 +177,9 @@ export function buildPauseIx(program: Program<SssCore>, configPda: ConfigPda, pa
 
 /**
  * Build the `unpause` instruction.
- * Unpauses operations for this stablecoin.
- *
- * Auto-resolved by Anchor: config (PDA, seeded by config.mint)
  */
-export function buildUnpauseIx(program: Program<SssCore>, configPda: ConfigPda, pauser: PublicKey) {
-  const [pauserRolePda] = deriveRolePda(configPda, pauser, roleType('pauser'), program.programId);
+export function compileResumeInstruction(program: Program<SssCore>, configPda: ConfigAccountKey, pauser: PublicKey) {
+  const [pauserRolePda] = resolveRoleAccount(configPda, pauser, asRole('pauser'), program.programId);
 
   return program.methods
     .unpause()
@@ -214,21 +193,17 @@ export function buildUnpauseIx(program: Program<SssCore>, configPda: ConfigPda, 
 
 /**
  * Build the `seize` instruction.
- * Forcibly transfers tokens from one account to another using permanent delegate.
- * Seizer-only, works even when paused (emergency measure).
- *
- * Auto-resolved by Anchor: config (PDA)
  */
-export function buildSeizeIx(
+export function compileSeizeInstruction(
   program: Program<SssCore>,
-  mint: MintAddress,
+  mint: TokenMintKey,
   seizer: PublicKey,
   from: PublicKey,
   to: PublicKey,
   amount: BN,
 ) {
-  const [configPda] = deriveConfigPda(mint, program.programId);
-  const [seizerRolePda] = deriveRolePda(configPda, seizer, roleType('seizer'), program.programId);
+  const [configPda] = resolveConfigAccount(mint, program.programId);
+  const [seizerRolePda] = resolveRoleAccount(configPda, seizer, asRole('seizer'), program.programId);
 
   return program.methods
     .seize(amount)
@@ -245,22 +220,19 @@ export function buildSeizeIx(
 
 /**
  * Build the `grantRole` instruction.
- * Grants a role to an address. Only admins can grant roles.
- *
- * Auto-resolved by Anchor: config (PDA), systemProgram (known address)
  */
-export function buildGrantRoleIx(
+export function compileGrantInstruction(
   program: Program<SssCore>,
-  configPda: ConfigPda,
+  configPda: ConfigAccountKey,
   admin: PublicKey,
   grantee: PublicKey,
-  role: RoleType,
+  role: AccessRole,
 ) {
-  const [adminRolePda] = deriveRolePda(configPda, admin, roleType('admin'), program.programId);
-  const [roleAccountPda] = deriveRolePda(configPda, grantee, role, program.programId);
+  const [adminRolePda] = resolveRoleAccount(configPda, admin, asRole('admin'), program.programId);
+  const [roleAccountPda] = resolveRoleAccount(configPda, grantee, role, program.programId);
 
   return program.methods
-    .grantRole((ROLE_MAP as any)[role] as number)
+    .grantRole((ROLE_ID_MAP as any)[role] as number)
     .accountsPartial({
       admin,
       config: configPda,
@@ -273,18 +245,14 @@ export function buildGrantRoleIx(
 
 /**
  * Build the `revokeRole` instruction.
- * Revokes a role from an address. Only admins can revoke roles.
- * Closes the role account and returns rent to the admin.
- *
- * Auto-resolved by Anchor: config (PDA)
  */
-export function buildRevokeRoleIx(
+export function compileRevokeInstruction(
   program: Program<SssCore>,
-  configPda: ConfigPda,
+  configPda: ConfigAccountKey,
   admin: PublicKey,
-  roleAccountPda: RolePda,
+  roleAccountPda: RoleAccountKey,
 ) {
-  const [adminRolePda] = deriveRolePda(configPda, admin, roleType('admin'), program.programId);
+  const [adminRolePda] = resolveRoleAccount(configPda, admin, asRole('admin'), program.programId);
 
   return program.methods
     .revokeRole()
@@ -299,22 +267,18 @@ export function buildRevokeRoleIx(
 
 /**
  * Build the `transferAuthority` instruction.
- * Atomically transfers admin authority: closes caller's admin PDA and creates
- * a new admin PDA for the new authority. Also updates config.authority.
- *
- * Auto-resolved by Anchor: config (PDA), systemProgram (known address)
  */
-export function buildTransferAuthorityIx(
+export function compileAuthorityTransferInstruction(
   program: Program<SssCore>,
-  configPda: ConfigPda,
+  configPda: ConfigAccountKey,
   admin: PublicKey,
   newAuthority: PublicKey,
 ) {
-  const [adminRolePda] = deriveRolePda(configPda, admin, roleType('admin'), program.programId);
-  const [newAdminRolePda] = deriveRolePda(
+  const [adminRolePda] = resolveRoleAccount(configPda, admin, asRole('admin'), program.programId);
+  const [newAdminRolePda] = resolveRoleAccount(
     configPda,
     newAuthority,
-    roleType('admin'),
+    asRole('admin'),
     program.programId,
   );
 
@@ -332,19 +296,15 @@ export function buildTransferAuthorityIx(
 
 /**
  * Build the `updateMinter` instruction.
- * Updates a minter's quota. Admin-only.
- * Pass null to remove the quota (unlimited minting).
- *
- * Auto-resolved by Anchor: config (PDA)
  */
-export function buildUpdateMinterIx(
+export function compileMinterUpdateInstruction(
   program: Program<SssCore>,
-  configPda: ConfigPda,
+  configPda: ConfigAccountKey,
   admin: PublicKey,
-  minterRoleAccountPda: RolePda,
+  minterRoleAccountPda: RoleAccountKey,
   newQuota: BN | null,
 ) {
-  const [adminRolePda] = deriveRolePda(configPda, admin, roleType('admin'), program.programId);
+  const [adminRolePda] = resolveRoleAccount(configPda, admin, asRole('admin'), program.programId);
 
   return program.methods
     .updateMinter(newQuota)
@@ -359,18 +319,14 @@ export function buildUpdateMinterIx(
 
 /**
  * Build the `updateSupplyCap` instruction.
- * Updates the supply cap for the stablecoin. Admin-only.
- * Pass null to remove the supply cap.
- *
- * Auto-resolved by Anchor: config (PDA)
  */
-export function buildUpdateSupplyCapIx(
+export function compileCapUpdateInstruction(
   program: Program<SssCore>,
-  configPda: ConfigPda,
+  configPda: ConfigAccountKey,
   admin: PublicKey,
   newSupplyCap: BN | null,
 ) {
-  const [adminRolePda] = deriveRolePda(configPda, admin, roleType('admin'), program.programId);
+  const [adminRolePda] = resolveRoleAccount(configPda, admin, asRole('admin'), program.programId);
 
   return program.methods
     .updateSupplyCap(newSupplyCap)
