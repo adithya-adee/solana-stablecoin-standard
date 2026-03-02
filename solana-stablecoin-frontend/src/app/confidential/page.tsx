@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Fingerprint, LogIn, LogOut, SendToBack, Settings, Info } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { Navbar } from '@/components/navbar';
+import { PageHeader } from '@/components/page-header';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -113,7 +113,7 @@ export default function ConfidentialPage() {
 
   return (
     <div>
-      <Navbar title="Confidential Transfers" />
+      <PageHeader title="Confidential Transfers" />
       <div className="p-6 space-y-6 max-w-4xl mx-auto">
         {/* SSS-3 Info Banner */}
         <div className="rounded-xl border border-accent/30 bg-accent/5 p-5 shadow-sm">

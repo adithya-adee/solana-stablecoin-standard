@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { Navbar } from '@/components/navbar';
+import { PageHeader } from '@/components/page-header';
 import { MintSelector } from '@/components/mint-selector';
-import { useStablecoinConfig } from '@/hooks/use-stablecoin-config';
+import { useTokenState } from '@/hooks/use-token-state';
 
 function StatCard({
   label,
@@ -89,11 +89,11 @@ function formatSupply(raw: bigint, decimals: number): string {
 export default function DashboardPage() {
   const { connected } = useWallet();
   const [activeMint, setActiveMint] = useState<string | null>(null);
-  const { config, loading, error } = useStablecoinConfig(activeMint);
+  const { data, loading, error } = useTokenState(activeMint);
 
   return (
     <div>
-      <Navbar title="Dashboard" />
+      <PageHeader title="Dashboard" />
       <div className="p-6 space-y-6">
         <MintSelector onSelect={setActiveMint} currentMint={activeMint} />
 
@@ -137,24 +137,24 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {config && !loading && (
+        {data && !loading && (
           <>
             {/* Token identity */}
             <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
-                    <span className="text-lg font-bold">{config.symbol[0]}</span>
+                    <span className="text-lg font-bold">{data.symbol[0]}</span>
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-foreground">{config.name}</h3>
+                    <h3 className="text-lg font-semibold text-foreground">{data.name}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {config.symbol} &middot; {config.decimals} decimals
+                      {data.symbol} &middot; {data.decimals} decimals
                     </p>
                   </div>
                 </div>
                 <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
-                  {config.presetName}
+                  {data.presetName}
                 </span>
               </div>
             </div>
@@ -163,49 +163,49 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard
                 label="Current Supply"
-                value={formatSupply(config.currentSupply, config.decimals)}
+                value={formatSupply(data.currentSupply, data.decimals)}
                 subtext={
-                  config.supplyCap
-                    ? `${Number((config.totalMinted * 1000n) / config.supplyCap) / 10}% of supply cap`
+                  data.supplyCap
+                    ? `${Number((data.totalMinted * 1000n) / data.supplyCap) / 10}% of supply cap`
                     : 'No supply cap'
                 }
                 variant="success"
               />
               <StatCard
                 label="Total Minted"
-                value={formatSupply(config.totalMinted, config.decimals)}
+                value={formatSupply(data.totalMinted, data.decimals)}
                 subtext="Lifetime issuance"
               />
               <StatCard
                 label="Total Burned"
-                value={formatSupply(config.totalBurned, config.decimals)}
+                value={formatSupply(data.totalBurned, data.decimals)}
                 subtext="Lifetime burns"
               />
               <StatCard
                 label="Pause Status"
-                value={config.paused ? 'Paused' : 'Active'}
-                subtext={config.paused ? 'All operations halted' : 'Operations running normally'}
-                variant={config.paused ? 'destructive' : 'success'}
+                value={data.paused ? 'Paused' : 'Active'}
+                subtext={data.paused ? 'All operations halted' : 'Operations running normally'}
+                variant={data.paused ? 'destructive' : 'success'}
               />
             </div>
 
             {/* Supply cap bar */}
-            {config.supplyCap && (
+            {data.supplyCap && (
               <div className="rounded-xl border border-border bg-card p-5">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-medium text-muted-foreground">
                     Supply Cap Utilization
                   </p>
                   <p className="text-sm font-medium text-foreground">
-                    {formatSupply(config.totalMinted, config.decimals)} /{' '}
-                    {formatSupply(config.supplyCap, config.decimals)}
+                    {formatSupply(data.totalMinted, data.decimals)} /{' '}
+                    {formatSupply(data.supplyCap, data.decimals)}
                   </p>
                 </div>
                 <div className="h-2 w-full rounded-full bg-muted">
                   <div
                     className="h-2 rounded-full bg-accent transition-all"
                     style={{
-                      width: `${Math.min(Number((config.totalMinted * 100n) / config.supplyCap), 100)}%`,
+                      width: `${Math.min(Number((data.totalMinted * 100n) / data.supplyCap), 100)}%`,
                     }}
                   />
                 </div>
@@ -218,11 +218,11 @@ export default function DashboardPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Authority</span>
-                  <code className="text-xs text-foreground font-mono">{config.authority}</code>
+                  <code className="text-xs text-foreground font-mono">{data.authority}</code>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Preset</span>
-                  <span className="text-sm text-foreground">{config.presetName}</span>
+                  <span className="text-sm text-foreground">{data.presetName}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Mint Address</span>
@@ -255,7 +255,7 @@ export default function DashboardPage() {
                   description="Freeze or unfreeze token accounts"
                   href="/operations"
                 />
-                {config.preset === 3 && (
+                {data.preset === 3 && (
                   <QuickAction
                     label="Confidential Transfers"
                     description="Manage private transfer operations"

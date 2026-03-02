@@ -135,7 +135,7 @@ const navigation = [
   },
 ];
 
-export function Sidebar() {
+export function AppSidebar() {
   const pathname = usePathname();
 
   return (

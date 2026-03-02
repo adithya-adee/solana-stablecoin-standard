@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { getMint, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
-import { useCoreProgram } from './use-program';
+import { useLedgerProgram } from './use-ledger-program';
 import { deriveConfigPda } from '@/lib/pda';
 
 const PRESET_NAMES: Record<number, string> = {
@@ -13,7 +13,7 @@ const PRESET_NAMES: Record<number, string> = {
   3: 'SSS-3 (Private)',
 };
 
-export interface StablecoinConfigData {
+export interface TokenState {
   preset: number;
   presetName: string;
   authority: string;
@@ -27,16 +27,16 @@ export interface StablecoinConfigData {
   currentSupply: bigint;
 }
 
-export function useStablecoinConfig(mintAddress: string | null) {
+export function useTokenState(mintAddress: string | null) {
   const { connection } = useConnection();
-  const program = useCoreProgram();
-  const [config, setConfig] = useState<StablecoinConfigData | null>(null);
+  const program = useLedgerProgram();
+  const [data, setData] = useState<TokenState | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchConfig = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     if (!mintAddress || !program) {
-      setConfig(null);
+      setData(null);
       return;
     }
 
@@ -72,7 +72,7 @@ export function useStablecoinConfig(mintAddress: string | null) {
         ? BigInt(configAccount.totalBurned.toString())
         : 0n;
 
-      setConfig({
+      setData({
         preset: configAccount.preset,
         presetName: PRESET_NAMES[configAccount.preset] ?? `Preset ${configAccount.preset}`,
         authority: configAccount.authority?.toBase58() ?? 'Unknown',
@@ -88,15 +88,15 @@ export function useStablecoinConfig(mintAddress: string | null) {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch config';
       setError(message);
-      setConfig(null);
+      setData(null);
     } finally {
       setLoading(false);
     }
   }, [mintAddress, program, connection]);
 
   useEffect(() => {
-    fetchConfig();
-  }, [fetchConfig]);
+    fetchData();
+  }, [fetchData]);
 
-  return { config, loading, error, refetch: fetchConfig };
+  return { data, loading, error, refetch: fetchData };
 }

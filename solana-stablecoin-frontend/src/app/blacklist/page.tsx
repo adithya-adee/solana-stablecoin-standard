@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Search, ShieldOff, ShieldAlert, Info } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { Navbar } from '@/components/navbar';
+import { PageHeader } from '@/components/page-header';
 import { MintSelector } from '@/components/mint-selector';
 import { deriveBlacklistPda } from '@/lib/pda';
 import { isValidPubkey } from '@/lib/validation';
@@ -101,7 +101,7 @@ export default function BlacklistPage() {
 
   return (
     <div>
-      <Navbar title="Blacklist Management" />
+      <PageHeader title="Blacklist Management" />
       <div className="p-6 space-y-6 max-w-4xl mx-auto">
         <MintSelector onSelect={setActiveMint} currentMint={activeMint} />
 

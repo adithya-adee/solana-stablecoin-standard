@@ -18,7 +18,7 @@ import {
   type SssCore,
   type SssTransferHook,
 } from '@stbr/sss-token';
-import { Navbar } from '@/components/navbar';
+import { PageHeader } from '@/components/page-header';
 import { TxFeedback } from '@/components/tx-feedback';
 import { useTransaction } from '@/hooks/use-transaction';
 
@@ -202,7 +202,7 @@ export default function CreateStablecoinPage() {
 
   return (
     <div>
-      <Navbar title="Deploy New Stablecoin" />
+      <PageHeader title="Deploy New Stablecoin" />
       <div className="p-6 space-y-6 max-w-4xl mx-auto">
         <div className="bg-card border border-border rounded-xl p-6">
           <h3 className="text-lg font-semibold text-foreground mb-1">Configuration</h3>

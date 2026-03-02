@@ -7,10 +7,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ShieldPlus, ShieldMinus, ScrollText } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { Navbar } from '@/components/navbar';
+import { PageHeader } from '@/components/page-header';
 import { MintSelector } from '@/components/mint-selector';
 import { TxFeedback } from '@/components/tx-feedback';
-import { useCoreProgram } from '@/hooks/use-program';
+import { useLedgerProgram } from '@/hooks/use-ledger-program';
 import { useTransaction } from '@/hooks/use-transaction';
 import { deriveConfigPda, deriveRolePda } from '@/lib/pda';
 import { isValidPubkey } from '@/lib/validation';
@@ -82,7 +82,7 @@ const OPERATIONS: Record<
 
 export default function RolesPage() {
   const { publicKey } = useWallet();
-  const program = useCoreProgram();
+  const program = useLedgerProgram();
   const { loading, error, signature, execute, reset } = useTransaction();
 
   const [activeMint, setActiveMint] = useState<string | null>(null);
@@ -159,7 +159,7 @@ export default function RolesPage() {
 
   return (
     <div>
-      <Navbar title="Role Management" />
+      <PageHeader title="Role Management" />
       <div className="p-6 space-y-6 max-w-4xl mx-auto">
         <MintSelector onSelect={setActiveMint} currentMint={activeMint} />
 

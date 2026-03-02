@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { useConnection } from '@solana/wallet-adapter-react';
-import { Navbar } from '@/components/navbar';
+import { PageHeader } from '@/components/page-header';
 import { MintSelector } from '@/components/mint-selector';
 import { deriveConfigPda } from '@/lib/pda';
 
@@ -96,7 +96,7 @@ export default function HistoryPage() {
 
   return (
     <div>
-      <Navbar title="Transaction History" />
+      <PageHeader title="Transaction History" />
       <div className="p-6 space-y-6">
         <MintSelector onSelect={setActiveMint} currentMint={activeMint} />
 

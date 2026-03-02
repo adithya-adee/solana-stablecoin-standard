@@ -8,7 +8,7 @@ import { SSS_CORE_PROGRAM_ID } from '@/lib/constants';
 // Import IDL JSON directly
 import SssCoreIdl from '../idl/sss_core.json';
 
-export function useCoreProgram() {
+export function useLedgerProgram() {
   const { connection } = useConnection();
   const wallet = useAnchorWallet();
 
