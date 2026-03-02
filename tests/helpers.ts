@@ -27,7 +27,7 @@ import {
 } from '@solana/spl-token';
 import { SssCore } from '../target/types/sss_core';
 import { SssTransferHook } from '../target/types/sss_transfer_hook';
-import { createInitializeConfidentialTransferMintInstruction } from '../solana-stablecoin-sdk/src/presets/sss3';
+import { compileConfidentialMintInstruction } from '../solana-stablecoin-sdk/src/presets/sss3';
 
 // ─────────────────────────────────────────────────────────────
 // PDA Derivation
@@ -475,7 +475,7 @@ export async function createSss3Mint(
   const mintLen = getMintLen(extensions);
   const lamports = await provider.connection.getMinimumBalanceForRentExemption(mintLen);
 
-  const initConfidentialIx = createInitializeConfidentialTransferMintInstruction(
+  const initConfidentialIx = compileConfidentialMintInstruction(
     mint.publicKey,
     configPda,
     autoApprove,
