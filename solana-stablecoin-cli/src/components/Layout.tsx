@@ -9,6 +9,7 @@ interface LayoutProps {
   onTabChange: (tab: TabName) => void;
   refreshRateMs?: number;
   lastRefresh?: Date;
+  isInputActive?: boolean;
   children: React.ReactNode;
 }
 
@@ -17,13 +18,14 @@ export function Layout({
   onTabChange,
   refreshRateMs,
   lastRefresh,
+  isInputActive,
   children,
 }: LayoutProps) {
   return (
     <Box flexDirection="column" paddingX={1} paddingTop={1} width="100%" height="100%">
       <Header />
 
-      <TabBar activeTab={activeTab} onTabChange={onTabChange} />
+      <TabBar activeTab={activeTab} onTabChange={onTabChange} isInputActive={isInputActive} />
 
       <Box flexGrow={1} flexDirection="column" marginTop={1}>
         {children}

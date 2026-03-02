@@ -5,11 +5,11 @@ import { PublicKey } from '@solana/web3.js';
 import { Header, Spinner, Success, Err, Card, Table, Badge, Row } from '../components/ui.js';
 import { loadProvider, formatAmount } from '../utils/config.js';
 
-interface StatusOptions {
+interface StatusViewOptions {
   mint: string;
 }
 
-export default function Status({ options }: { options: StatusOptions }) {
+export default function StatusView({ options }: { options: StatusViewOptions }) {
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState('');
 

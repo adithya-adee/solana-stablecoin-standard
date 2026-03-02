@@ -6,12 +6,13 @@ import { TextInput } from '../components/TextInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { useSss } from '../hooks/useSss.js';
 import { useNotifications } from '../hooks/useNotifications.js';
-import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import { PublicKey } from '@solana/web3.js';
 import { parseAmount } from '../utils/config.js';
 
 interface OperationsPanelProps {
   mint: string | undefined;
+  onInputStart: () => void;
+  onInputEnd: () => void;
 }
 
 type OpType = 'mint' | 'burn' | 'freeze' | 'thaw' | 'pause' | 'unpause' | 'seize';
@@ -26,12 +27,13 @@ const OPS: { id: OpType; label: string; destructive?: boolean }[] = [
   { id: 'seize', label: 'Seize Tokens', destructive: true },
 ];
 
-export function OperationsPanel({ mint }: OperationsPanelProps) {
+export function OperationsPanel({ mint, onInputStart, onInputEnd }: OperationsPanelProps) {
   const { notify } = useNotifications();
   const { sss, provider, loading: sssLoading, error: sssError } = useSss(mint);
 
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [activeForm, setActiveForm] = useState<OpType | null>(null);
+  const [focusedField, setFocusedField] = useState(0);
 
   // Form State
   const [recipient, setRecipient] = useState('');
@@ -44,11 +46,45 @@ export function OperationsPanel({ mint }: OperationsPanelProps) {
   const [phase, setPhase] = useState<'idle' | 'confirming' | 'executing'>('idle');
   const [error, setError] = useState('');
 
+  const getFieldCount = (op: OpType | null): number => {
+    switch (op) {
+      case 'mint':
+        return 2;
+      case 'seize':
+        return 3;
+      case 'burn':
+      case 'freeze':
+      case 'thaw':
+      case 'pause':
+      case 'unpause':
+        return 1;
+      default:
+        return 0;
+    }
+  };
+
   useInput(
     (input, key) => {
       if (activeForm) {
-        if (key.escape) setActiveForm(null);
-        return; // Let TextInput handle the rest, or we handle Esc to cancel
+        if (key.escape) {
+          setActiveForm(null);
+          setFocusedField(0);
+          onInputEnd();
+          return;
+        }
+
+        const fieldCount = getFieldCount(activeForm);
+        if (fieldCount > 1) {
+          if (key.tab || key.downArrow) {
+            setFocusedField((f) => (f + 1) % fieldCount);
+            return;
+          }
+          if (key.upArrow || (input === '\t' && key.shift)) {
+            setFocusedField((f) => (f - 1 + fieldCount) % fieldCount);
+            return;
+          }
+        }
+        return;
       }
 
       if (key.upArrow) {
@@ -57,6 +93,8 @@ export function OperationsPanel({ mint }: OperationsPanelProps) {
         setSelectedIdx((i) => (i < OPS.length - 1 ? i + 1 : 0));
       } else if (key.return) {
         setActiveForm(OPS[selectedIdx]!.id);
+        onInputStart();
+        setFocusedField(0);
         setError('');
         setPhase('idle');
         // Reset fields
@@ -82,40 +120,16 @@ export function OperationsPanel({ mint }: OperationsPanelProps) {
       if (op === 'mint') {
         const recip = new PublicKey(recipient);
         const amt = parseAmount(amount);
-        const ata = getAssociatedTokenAddressSync(
-          sss.mintAddress,
-          recip,
-          false,
-          TOKEN_2022_PROGRAM_ID,
-        );
-        txSig = await sss.mintTokens(ata, amt);
+        txSig = await sss.mintTokens(recip, amt);
       } else if (op === 'burn') {
         const amt = parseAmount(amount);
-        const ata = getAssociatedTokenAddressSync(
-          sss.mintAddress,
-          provider.publicKey,
-          false,
-          TOKEN_2022_PROGRAM_ID,
-        );
-        txSig = await sss.burn(ata, amt);
+        txSig = await sss.burn(provider.publicKey, amt);
       } else if (op === 'freeze') {
         const addr = new PublicKey(address);
-        const ata = getAssociatedTokenAddressSync(
-          sss.mintAddress,
-          addr,
-          false,
-          TOKEN_2022_PROGRAM_ID,
-        );
-        txSig = await sss.freeze(ata);
+        txSig = await sss.freeze(addr);
       } else if (op === 'thaw') {
         const addr = new PublicKey(address);
-        const ata = getAssociatedTokenAddressSync(
-          sss.mintAddress,
-          addr,
-          false,
-          TOKEN_2022_PROGRAM_ID,
-        );
-        txSig = await sss.thaw(ata);
+        txSig = await sss.thaw(addr);
       } else if (op === 'pause') {
         txSig = await sss.pause();
       } else if (op === 'unpause') {
@@ -124,19 +138,7 @@ export function OperationsPanel({ mint }: OperationsPanelProps) {
         const from = new PublicKey(fromAddress);
         const to = new PublicKey(toAddress);
         const amt = parseAmount(amount);
-        const fromAta = getAssociatedTokenAddressSync(
-          sss.mintAddress,
-          from,
-          false,
-          TOKEN_2022_PROGRAM_ID,
-        );
-        const toAta = getAssociatedTokenAddressSync(
-          sss.mintAddress,
-          to,
-          false,
-          TOKEN_2022_PROGRAM_ID,
-        );
-        txSig = await sss.seize(fromAta, toAta, amt);
+        txSig = await sss.seize(from, to, amt);
       }
 
       const latestBlockHash = await provider.connection.getLatestBlockhash();
@@ -148,6 +150,7 @@ export function OperationsPanel({ mint }: OperationsPanelProps) {
 
       notify('success', `Operation ${activeForm} successful!`);
       setActiveForm(null);
+      onInputEnd();
     } catch (e: any) {
       setError(e.message ?? String(e));
       notify('error', `Operation failed: ${e.message}`);
@@ -212,13 +215,31 @@ export function OperationsPanel({ mint }: OperationsPanelProps) {
           {/* Render inputs based on active form */}
           {activeForm === 'mint' && (
             <>
-              <TextInput label="Recipient Address" value={recipient} onChange={setRecipient} />
-              <TextInput label="Amount" value={amount} onChange={setAmount} onSubmit={attemptOp} />
+              <TextInput
+                label="Recipient Address"
+                value={recipient}
+                onChange={setRecipient}
+                isFocused={focusedField === 0}
+                onSubmit={() => setFocusedField(1)}
+              />
+              <TextInput
+                label="Amount"
+                value={amount}
+                onChange={setAmount}
+                onSubmit={attemptOp}
+                isFocused={focusedField === 1}
+              />
             </>
           )}
 
           {activeForm === 'burn' && (
-            <TextInput label="Amount" value={amount} onChange={setAmount} onSubmit={attemptOp} />
+            <TextInput
+              label="Amount"
+              value={amount}
+              onChange={setAmount}
+              onSubmit={attemptOp}
+              isFocused={focusedField === 0}
+            />
           )}
 
           {(activeForm === 'freeze' || activeForm === 'thaw') && (
@@ -227,6 +248,7 @@ export function OperationsPanel({ mint }: OperationsPanelProps) {
               value={address}
               onChange={setAddress}
               onSubmit={attemptOp}
+              isFocused={focusedField === 0}
             />
           )}
 
@@ -238,15 +260,34 @@ export function OperationsPanel({ mint }: OperationsPanelProps) {
                 value={address}
                 onChange={setAddress}
                 onSubmit={attemptOp}
+                isFocused={focusedField === 0}
               />
             </Box>
           )}
 
           {activeForm === 'seize' && (
             <>
-              <TextInput label="From Address" value={fromAddress} onChange={setFromAddress} />
-              <TextInput label="To (Treasury) Address" value={toAddress} onChange={setToAddress} />
-              <TextInput label="Amount" value={amount} onChange={setAmount} onSubmit={attemptOp} />
+              <TextInput
+                label="From Address"
+                value={fromAddress}
+                onChange={setFromAddress}
+                isFocused={focusedField === 0}
+                onSubmit={() => setFocusedField(1)}
+              />
+              <TextInput
+                label="To (Treasury) Address"
+                value={toAddress}
+                onChange={setToAddress}
+                isFocused={focusedField === 1}
+                onSubmit={() => setFocusedField(2)}
+              />
+              <TextInput
+                label="Amount"
+                value={amount}
+                onChange={setAmount}
+                onSubmit={attemptOp}
+                isFocused={focusedField === 2}
+              />
             </>
           )}
 
@@ -260,16 +301,29 @@ export function OperationsPanel({ mint }: OperationsPanelProps) {
                 title="Confirm Operation"
                 message={`Are you sure you want to execute ${activeForm}?`}
                 onConfirm={executeOp}
-                onCancel={() => setPhase('idle')}
+                onCancel={() => {
+                  setPhase('idle');
+                  setActiveForm(null);
+                  onInputEnd();
+                }}
               />
             </Box>
           )}
 
           {phase === 'idle' && (
-            <Box marginTop={1}>
-              <Text color="gray">
-                Press [Enter] on the last field to execute, or [Esc] to cancel.
-              </Text>
+            <Box marginTop={1} flexDirection="column">
+              {getFieldCount(activeForm) > 1 && (
+                <Box>
+                  <Text color="gray">
+                    Use [↑/↓] or [Tab] to navigate between fields.
+                  </Text>
+                </Box>
+              )}
+              <Box>
+                <Text color="gray">
+                  Press [Enter] on the last field to execute, or [Esc] to cancel.
+                </Text>
+              </Box>
             </Box>
           )}
         </Box>

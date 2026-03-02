@@ -22,7 +22,7 @@ export function TextInput({
   onSubmit,
   isFocused = true,
   mask,
-  width = 50,
+  width = 60,
 }: TextInputProps) {
   return (
     <Box flexDirection="column" marginBottom={1}>
@@ -34,6 +34,7 @@ export function TextInput({
         borderColor={isFocused ? Theme.primary : Theme.dim}
         paddingX={1}
         width={width}
+        overflow="hidden"
       >
         <InkTextInput
           value={value}

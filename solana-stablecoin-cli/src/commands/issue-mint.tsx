@@ -6,13 +6,13 @@ import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from '@solana/sp
 import { Header, Spinner, Success, Err, Card } from '../components/ui.js';
 import { loadProvider, parseAmount, formatAmount } from '../utils/config.js';
 
-interface MintOptions {
+interface IssueMintOptions {
   mint: string;
   recipient: string;
   amount: string;
 }
 
-export default function Mint({ options }: { options: MintOptions }) {
+export default function IssueMint({ options }: { options: IssueMintOptions }) {
   const [phase, setPhase] = useState<'running' | 'confirming' | 'done' | 'error'>('running');
   const [sig, setSig] = useState('');
   const [error, setError] = useState('');
@@ -27,7 +27,7 @@ export default function Mint({ options }: { options: MintOptions }) {
         const ata = getAssociatedTokenAddressSync(mint, recipient, false, TOKEN_2022_PROGRAM_ID);
         const amount = parseAmount(options.amount);
 
-        const txSig = await sss.mintTokens(ata, amount);
+        const txSig = await sss.issueTokens(ata, amount);
         setSig(txSig);
         setPhase('confirming');
 

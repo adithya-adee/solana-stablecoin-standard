@@ -7,14 +7,14 @@ import { loadProvider } from '../utils/config.js';
 
 type BlacklistAction = 'add' | 'remove' | 'check';
 
-interface BlacklistOptions {
+interface BlacklistManagerOptions {
   mint: string;
   action: BlacklistAction | 'list';
   address?: string;
   reason?: string;
 }
 
-export default function Blacklist({ options }: { options: BlacklistOptions }) {
+export default function BlacklistManager({ options }: { options: BlacklistManagerOptions }) {
   const [phase, setPhase] = useState<'running' | 'confirming' | 'done' | 'error'>('running');
   const [sig, setSig] = useState('');
   const [error, setError] = useState('');
@@ -40,7 +40,7 @@ export default function Blacklist({ options }: { options: BlacklistOptions }) {
 
         if (options.action === 'add') {
           const reason = options.reason ?? '';
-          const txSig = await sss.blacklist.add(addr, reason);
+          const txSig = await sss.compliance.blacklistAdd(addr, reason);
           setSig(txSig);
           setPhase('confirming');
           const latestBlockHash = await provider.connection.getLatestBlockhash();
@@ -50,7 +50,7 @@ export default function Blacklist({ options }: { options: BlacklistOptions }) {
             signature: txSig,
           });
         } else if (options.action === 'remove') {
-          const txSig = await sss.blacklist.remove(addr);
+          const txSig = await sss.compliance.blacklistRemove(addr);
           setSig(txSig);
           setPhase('confirming');
           const latestBlockHash = await provider.connection.getLatestBlockhash();
@@ -60,7 +60,7 @@ export default function Blacklist({ options }: { options: BlacklistOptions }) {
             signature: txSig,
           });
         } else {
-          const isBlacklisted = await sss.blacklist.check(addr);
+          const isBlacklisted = await sss.compliance.blacklistCheck(addr);
           setSig(
             isBlacklisted ? 'YES — address is blacklisted' : 'No — address is not blacklisted',
           );

@@ -14,16 +14,20 @@ import { ConfigPanel } from './panels/ConfigPanel.js';
 
 function TuiApp() {
   const [activeTab, setActiveTab] = useState<TabName>('Dashboard');
+  const [isInputActive, setIsInputActive] = useState(false);
   const [mint, setMint] = useState<string | undefined>(undefined);
   const [refreshRateMs, setRefreshRateMs] = useState<number | undefined>(undefined);
   const [lastRefresh, setLastRefresh] = useState<Date | undefined>(undefined);
   const { exit } = useApp();
 
-  useInput((input, key) => {
-    if (input === 'q') {
-      exit();
-    }
-  });
+  useInput(
+    (input, key) => {
+      if (input === 'q') {
+        exit();
+      }
+    },
+    { isActive: !isInputActive }
+  );
 
   // Load default mint from config on mount
   useEffect(() => {
@@ -42,6 +46,7 @@ function TuiApp() {
       onTabChange={setActiveTab}
       refreshRateMs={refreshRateMs}
       lastRefresh={lastRefresh}
+      isInputActive={isInputActive}
     >
       {activeTab === 'Dashboard' && (
         <DashboardPanel
@@ -50,11 +55,30 @@ function TuiApp() {
           setLastRefresh={setLastRefresh}
         />
       )}
-      {activeTab === 'Operations' && <OperationsPanel mint={mint} />}
-      {activeTab === 'Compliance' && <CompliancePanel mint={mint} />}
+      {activeTab === 'Operations' && (
+        <OperationsPanel
+          mint={mint}
+          onInputStart={() => setIsInputActive(true)}
+          onInputEnd={() => setIsInputActive(false)}
+        />
+      )}
+      {activeTab === 'Compliance' && (
+        <CompliancePanel
+          mint={mint}
+          onInputStart={() => setIsInputActive(true)}
+          onInputEnd={() => setIsInputActive(false)}
+        />
+      )}
       {activeTab === 'Holders' && <HoldersPanel mint={mint} setRefreshRate={setRefreshRateMs} />}
       {activeTab === 'Audit Log' && <AuditLogPanel mint={mint} setRefreshRate={setRefreshRateMs} />}
-      {activeTab === 'Config' && <ConfigPanel currentMint={mint} onMintChange={setMint} />}
+      {activeTab === 'Config' && (
+        <ConfigPanel
+          currentMint={mint}
+          onMintChange={setMint}
+          onInputStart={() => setIsInputActive(true)}
+          onInputEnd={() => setIsInputActive(false)}
+        />
+      )}
     </Layout>
   );
 }

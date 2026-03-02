@@ -16,20 +16,24 @@ export type TabName = (typeof TABS)[number];
 interface TabBarProps {
   activeTab: TabName;
   onTabChange: (tab: TabName) => void;
+  isInputActive?: boolean;
 }
 
-export function TabBar({ activeTab, onTabChange }: TabBarProps) {
-  useInput((input, key) => {
-    if (key.leftArrow) {
-      const idx = TABS.indexOf(activeTab);
-      onTabChange(TABS[(idx - 1 + TABS.length) % TABS.length]!);
-    } else if (key.rightArrow) {
-      const idx = TABS.indexOf(activeTab);
-      onTabChange(TABS[(idx + 1) % TABS.length]!);
-    } else if (input >= '1' && input <= String(TABS.length)) {
-      onTabChange(TABS[Number(input) - 1]!);
-    }
-  });
+export function TabBar({ activeTab, onTabChange, isInputActive }: TabBarProps) {
+  useInput(
+    (input, key) => {
+      if (key.leftArrow) {
+        const idx = TABS.indexOf(activeTab);
+        onTabChange(TABS[(idx - 1 + TABS.length) % TABS.length]!);
+      } else if (key.rightArrow) {
+        const idx = TABS.indexOf(activeTab);
+        onTabChange(TABS[(idx + 1) % TABS.length]!);
+      } else if (input >= '1' && input <= String(TABS.length)) {
+        onTabChange(TABS[Number(input) - 1]!);
+      }
+    },
+    { isActive: !isInputActive }
+  );
 
   return (
     <Box flexDirection="row" marginBottom={1}>

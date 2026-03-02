@@ -9,9 +9,16 @@ import fs from 'fs';
 interface ConfigPanelProps {
   currentMint: string | undefined;
   onMintChange: (mint: string) => void;
+  onInputStart: () => void;
+  onInputEnd: () => void;
 }
 
-export function ConfigPanel({ currentMint, onMintChange }: ConfigPanelProps) {
+export function ConfigPanel({
+  currentMint,
+  onMintChange,
+  onInputStart,
+  onInputEnd,
+}: ConfigPanelProps) {
   const { notify } = useNotifications();
 
   const [activeForm, setActiveForm] = useState<'edit' | null>(null);
@@ -28,9 +35,11 @@ export function ConfigPanel({ currentMint, onMintChange }: ConfigPanelProps) {
   useInput((input, key) => {
     if (!activeForm && key.return) {
       setActiveForm('edit');
+      onInputStart();
       setNewMint(currentMint ?? '');
     } else if (activeForm && key.escape) {
       setActiveForm(null);
+      onInputEnd();
     }
   });
 
@@ -41,6 +50,7 @@ export function ConfigPanel({ currentMint, onMintChange }: ConfigPanelProps) {
       onMintChange(newMint);
       notify('success', 'Config updated successfully.');
       setActiveForm(null);
+      onInputEnd();
     } catch (e: any) {
       notify('error', `Failed to save config: ${e.message}`);
     }

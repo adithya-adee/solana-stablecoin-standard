@@ -18,6 +18,8 @@ export const Icons = {
   checkmark: '✔',
   cross: '✖',
   arrow: '→',
+  upArrow: '↑',
+  downArrow: '↓',
   dot: '•',
   sparkle: '✨',
   warning: '⚠',

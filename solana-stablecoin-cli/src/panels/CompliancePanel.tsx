@@ -8,9 +8,12 @@ import { useSss } from '../hooks/useSss.js';
 import { useNotifications } from '../hooks/useNotifications.js';
 import { PublicKey } from '@solana/web3.js';
 import { roleType } from '@stbr/sss-token';
+import SelectInput from 'ink-select-input';
 
 interface CompliancePanelProps {
   mint: string | undefined;
+  onInputStart: () => void;
+  onInputEnd: () => void;
 }
 
 type CompType = 'bl-add' | 'bl-rem' | 'bl-chk' | 'rl-grant' | 'rl-revoke' | 'rl-chk';
@@ -24,12 +27,13 @@ const OPS: { id: CompType; label: string; destructive?: boolean; group: string }
   { group: 'Roles', id: 'rl-chk', label: 'Check Roles for Address' },
 ];
 
-export function CompliancePanel({ mint }: CompliancePanelProps) {
+export function CompliancePanel({ mint, onInputStart, onInputEnd }: CompliancePanelProps) {
   const { notify } = useNotifications();
   const { sss, provider, loading: sssLoading, error: sssError } = useSss(mint);
 
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [activeForm, setActiveForm] = useState<CompType | null>(null);
+  const [focusedField, setFocusedField] = useState(0);
 
   // Form State
   const [address, setAddress] = useState('');
@@ -40,12 +44,50 @@ export function CompliancePanel({ mint }: CompliancePanelProps) {
   const [phase, setPhase] = useState<'idle' | 'confirming' | 'executing' | 'done'>('idle');
   const [error, setError] = useState('');
   const [resultMsg, setResultMsg] = useState('');
-  const [roleInfos, setRoleInfos] = useState<{ address: string; role: string }[]>([]);
+  const [roleInfos, setRoleInfos] = useState<{ role: string; has: boolean }[]>([]);
+
+  const getFieldCount = (op: CompType | null): number => {
+    switch (op) {
+      case 'bl-add':
+      case 'rl-grant':
+      case 'rl-revoke':
+        return 2;
+      case 'bl-rem':
+      case 'bl-chk':
+      case 'rl-chk':
+        return 1;
+      default:
+        return 0;
+    }
+  };
 
   useInput(
     (input, key) => {
       if (activeForm) {
-        if (key.escape) setActiveForm(null);
+        if (key.escape) {
+          setActiveForm(null);
+          setFocusedField(0);
+          onInputEnd();
+          return;
+        }
+
+        const fieldCount = getFieldCount(activeForm);
+        if (fieldCount > 1) {
+          const isDropdownActive =
+            (activeForm === 'rl-grant' || activeForm === 'rl-revoke') && focusedField === 1;
+
+          if (key.tab || (key.downArrow && !isDropdownActive)) {
+            setFocusedField((f) => (f + 1) % fieldCount);
+            return;
+          }
+          if (
+            (key.upArrow && !isDropdownActive) ||
+            (input === '\t' && key.shift)
+          ) {
+            setFocusedField((f) => (f - 1 + fieldCount) % fieldCount);
+            return;
+          }
+        }
         return;
       }
 
@@ -55,6 +97,8 @@ export function CompliancePanel({ mint }: CompliancePanelProps) {
         setSelectedIdx((i) => (i < OPS.length - 1 ? i + 1 : 0));
       } else if (key.return) {
         setActiveForm(OPS[selectedIdx]!.id);
+        onInputStart();
+        setFocusedField(0);
         setError('');
         setResultMsg('');
         setPhase('idle');
@@ -87,8 +131,20 @@ export function CompliancePanel({ mint }: CompliancePanelProps) {
         setPhase('done');
         return;
       } else if (op === 'rl-grant') {
+        const hasRole = await sss.roles.check(addr, roleType(roleInput as any));
+        if (hasRole) {
+          setError(`Address already has the '${roleInput}' role.`);
+          setPhase('idle');
+          return;
+        }
         txSig = await sss.roles.grant(addr, roleType(roleInput as any));
       } else if (op === 'rl-revoke') {
+        const hasRole = await sss.roles.check(addr, roleType(roleInput as any));
+        if (!hasRole) {
+          setError(`Address does not have the '${roleInput}' role.`);
+          setPhase('idle');
+          return;
+        }
         txSig = await sss.roles.revoke(addr, roleType(roleInput as any));
       } else if (op === 'rl-chk') {
         const ALL_ROLES = [
@@ -100,13 +156,15 @@ export function CompliancePanel({ mint }: CompliancePanelProps) {
           'blacklister',
           'seizer',
         ] as const;
-        const results: { address: string; role: string }[] = [];
+        const results: { role: string; has: boolean }[] = [];
         for (const r of ALL_ROLES) {
           const has = await sss.roles.check(addr, roleType(r));
-          if (has) results.push({ address: addr.toBase58(), role: r });
+          results.push({ role: r, has });
         }
         setRoleInfos(results);
         setPhase('done');
+        const activeCount = results.filter((r) => r.has).length;
+        notify('info', `Check complete: Found ${activeCount} active roles.`);
         return;
       }
 
@@ -119,11 +177,12 @@ export function CompliancePanel({ mint }: CompliancePanelProps) {
 
       notify('success', `Operation ${activeForm} successful!`);
       setActiveForm(null);
+      onInputEnd();
     } catch (e: any) {
       setError(e.message ?? String(e));
       notify('error', `Operation failed: ${e.message}`);
     } finally {
-      if (phase !== 'done') setPhase('idle');
+      setPhase((curr) => (curr === 'executing' ? 'idle' : curr));
     }
   };
 
@@ -190,12 +249,52 @@ export function CompliancePanel({ mint }: CompliancePanelProps) {
             </Text>
           </Box>
 
+
           <TextInput
             label="Target Address"
             value={address}
-            onChange={setAddress}
-            onSubmit={attemptOp}
+            onChange={(val) => {
+              setAddress(val);
+              setRoleInfos([]); // Reset results when address changes
+              setResultMsg('');
+              setError('');
+            }}
+            isFocused={focusedField === 0}
+            onSubmit={() => {
+              const count = getFieldCount(activeForm);
+              if (count > 1) setFocusedField(1);
+              else attemptOp();
+            }}
           />
+
+          {roleInfos.length > 0 && activeForm === 'rl-chk' && (
+            <Box marginTop={1} flexDirection="column" borderStyle="round" borderColor="cyanBright" paddingX={1}>
+              <Box marginBottom={1}>
+                <Text bold color="cyanBright">Roles for: </Text>
+                <Text color="white" dimColor>{address}</Text>
+              </Box>
+              <Box flexDirection="column">
+                {Array.from({ length: Math.ceil(roleInfos.length / 2) }).map((_, rowIndex) => (
+                  <Box key={rowIndex} flexDirection="row" gap={2}>
+                    {[0, 1].map((colIndex) => {
+                      const r = roleInfos[rowIndex * 2 + colIndex];
+                      if (!r) return null;
+                      return (
+                        <Box key={r.role} width={22}>
+                          <Text color={r.has ? 'greenBright' : 'gray'}>
+                            {r.has ? '●' : '○'}
+                          </Text>
+                          <Text color={r.has ? 'white' : 'gray'} dimColor={!r.has}>
+                            {' '}{r.role.padEnd(12)}
+                          </Text>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          )}
 
           {activeForm === 'bl-add' && (
             <TextInput
@@ -203,16 +302,37 @@ export function CompliancePanel({ mint }: CompliancePanelProps) {
               value={reason}
               onChange={setReason}
               onSubmit={attemptOp}
+              isFocused={focusedField === 1}
             />
           )}
 
           {(activeForm === 'rl-grant' || activeForm === 'rl-revoke') && (
-            <TextInput
-              label="Role (admin | minter | freezer | pauser...)"
-              value={roleInput}
-              onChange={setRoleInput}
-              onSubmit={attemptOp}
-            />
+            <Box flexDirection="column" marginTop={1}>
+              <Text color={(focusedField === 1 ? Theme.primary : Theme.dim) as any} bold={focusedField === 1}>
+                Select Role:
+              </Text>
+              <Box borderStyle="round" borderColor={focusedField === 1 ? Theme.primary : 'gray'} paddingX={1}>
+                {focusedField === 1 ? (
+                  <SelectInput
+                    items={[
+                      { label: 'Admin', value: 'admin' },
+                      { label: 'Minter', value: 'minter' },
+                      { label: 'Freezer', value: 'freezer' },
+                      { label: 'Pauser', value: 'pauser' },
+                      { label: 'Burner', value: 'burner' },
+                      { label: 'Blacklister', value: 'blacklister' },
+                      { label: 'Seizer', value: 'seizer' },
+                    ]}
+                    onSelect={(item) => {
+                      setRoleInput(item.value);
+                      attemptOp();
+                    }}
+                  />
+                ) : (
+                  <Text color="gray">{roleInput || 'None selected (Press Tab to select)'}</Text>
+                )}
+              </Box>
+            </Box>
           )}
 
           {error && <Err message={error} />}
@@ -225,7 +345,11 @@ export function CompliancePanel({ mint }: CompliancePanelProps) {
                 title="Confirm Operation"
                 message={`Are you sure you want to execute ${activeForm}?`}
                 onConfirm={executeOp}
-                onCancel={() => setPhase('idle')}
+                onCancel={() => {
+                  setPhase('idle');
+                  setActiveForm(null);
+                  onInputEnd();
+                }}
               />
             </Box>
           )}
@@ -236,26 +360,20 @@ export function CompliancePanel({ mint }: CompliancePanelProps) {
             </Box>
           )}
 
-          {phase === 'done' && roleInfos.length >= 0 && activeForm === 'rl-chk' && (
-            <Box marginTop={1} flexDirection="column">
-              <Text bold>Active Roles:</Text>
-              {roleInfos.length === 0 ? (
-                <Text color="gray">None</Text>
-              ) : (
-                roleInfos.map((r) => (
-                  <Text key={r.role} color="cyanBright">
-                    {r.role}
-                  </Text>
-                ))
-              )}
-            </Box>
-          )}
-
           {(phase === 'idle' || phase === 'done') && (
-            <Box marginTop={1}>
-              <Text color="gray">
-                Press [Enter] on the last field to execute, or [Esc] to cancel.
-              </Text>
+            <Box marginTop={1} flexDirection="column">
+              {getFieldCount(activeForm) > 1 && (
+                <Box>
+                  <Text color="gray">
+                    Use [↑/↓] or [Tab] to navigate between fields.
+                  </Text>
+                </Box>
+              )}
+              <Box>
+                <Text color="gray">
+                  Press [Enter] on the last field to navigate or execute, or [Esc] to cancel.
+                </Text>
+              </Box>
             </Box>
           )}
         </Box>

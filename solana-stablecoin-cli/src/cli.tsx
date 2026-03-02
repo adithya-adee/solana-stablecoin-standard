@@ -5,17 +5,17 @@ import React from 'react';
 import { render, Text } from 'ink';
 import fs from 'fs';
 
-import Status from './commands/status.js';
+import StatusView from './commands/status-view.js';
 import Supply from './commands/supply.js';
 import Init from './commands/init.js';
-import Mint from './commands/mint.js';
+import IssueMint from './commands/issue-mint.js';
 import Burn from './commands/burn.js';
 import Freeze from './commands/freeze.js';
 import Thaw from './commands/thaw.js';
 import Pause from './commands/pause.js';
 import Seize from './commands/seize.js';
 import Roles from './commands/roles.js';
-import Blacklist from './commands/blacklist.js';
+import BlacklistManager from './commands/blacklist-manager.js';
 import Minters from './commands/minters.js';
 import Holders from './commands/holders.js';
 import AuditLog from './commands/audit-log.js';
@@ -88,7 +88,7 @@ program
       );
       return;
     }
-    r(<Status options={{ mint }} />);
+    r(<StatusView options={{ mint }} />);
   });
 
 // ─── Supply ───────────────────────────────────────────────────────────────────
@@ -146,7 +146,7 @@ program
       r(<Text color="red">Error: Amount is required.</Text>);
       return;
     }
-    r(<Mint options={{ mint, recipient: finalRecipient, amount: finalAmount }} />);
+    r(<IssueMint options={{ mint, recipient: finalRecipient, amount: finalAmount }} />);
   });
 
 // ─── Burn ─────────────────────────────────────────────────────────────────────
@@ -451,7 +451,7 @@ blCmd
       r(<Text color="red">Error: Address is required.</Text>);
       return;
     }
-    r(<Blacklist options={{ mint, action: 'check', address: finalAddress }} />);
+    r(<BlacklistManager options={{ mint, action: 'check', address: finalAddress }} />);
   });
 
 blCmd
@@ -480,7 +480,11 @@ blCmd
       r(<Text color="red">Error: Address is required.</Text>);
       return;
     }
-    r(<Blacklist options={{ mint, action: 'add', address: finalAddress, reason: opts.reason }} />);
+    r(
+      <BlacklistManager
+        options={{ mint, action: 'add', address: finalAddress, reason: opts.reason }}
+      />,
+    );
   });
 
 blCmd
@@ -508,7 +512,7 @@ blCmd
       r(<Text color="red">Error: Address is required.</Text>);
       return;
     }
-    r(<Blacklist options={{ mint, action: 'remove', address: finalAddress }} />);
+    r(<BlacklistManager options={{ mint, action: 'remove', address: finalAddress }} />);
   });
 
 // ─── Minters ────────────────────────────────────────────────────────────────
