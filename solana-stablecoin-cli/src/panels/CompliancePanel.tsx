@@ -87,10 +87,7 @@ export function CompliancePanel({
             setFocusedField((f) => (f + 1) % fieldCount);
             return;
           }
-          if (
-            (key.upArrow && !isDropdownActive) ||
-            (input === '\t' && key.shift)
-          ) {
+          if ((key.upArrow && !isDropdownActive) || (input === '\t' && key.shift)) {
             setFocusedField((f) => (f - 1 + fieldCount) % fieldCount);
             return;
           }
@@ -257,7 +254,6 @@ export function CompliancePanel({
             </Text>
           </Box>
 
-
           <TextInput
             label="Target Address"
             value={address}
@@ -276,10 +272,20 @@ export function CompliancePanel({
           />
 
           {roleInfos.length > 0 && activeForm === 'rl-chk' && (
-            <Box marginTop={1} flexDirection="column" borderStyle="round" borderColor="cyanBright" paddingX={1}>
+            <Box
+              marginTop={1}
+              flexDirection="column"
+              borderStyle="round"
+              borderColor="cyanBright"
+              paddingX={1}
+            >
               <Box marginBottom={1}>
-                <Text bold color="cyanBright">Roles for: </Text>
-                <Text color="white" dimColor>{address}</Text>
+                <Text bold color="cyanBright">
+                  Roles for:{' '}
+                </Text>
+                <Text color="white" dimColor>
+                  {address}
+                </Text>
               </Box>
               <Box flexDirection="column">
                 {Array.from({ length: Math.ceil(roleInfos.length / 2) }).map((_, rowIndex) => (
@@ -289,11 +295,10 @@ export function CompliancePanel({
                       if (!r) return null;
                       return (
                         <Box key={r.role} width={22}>
-                          <Text color={r.has ? 'greenBright' : 'gray'}>
-                            {r.has ? '●' : '○'}
-                          </Text>
+                          <Text color={r.has ? 'greenBright' : 'gray'}>{r.has ? '●' : '○'}</Text>
                           <Text color={r.has ? 'white' : 'gray'} dimColor={!r.has}>
-                            {' '}{r.role.padEnd(12)}
+                            {' '}
+                            {r.role.padEnd(12)}
                           </Text>
                         </Box>
                       );
@@ -316,10 +321,17 @@ export function CompliancePanel({
 
           {(activeForm === 'rl-grant' || activeForm === 'rl-revoke') && (
             <Box flexDirection="column" marginTop={1}>
-              <Text color={(focusedField === 1 ? Theme.primary : Theme.dim) as any} bold={focusedField === 1}>
+              <Text
+                color={(focusedField === 1 ? Theme.primary : Theme.dim) as any}
+                bold={focusedField === 1}
+              >
                 Select Role:
               </Text>
-              <Box borderStyle="round" borderColor={focusedField === 1 ? Theme.primary : 'gray'} paddingX={1}>
+              <Box
+                borderStyle="round"
+                borderColor={focusedField === 1 ? Theme.primary : 'gray'}
+                paddingX={1}
+              >
                 {focusedField === 1 ? (
                   <SelectInput
                     items={[
@@ -372,9 +384,7 @@ export function CompliancePanel({
             <Box marginTop={1} flexDirection="column">
               {getFieldCount(activeForm) > 1 && (
                 <Box>
-                  <Text color="gray">
-                    Use [↑/↓] or [Tab] to navigate between fields.
-                  </Text>
+                  <Text color="gray">Use [↑/↓] or [Tab] to navigate between fields.</Text>
                 </Box>
               )}
               <Box>

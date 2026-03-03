@@ -670,7 +670,7 @@ async function main() {
   } else {
     await program.parseAsync(process.argv);
   }
-  
+
   // Clean exit for alternate screen is handled in Tui.tsx useEffect cleanup,
   // but we ensure the process exits here.
   process.exit(0);

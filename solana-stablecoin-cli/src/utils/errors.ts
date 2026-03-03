@@ -1,12 +1,12 @@
-import { 
-  SssError, 
-  PausedError, 
-  UnauthorizedError, 
+import {
+  SssError,
+  PausedError,
+  UnauthorizedError,
   SupplyCapExceededError,
   SenderBlacklistedError,
   ReceiverBlacklistedError,
   InvalidRoleError,
-  ArithmeticOverflowError
+  ArithmeticOverflowError,
 } from '@stbr/sss-token';
 
 /**

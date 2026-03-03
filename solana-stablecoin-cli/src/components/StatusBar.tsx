@@ -52,7 +52,7 @@ export function StatusBar({ refreshRateMs, lastRefresh }: StatusBarProps) {
       </Box>
 
       <Box>
-        <Text color={Theme.dim as any}>[?] Help  [q] Quit</Text>
+        <Text color={Theme.dim as any}>[?] Help [q] Quit</Text>
       </Box>
     </Box>
   );

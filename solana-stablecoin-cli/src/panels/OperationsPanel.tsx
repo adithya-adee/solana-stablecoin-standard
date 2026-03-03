@@ -322,9 +322,7 @@ export function OperationsPanel({
             <Box marginTop={1} flexDirection="column">
               {getFieldCount(activeForm) > 1 && (
                 <Box>
-                  <Text color="gray">
-                    Use [↑/↓] or [Tab] to navigate between fields.
-                  </Text>
+                  <Text color="gray">Use [↑/↓] or [Tab] to navigate between fields.</Text>
                 </Box>
               )}
               <Box>

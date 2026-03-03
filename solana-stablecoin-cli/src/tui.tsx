@@ -35,13 +35,13 @@ function TuiApp() {
         exit();
         return;
       }
-      
+
       if (input === '?') {
         setIsHelpOpen(true);
         return;
       }
     },
-    { isActive: !isInputActive }
+    { isActive: !isInputActive },
   );
 
   // Enter alternate screen on mount, leave on unmount

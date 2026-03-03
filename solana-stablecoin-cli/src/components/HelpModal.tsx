@@ -8,13 +8,7 @@ interface HelpModalProps {
 
 export function HelpModal({ onClose }: HelpModalProps) {
   return (
-    <Box
-      position="absolute"
-      width="100%"
-      height="100%"
-      alignItems="center"
-      justifyContent="center"
-    >
+    <Box position="absolute" width="100%" height="100%" alignItems="center" justifyContent="center">
       <Box
         flexDirection="column"
         borderStyle="single"
@@ -30,52 +24,64 @@ export function HelpModal({ onClose }: HelpModalProps) {
 
         <Box flexDirection="column" gap={0}>
           <Box justifyContent="space-between">
-            <Text color="white" bold>Global Keys</Text>
+            <Text color="white" bold>
+              Global Keys
+            </Text>
           </Box>
           <Box paddingLeft={2}>
-            <Text color="gray">?         Toggle Help</Text>
+            <Text color="gray">? Toggle Help</Text>
           </Box>
           <Box paddingLeft={2}>
-            <Text color="gray">q         Quit Application</Text>
+            <Text color="gray">q Quit Application</Text>
           </Box>
           <Box paddingLeft={2}>
-            <Text color="gray">1 - 6     Switch Tabs</Text>
+            <Text color="gray">1 - 6 Switch Tabs</Text>
           </Box>
 
           <Box marginTop={1}>
-            <Text color="white" bold>Navigation</Text>
+            <Text color="white" bold>
+              Navigation
+            </Text>
           </Box>
           <Box paddingLeft={2}>
-            <Text color="gray">← / →     Switch Tabs (when inactive)</Text>
+            <Text color="gray">← / → Switch Tabs (when inactive)</Text>
           </Box>
           <Box paddingLeft={2}>
-            <Text color="gray">↑ / ↓     Navigate List / Fields</Text>
+            <Text color="gray">↑ / ↓ Navigate List / Fields</Text>
           </Box>
           <Box paddingLeft={2}>
-            <Text color="gray">Tab       Next Field</Text>
+            <Text color="gray">Tab Next Field</Text>
           </Box>
           <Box paddingLeft={2}>
             <Text color="gray">Shift+Tab Previous Field</Text>
           </Box>
 
           <Box marginTop={1}>
-            <Text color="white" bold>Forms</Text>
+            <Text color="white" bold>
+              Forms
+            </Text>
           </Box>
           <Box paddingLeft={2}>
-            <Text color="gray">Enter     Submit / Next</Text>
+            <Text color="gray">Enter Submit / Next</Text>
           </Box>
           <Box paddingLeft={2}>
-            <Text color="gray">Esc       Cancel / Back</Text>
+            <Text color="gray">Esc Cancel / Back</Text>
           </Box>
         </Box>
 
         <Box marginTop={1} justifyContent="center">
           <Text color={Theme.dim as any}>Press </Text>
-          <Text color="cyanBright" bold>?</Text>
+          <Text color="cyanBright" bold>
+            ?
+          </Text>
           <Text color={Theme.dim as any}>, </Text>
-          <Text color="cyanBright" bold>Esc</Text>
+          <Text color="cyanBright" bold>
+            Esc
+          </Text>
           <Text color={Theme.dim as any}> or </Text>
-          <Text color="cyanBright" bold>q</Text>
+          <Text color="cyanBright" bold>
+            q
+          </Text>
           <Text color={Theme.dim as any}> to close.</Text>
         </Box>
       </Box>

@@ -32,7 +32,7 @@ export function TabBar({ activeTab, onTabChange, isInputActive }: TabBarProps) {
         onTabChange(TABS[Number(input) - 1]!);
       }
     },
-    { isActive: !isInputActive }
+    { isActive: !isInputActive },
   );
 
   return (

@@ -136,7 +136,7 @@ const signature = await sss.mint({
 
 // Positional-style (also available)
 const signature = await sss.issueTokens(
-  walletPublicKey, 
+  walletPublicKey,
   1_000_000n, // Amount in base units
 );
 ```
@@ -191,11 +191,7 @@ Admin-only. Forcibly transfers tokens using the permanent delegate. Works even w
 **Automatic ATA Handling:** If the destination wallet lacks an ATA, it is automatically created.
 
 ```typescript
-const signature = await sss.seize(
-  fromWalletPublicKey, 
-  toWalletPublicKey, 
-  1_000_000n
-);
+const signature = await sss.seize(fromWalletPublicKey, toWalletPublicKey, 1_000_000n);
 ```
 
 ### Update Supply Cap

@@ -3,10 +3,13 @@
 The backend API (located in `solana-stablecoin-backend`) provides RESTful endpoints for token operations, compliance management, and auditing. It serves as a hardened gateway between your business logic and the Solana blockchain.
 
 ## Base URL
+
 `http://localhost:3000` (Default)
 
 ## Authentication
+
 All requests require an API key passed in the `x-api-key` header.
+
 ```bash
 -H "x-api-key: your-secure-api-key"
 ```
@@ -16,7 +19,9 @@ All requests require an API key passed in the `x-api-key` header.
 ## Operations Endpoints
 
 ### `POST /operations/mint`
+
 Mint tokens to a recipient.
+
 - **Body:**
   ```json
   {
@@ -28,7 +33,9 @@ Mint tokens to a recipient.
 - **Note:** Automatically creates an ATA for the recipient if it doesn't exist.
 
 ### `POST /operations/burn`
+
 Burn tokens from a wallet.
+
 - **Body:**
   ```json
   {
@@ -39,7 +46,9 @@ Burn tokens from a wallet.
   ```
 
 ### `POST /operations/seize`
+
 Forcibly transfer tokens between wallets.
+
 - **Body:**
   ```json
   {
@@ -51,7 +60,9 @@ Forcibly transfer tokens between wallets.
   ```
 
 ### `POST /operations/freeze` / `POST /operations/thaw`
+
 Freeze or thaw a wallet.
+
 - **Body:**
   ```json
   {
@@ -61,7 +72,9 @@ Freeze or thaw a wallet.
   ```
 
 ### `POST /operations/pause` / `POST /operations/unpause`
+
 Pause all operations for a stablecoin.
+
 - **Body:**
   ```json
   {
@@ -74,7 +87,9 @@ Pause all operations for a stablecoin.
 ## Compliance Endpoints
 
 ### `POST /compliance/blacklist/add`
+
 Add an address to the blacklist.
+
 - **Body:**
   ```json
   {
@@ -85,13 +100,17 @@ Add an address to the blacklist.
   ```
 
 ### `POST /compliance/blacklist/remove`
+
 Remove an address from the blacklist.
 
 ### `GET /compliance/status/:mint/:address`
+
 Check if an address is blacklisted.
 
 ### `GET /compliance/audit-trail/:mint`
+
 Fetch historical events (mints, burns, freezes, etc.) for a stablecoin.
+
 - **Query Params:**
   - `action`: Filter by event type (e.g., `TokensMinted`)
   - `limit`: Number of entries (default 25)
@@ -101,6 +120,7 @@ Fetch historical events (mints, burns, freezes, etc.) for a stablecoin.
 ## Utility Endpoints
 
 ### `GET /health`
+
 Returns the health status of the backend and its connection to Solana.
 
 ---
