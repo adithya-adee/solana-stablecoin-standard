@@ -20,8 +20,11 @@ import Minters from './commands/minters.js';
 import Holders from './commands/holders.js';
 import AuditLog from './commands/audit-log.js';
 
-// Wraps render() so Commander sees a void return (render returns Instance)
-const r = (el: React.ReactElement): void => void render(el);
+// Wraps render() and waits for completion
+const r = async (el: React.ReactElement): Promise<void> => {
+  const instance = render(el);
+  await instance.waitUntilExit();
+};
 
 function getMintFromConfig(): string | undefined {
   const configPath = process.env.SSS_CONFIG ?? '.sss-config.json';
@@ -656,9 +659,24 @@ program
     r(<Tui />);
   });
 
-// Launch TUI by default if no args are provided
-if (process.argv.length <= 2) {
-  r(<Tui />);
-} else {
-  program.parse(process.argv);
+// ─── Entry Point ──────────────────────────────────────────────────────────────
+async function main() {
+  // Set terminal title
+  process.stdout.write('\x1b]0;SSS CLI\x07');
+  process.title = 'SSS CLI';
+
+  if (process.argv.length <= 2) {
+    await r(<Tui />);
+  } else {
+    await program.parseAsync(process.argv);
+  }
+  
+  // Clean exit for alternate screen is handled in Tui.tsx useEffect cleanup,
+  // but we ensure the process exits here.
+  process.exit(0);
 }
+
+main().catch((err) => {
+  console.error('Fatal Error:', err);
+  process.exit(1);
+});

@@ -8,12 +8,14 @@ import { useSss } from '../hooks/useSss.js';
 import { useNotifications } from '../hooks/useNotifications.js';
 import { PublicKey } from '@solana/web3.js';
 import { roleType } from '@stbr/sss-token';
+import { formatSssError } from '../utils/errors.js';
 import SelectInput from 'ink-select-input';
 
 interface CompliancePanelProps {
   mint: string | undefined;
   onInputStart: () => void;
   onInputEnd: () => void;
+  isPaused?: boolean;
 }
 
 type CompType = 'bl-add' | 'bl-rem' | 'bl-chk' | 'rl-grant' | 'rl-revoke' | 'rl-chk';
@@ -27,7 +29,12 @@ const OPS: { id: CompType; label: string; destructive?: boolean; group: string }
   { group: 'Roles', id: 'rl-chk', label: 'Check Roles for Address' },
 ];
 
-export function CompliancePanel({ mint, onInputStart, onInputEnd }: CompliancePanelProps) {
+export function CompliancePanel({
+  mint,
+  onInputStart,
+  onInputEnd,
+  isPaused = false,
+}: CompliancePanelProps) {
   const { notify } = useNotifications();
   const { sss, provider, loading: sssLoading, error: sssError } = useSss(mint);
 
@@ -108,7 +115,7 @@ export function CompliancePanel({ mint, onInputStart, onInputEnd }: CompliancePa
         setRoleInfos([]);
       }
     },
-    { isActive: phase === 'idle' || phase === 'done' },
+    { isActive: !isPaused && (phase === 'idle' || phase === 'done') },
   );
 
   const executeOp = async () => {
@@ -179,8 +186,9 @@ export function CompliancePanel({ mint, onInputStart, onInputEnd }: CompliancePa
       setActiveForm(null);
       onInputEnd();
     } catch (e: any) {
-      setError(e.message ?? String(e));
-      notify('error', `Operation failed: ${e.message}`);
+      const formatted = formatSssError(e);
+      setError(formatted);
+      notify('error', `Operation failed: ${formatted}`);
     } finally {
       setPhase((curr) => (curr === 'executing' ? 'idle' : curr));
     }

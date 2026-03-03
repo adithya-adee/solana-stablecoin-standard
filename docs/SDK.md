@@ -239,7 +239,7 @@ await sss.roles.grant(walletPublicKey, 'pauser');
 await sss.roles.grant(walletPublicKey, 'admin');
 ```
 
-Available roles: `"admin"`, `"minter"`, `"freezer"`, `"pauser"`
+Available roles: `"admin"`, `"minter"`, `"freezer"`, `"pauser"`, `"burner"`, `"blacklister"`, `"seizer"`
 
 ### Revoke a Role
 
@@ -391,7 +391,9 @@ import {
   buildSeizeIx,
   buildGrantRoleIx,
   buildRevokeRoleIx,
+  buildUpdateMinterIx,
   buildUpdateSupplyCapIx,
+  buildTransferAuthorityIx,
   buildInitializeExtraAccountMetasIx,
   buildAddToBlacklistIx,
   buildRemoveFromBlacklistIx,

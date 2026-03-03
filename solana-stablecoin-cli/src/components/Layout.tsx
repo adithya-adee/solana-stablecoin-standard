@@ -3,6 +3,7 @@ import { Box } from 'ink';
 import { Header } from './ui.js';
 import { TabBar, TabName } from './TabBar.js';
 import { StatusBar } from './StatusBar.js';
+import { HelpModal } from './HelpModal.js';
 
 interface LayoutProps {
   activeTab: TabName;
@@ -10,6 +11,8 @@ interface LayoutProps {
   refreshRateMs?: number;
   lastRefresh?: Date;
   isInputActive?: boolean;
+  isHelpOpen?: boolean;
+  onHelpClose?: () => void;
   children: React.ReactNode;
 }
 
@@ -19,6 +22,8 @@ export function Layout({
   refreshRateMs,
   lastRefresh,
   isInputActive,
+  isHelpOpen,
+  onHelpClose,
   children,
 }: LayoutProps) {
   return (
@@ -32,6 +37,8 @@ export function Layout({
       </Box>
 
       <StatusBar refreshRateMs={refreshRateMs} lastRefresh={lastRefresh} />
+
+      {isHelpOpen && onHelpClose && <HelpModal onClose={onHelpClose} />}
     </Box>
   );
 }

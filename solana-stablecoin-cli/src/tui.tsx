@@ -3,6 +3,7 @@ import { Box, Text, useApp, useInput } from 'ink';
 import fs from 'fs';
 import { Layout } from './components/Layout.js';
 import { TabName } from './components/TabBar.js';
+import { HelpModal } from './components/HelpModal.js';
 import { NotificationProvider } from './hooks/useNotifications.js';
 
 import { DashboardPanel } from './panels/DashboardPanel.js';
@@ -15,6 +16,7 @@ import { ConfigPanel } from './panels/ConfigPanel.js';
 function TuiApp() {
   const [activeTab, setActiveTab] = useState<TabName>('Dashboard');
   const [isInputActive, setIsInputActive] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [mint, setMint] = useState<string | undefined>(undefined);
   const [refreshRateMs, setRefreshRateMs] = useState<number | undefined>(undefined);
   const [lastRefresh, setLastRefresh] = useState<Date | undefined>(undefined);
@@ -22,12 +24,33 @@ function TuiApp() {
 
   useInput(
     (input, key) => {
+      if (isHelpOpen) {
+        if (input === '?' || key.escape || input === 'q') {
+          setIsHelpOpen(false);
+        }
+        return; // Always capture input when help is open
+      }
+
       if (input === 'q') {
         exit();
+        return;
+      }
+      
+      if (input === '?') {
+        setIsHelpOpen(true);
+        return;
       }
     },
     { isActive: !isInputActive }
   );
+
+  // Enter alternate screen on mount, leave on unmount
+  useEffect(() => {
+    process.stdout.write('\x1b[?1049h');
+    return () => {
+      process.stdout.write('\x1b[?1049l');
+    };
+  }, []);
 
   // Load default mint from config on mount
   useEffect(() => {
@@ -47,6 +70,8 @@ function TuiApp() {
       refreshRateMs={refreshRateMs}
       lastRefresh={lastRefresh}
       isInputActive={isInputActive}
+      isHelpOpen={isHelpOpen}
+      onHelpClose={() => setIsHelpOpen(false)}
     >
       {activeTab === 'Dashboard' && (
         <DashboardPanel
@@ -60,6 +85,7 @@ function TuiApp() {
           mint={mint}
           onInputStart={() => setIsInputActive(true)}
           onInputEnd={() => setIsInputActive(false)}
+          isPaused={isHelpOpen}
         />
       )}
       {activeTab === 'Compliance' && (
@@ -67,6 +93,7 @@ function TuiApp() {
           mint={mint}
           onInputStart={() => setIsInputActive(true)}
           onInputEnd={() => setIsInputActive(false)}
+          isPaused={isHelpOpen}
         />
       )}
       {activeTab === 'Holders' && <HoldersPanel mint={mint} setRefreshRate={setRefreshRateMs} />}

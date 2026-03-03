@@ -8,11 +8,13 @@ import { useSss } from '../hooks/useSss.js';
 import { useNotifications } from '../hooks/useNotifications.js';
 import { PublicKey } from '@solana/web3.js';
 import { parseAmount } from '../utils/config.js';
+import { formatSssError } from '../utils/errors.js';
 
 interface OperationsPanelProps {
   mint: string | undefined;
   onInputStart: () => void;
   onInputEnd: () => void;
+  isPaused?: boolean;
 }
 
 type OpType = 'mint' | 'burn' | 'freeze' | 'thaw' | 'pause' | 'unpause' | 'seize';
@@ -27,7 +29,12 @@ const OPS: { id: OpType; label: string; destructive?: boolean }[] = [
   { id: 'seize', label: 'Seize Tokens', destructive: true },
 ];
 
-export function OperationsPanel({ mint, onInputStart, onInputEnd }: OperationsPanelProps) {
+export function OperationsPanel({
+  mint,
+  onInputStart,
+  onInputEnd,
+  isPaused = false,
+}: OperationsPanelProps) {
   const { notify } = useNotifications();
   const { sss, provider, loading: sssLoading, error: sssError } = useSss(mint);
 
@@ -105,7 +112,7 @@ export function OperationsPanel({ mint, onInputStart, onInputEnd }: OperationsPa
         setToAddress('');
       }
     },
-    { isActive: phase === 'idle' },
+    { isActive: !isPaused && phase === 'idle' },
   );
 
   const executeOp = async () => {
@@ -152,8 +159,9 @@ export function OperationsPanel({ mint, onInputStart, onInputEnd }: OperationsPa
       setActiveForm(null);
       onInputEnd();
     } catch (e: any) {
-      setError(e.message ?? String(e));
-      notify('error', `Operation failed: ${e.message}`);
+      const formatted = formatSssError(e);
+      setError(formatted);
+      notify('error', `Operation failed: ${formatted}`);
     } finally {
       setPhase('idle');
     }
