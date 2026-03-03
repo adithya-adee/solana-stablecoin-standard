@@ -1,0 +1,35 @@
+name: sss-backend
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: solana-stablecoin-backend/Dockerfile
+    ports:
+      - '${PORT:-3000}:3000'
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      - SOLANA_WS_URL=${SOLANA_WS_URL:-wss://api.devnet.solana.com}
+      - KEYPAIR_PATH=/app/deployer.json
+      - SSS_CORE_PROGRAM_ID=${SSS_CORE_PROGRAM_ID:-SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP}
+      - SSS_HOOK_PROGRAM_ID=${SSS_HOOK_PROGRAM_ID:-HookFvKFaoF9KL8TUXUnQK5r2mJoMYdBENu549seRyXW}
+      - API_KEY=${API_KEY:?Error: API_KEY must be set in your .env file}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3001}
+      - WEBHOOK_URLS=${WEBHOOK_URLS:-}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    volumes:
+      - ${KEYPAIR_PATH:-~/.config/solana/id.json}:/app/deployer.json:ro
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
