@@ -15,7 +15,7 @@ services:
       - KEYPAIR_PATH=/app/deployer.json
       - SSS_CORE_PROGRAM_ID=${SSS_CORE_PROGRAM_ID:-SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP}
       - SSS_HOOK_PROGRAM_ID=${SSS_HOOK_PROGRAM_ID:-HookFvKFaoF9KL8TUXUnQK5r2mJoMYdBENu549seRyXW}
-      - API_KEY=${API_KEY:?Error: API_KEY must be set in your .env file}
+      - API_KEY=${API_KEY:-}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3001}
       - WEBHOOK_URLS=${WEBHOOK_URLS:-}
       - LOG_LEVEL=${LOG_LEVEL:-info}

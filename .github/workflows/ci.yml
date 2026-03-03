@@ -40,14 +40,19 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
 
+      - name: Install Anchor AVM
+        run: cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
+
       - name: Install Anchor CLI
-        uses: metaDAOproject/setup-anchor@v2
-        with:
-          anchor-version: 0.32.0
-          node-version: 22
+        run: |
+          avm install 0.32.0
+          avm use 0.32.0
+          echo "$HOME/.avm/bin" >> $GITHUB_PATH
 
       - name: Build programs
-        run: anchor build
+        run: |
+          export PATH="$HOME/.avm/bin:$PATH"
+          anchor build
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -88,11 +93,14 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
 
+      - name: Install Anchor AVM
+        run: cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
+
       - name: Install Anchor CLI
-        uses: metaDAOproject/setup-anchor@v2
-        with:
-          anchor-version: 0.32.0
-          node-version: 22
+        run: |
+          avm install 0.32.0
+          avm use 0.32.0
+          echo "$HOME/.avm/bin" >> $GITHUB_PATH
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -111,7 +119,9 @@ jobs:
         run: solana-keygen new --no-bip39-passphrase
 
       - name: Run integration tests
-        run: anchor test
+        run: |
+          export PATH="$HOME/.avm/bin:$PATH"
+          anchor test --skip-build
 
   sdk-test:
     name: SDK Tests
