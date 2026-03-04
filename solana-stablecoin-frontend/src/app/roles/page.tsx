@@ -14,13 +14,21 @@ import { useStablecoin } from '@/hooks/use-stablecoin';
 import { useTransaction } from '@/hooks/use-transaction';
 import { useActiveMint } from '@/hooks/use-active-mint';
 import { isValidPubkey } from '@/lib/validation';
-import { type AccessRole, asRole } from '@stbr/sss-token';
+import { type AccessRole, asRole, SssCore } from '@stbr/sss-token';
+import { AccountNamespace } from '@coral-xyz/anchor';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 type RoleName = 'Admin' | 'Minter' | 'Freezer' | 'Pauser' | 'Burner' | 'Blacklister' | 'Seizer';
+
+type CheckedRole = {
+  name: RoleName;
+  grantedBy: PublicKey;
+  grantedAt: { toNumber(): number };
+  amountMinted?: { toString(): string };
+};
 
 const ROLE_DISPLAY_MAP: Record<RoleName, AccessRole> = {
   Admin: asRole('admin'),
@@ -100,7 +108,7 @@ export default function RolesPage() {
 
   const [addressInput, setAddressInput] = useState('');
   const [selectedRole, setSelectedRole] = useState<RoleName>('Minter');
-  const [foundRoles, setFoundRoles] = useState<any[]>([]);
+  const [foundRoles, setFoundRoles] = useState<CheckedRole[]>([]);
   const [isChecking, setIsChecking] = useState(false);
   const [lastCheckedAddress, setLastCheckedAddress] = useState<string | null>(null);
 
@@ -123,23 +131,30 @@ export default function RolesPage() {
         setFoundRoles([]);
         setLastCheckedAddress(addressInput);
 
-        const results = [];
-        // We still use the internal ledgerProgram for bulk scan to get full objects
-        for (const [roleName, sdkRole] of Object.entries(ROLE_DISPLAY_MAP)) {
-          try {
-            const [pda] = client.resolveRoleAccount(targetPubkey, sdkRole);
-            const info = await (client.ledgerProgram.account as any).roleAccount.fetch(pda);
-            results.push({
-              name: roleName,
-              ...info,
-            });
-          } catch (e) {
-            // Role not found, skip
-          }
+        try {
+          const roleEntries = Object.entries(ROLE_DISPLAY_MAP) as [RoleName, AccessRole][];
+          const results = await Promise.all(
+            roleEntries.map(async ([roleName, sdkRole]) => {
+              try {
+                const [pda] = client.resolveRoleAccount(targetPubkey, sdkRole);
+                const info = await (
+                  client.ledgerProgram.account as AccountNamespace<SssCore>
+                ).roleAccount.fetch(pda);
+                return {
+                  name: roleName,
+                  ...info,
+                } as CheckedRole;
+              } catch {
+                return null;
+              }
+            }),
+          );
+
+          setFoundRoles(results.filter((role): role is CheckedRole => role !== null));
+        } finally {
+          setIsChecking(false);
         }
 
-        setFoundRoles(results);
-        setIsChecking(false);
         return;
       }
 
@@ -385,7 +400,7 @@ export default function RolesPage() {
                                                   Tokens Minted
                                                 </span>
                                                 <span className="text-foreground font-mono font-bold bg-success/10 px-2 py-0.5 rounded">
-                                                  {role.amountMinted.toString()}
+                                                  {role.amountMinted?.toString() ?? '0'}
                                                 </span>
                                               </div>
                                             </div>
@@ -403,7 +418,7 @@ export default function RolesPage() {
                                   <h4 className="text-sm font-semibold text-foreground">
                                     No Permissions Found
                                   </h4>
-                                  <p className="text-xs text-muted-foreground mt-1 max-w-[200px] mx-auto">
+                                  <p className="text-xs text-muted-foreground mt-1 max-w-50 mx-auto">
                                     This address does not hold any roles for the selected
                                     stablecoin.
                                   </p>

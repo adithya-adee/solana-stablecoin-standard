@@ -11,7 +11,8 @@ export interface HistoryItem {
 
 export function useMintHistory() {
   const [history, setHistory] = useState<HistoryItem[]>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    if (typeof window === 'undefined') return [];
+    const stored = window.localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
         return JSON.parse(stored);
@@ -28,8 +29,9 @@ export function useMintHistory() {
       // Remove if already exists to move it to the top
       const filtered = prev.filter((item) => item.address !== address);
       const updated = [{ address, timestamp: Date.now() }, ...filtered].slice(0, 10);
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      }
       return updated;
     });
   }, []);
@@ -37,7 +39,9 @@ export function useMintHistory() {
   const removeMint = useCallback((address: string) => {
     setHistory((prev) => {
       const updated = prev.filter((item) => item.address !== address);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      }
       return updated;
     });
   }, []);

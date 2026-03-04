@@ -220,7 +220,7 @@ export default function HistoryPage() {
                           Slot {entry.slot.toLocaleString()}
                         </span>
                         {entry.memo && (
-                          <span className="text-xs text-muted-foreground truncate max-w-[200px]">
+                          <span className="text-xs text-muted-foreground truncate max-w-50">
                             {entry.memo}
                           </span>
                         )}
