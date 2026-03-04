@@ -23,8 +23,8 @@ describe('Branded types', () => {
   });
 
   it('StablecoinTiers object retains properties', () => {
-    expect(StablecoinTiers.SSS_1).toBe('sss-1');
-    expect(StablecoinTiers.SSS_2).toBe('sss-2');
-    expect(StablecoinTiers.SSS_3).toBe('sss-3');
+    expect(StablecoinTiers.SSS_1).toBe(asTier('sss-1'));
+    expect(StablecoinTiers.SSS_2).toBe(asTier('sss-2'));
+    expect(StablecoinTiers.SSS_3).toBe(asTier('sss-3'));
   });
 });

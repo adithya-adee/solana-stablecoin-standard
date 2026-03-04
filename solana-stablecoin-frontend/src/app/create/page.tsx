@@ -21,6 +21,8 @@ import {
 import { PageHeader } from '@/components/page-header';
 import { TxFeedback } from '@/components/tx-feedback';
 import { useTransaction } from '@/hooks/use-transaction';
+import { useMintHistory } from '@/hooks/use-mint-history';
+import { useActiveMint } from '@/hooks/use-active-mint';
 
 type PresetChoice = 'sss-1' | 'sss-2' | 'sss-3';
 
@@ -93,6 +95,8 @@ export default function CreateStablecoinPage() {
   const { publicKey } = useWallet();
   const anchorWallet = useAnchorWallet();
   const { loading, error, signature, execute, reset } = useTransaction();
+  const { addMint } = useMintHistory();
+  const { setActiveMint } = useActiveMint();
 
   const [preset, setPreset] = useState<PresetChoice>('sss-1');
   const [name, setName] = useState('');
@@ -180,7 +184,10 @@ export default function CreateStablecoinPage() {
 
       const sig = await execute(mintTx, [mintKeypair]);
       if (sig) {
-        setCreatedMint(mintKeypair.publicKey.toBase58());
+        const addr = mintKeypair.publicKey.toBase58();
+        setCreatedMint(addr);
+        addMint(addr);
+        setActiveMint(addr);
       }
     } catch (err) {
       console.error(err);

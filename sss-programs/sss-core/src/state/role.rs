@@ -16,7 +16,7 @@ pub struct RoleAccount {
 }
 
 impl RoleAccount {
-    pub const SSS_ROLE_SEED: &[u8] = b"sss-role";
+    pub const SSS_ROLE_SEED: &'static [u8] = b"sss-role";
 
     pub const ROLE_SPACE: usize = 8 + // discriminator
         32 + // config

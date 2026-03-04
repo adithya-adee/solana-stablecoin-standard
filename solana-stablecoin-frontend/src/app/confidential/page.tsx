@@ -6,6 +6,8 @@ import { ChevronDown, Fingerprint, LogIn, LogOut, SendToBack, Settings, Info } f
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { PageHeader } from '@/components/page-header';
+import { MintSelector } from '@/components/mint-selector';
+import { useActiveMint } from '@/hooks/use-active-mint';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -102,6 +104,7 @@ const OPERATIONS: Record<
 };
 
 export default function ConfidentialPage() {
+  const { activeMint, setActiveMint } = useActiveMint();
   const [operation, setOperation] = useState<OperationType>('config');
   const [isOpen, setIsOpen] = useState(false);
 
@@ -115,6 +118,8 @@ export default function ConfidentialPage() {
     <div>
       <PageHeader title="Confidential Transfers" />
       <div className="p-6 space-y-6 max-w-4xl mx-auto">
+        <MintSelector onSelect={setActiveMint} currentMint={activeMint} />
+
         {/* SSS-3 Info Banner */}
         <div className="rounded-xl border border-accent/30 bg-accent/5 p-5 shadow-sm">
           <div className="flex items-start gap-3">
@@ -163,182 +168,194 @@ export default function ConfidentialPage() {
           </div>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-xl p-8 shadow-2xl relative z-10 transition-all"
-        >
-          {/* Custom Dropdown */}
-          <div className="relative mb-8">
-            <label className="mb-2 block text-sm font-medium text-muted-foreground tracking-wide">
-              Select Confidential Operation
-            </label>
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="w-full flex items-center justify-between rounded-xl border border-border bg-background/60 px-4 py-4 text-left shadow-sm hover:border-accent/50 transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-            >
-              <div className="flex items-center gap-3">
-                <div className={cn('p-2 rounded-lg border', activeOp.color)}>
-                  <ActiveIcon size={20} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-foreground">{activeOp.title}</h4>
-                </div>
-              </div>
-              <ChevronDown
-                className={cn(
-                  'text-muted-foreground transition-transform duration-200',
-                  isOpen && 'rotate-180',
-                )}
-                size={20}
-              />
-            </button>
-
-            <AnimatePresence>
-              {isOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                  className="absolute top-full left-0 right-0 mt-2 rounded-xl border border-border bg-card shadow-2xl overflow-hidden z-50"
-                >
-                  {Object.values(OPERATIONS).map((op) => (
-                    <button
-                      key={op.id}
-                      onClick={() => {
-                        setOperation(op.id);
-                        setIsOpen(false);
-                        setAddressInput('');
-                        setAmountInput('');
-                      }}
-                      className={cn(
-                        'w-full flex items-center gap-4 px-4 py-3 text-left transition-colors hover:bg-muted/50 border-b border-border/50 last:border-0',
-                        operation === op.id && 'bg-accent/5',
-                      )}
-                    >
-                      <div className={cn('p-2 rounded-lg border', op.color)}>
-                        <op.icon size={18} />
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold text-foreground">{op.title}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">{op.description}</div>
-                      </div>
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
+        {!activeMint && (
+          <div className="rounded-xl border border-border bg-card p-12 text-center shadow-sm">
+            <p className="text-sm text-muted-foreground">
+              Select a mint address above to manage confidential operations.
+            </p>
           </div>
+        )}
 
-          {/* Dynamic Form Area */}
-          <div className="bg-background/40 rounded-xl p-6 border border-border/40 overflow-hidden shadow-inner">
-            <div className="mb-6 flex items-start gap-4">
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-foreground mb-1">{activeOp.title}</h3>
-                <p className="text-sm font-medium text-muted-foreground leading-relaxed">
-                  {activeOp.description}
-                </p>
-              </div>
+        {activeMint && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-xl p-8 shadow-2xl relative z-10 transition-all"
+          >
+            {/* Custom Dropdown */}
+            <div className="relative mb-8">
+              <label className="mb-2 block text-sm font-medium text-muted-foreground tracking-wide">
+                Select Confidential Operation
+              </label>
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex items-center justify-between rounded-xl border border-border bg-background/60 px-4 py-4 text-left shadow-sm hover:border-accent/50 transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn('p-2 rounded-lg border', activeOp.color)}>
+                    <ActiveIcon size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-foreground">{activeOp.title}</h4>
+                  </div>
+                </div>
+                <ChevronDown
+                  className={cn(
+                    'text-muted-foreground transition-transform duration-200',
+                    isOpen && 'rotate-180',
+                  )}
+                  size={20}
+                />
+              </button>
+
+              <AnimatePresence>
+                {isOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute top-full left-0 right-0 mt-2 rounded-xl border border-border bg-card shadow-2xl overflow-hidden z-50"
+                  >
+                    {Object.values(OPERATIONS).map((op) => (
+                      <button
+                        key={op.id}
+                        onClick={() => {
+                          setOperation(op.id);
+                          setIsOpen(false);
+                          setAddressInput('');
+                          setAmountInput('');
+                        }}
+                        className={cn(
+                          'w-full flex items-center gap-4 px-4 py-3 text-left transition-colors hover:bg-muted/50 border-b border-border/50 last:border-0',
+                          operation === op.id && 'bg-accent/5',
+                        )}
+                      >
+                        <div className={cn('p-2 rounded-lg border', op.color)}>
+                          <op.icon size={18} />
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-foreground">{op.title}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {op.description}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            <AnimatePresence mode="popLayout">
-              <motion.div
-                key={operation}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                transition={{ duration: 0.2 }}
-              >
-                {operation !== 'info' ? (
-                  <div className="space-y-5">
-                    {(operation === 'config' || operation === 'transfer') && (
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                          {operation === 'transfer'
-                            ? 'Recipient Destination Address'
-                            : 'Target Token Account'}
-                        </label>
-                        <input
-                          type="text"
-                          value={addressInput}
-                          onChange={(e) => setAddressInput(e.target.value)}
-                          placeholder="Enter Solana wallet address..."
-                          className="w-full rounded-xl border border-border bg-background/50 px-4 py-3 text-sm font-mono text-foreground placeholder:font-sans placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all"
-                        />
-                      </div>
-                    )}
+            {/* Dynamic Form Area */}
+            <div className="bg-background/40 rounded-xl p-6 border border-border/40 overflow-hidden shadow-inner">
+              <div className="mb-6 flex items-start gap-4">
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-foreground mb-1">{activeOp.title}</h3>
+                  <p className="text-sm font-medium text-muted-foreground leading-relaxed">
+                    {activeOp.description}
+                  </p>
+                </div>
+              </div>
 
-                    {(operation === 'deposit' ||
-                      operation === 'withdraw' ||
-                      operation === 'transfer') && (
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                          Amount (in raw units)
-                        </label>
-                        <input
-                          type="number"
-                          value={amountInput}
-                          onChange={(e) => setAmountInput(e.target.value)}
-                          placeholder="e.g. 1000000"
-                          className="w-full rounded-xl border border-border bg-background/50 px-4 py-3 text-sm font-mono text-foreground placeholder:font-sans placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all"
-                        />
-                      </div>
-                    )}
+              <AnimatePresence mode="popLayout">
+                <motion.div
+                  key={operation}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {operation !== 'info' ? (
+                    <div className="space-y-5">
+                      {(operation === 'config' || operation === 'transfer') && (
+                        <div>
+                          <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                            {operation === 'transfer'
+                              ? 'Recipient Destination Address'
+                              : 'Target Token Account'}
+                          </label>
+                          <input
+                            type="text"
+                            value={addressInput}
+                            onChange={(e) => setAddressInput(e.target.value)}
+                            placeholder="Enter Solana wallet address..."
+                            className="w-full rounded-xl border border-border bg-background/50 px-4 py-3 text-sm font-mono text-foreground placeholder:font-sans placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all"
+                          />
+                        </div>
+                      )}
 
-                    <div className="pt-4 mt-4 border-t border-border/30">
-                      <button
-                        disabled
-                        className="w-full rounded-xl px-4 py-3.5 text-sm font-semibold transition-all shadow-none bg-muted text-muted-foreground cursor-not-allowed opacity-70"
-                        title="Requires local WASM ZKP client bindings (currently disabled)"
-                      >
-                        Execute {activeOp.title} (WASM Only)
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <div className="flex flex-col gap-2 rounded-xl bg-background/60 p-5 border border-border/30 shadow-sm relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-16 h-16 bg-accent/5 rounded-bl-full pointer-events-none" />
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent text-sm font-bold border border-accent/20">
-                        1
-                      </div>
-                      <p className="text-sm font-bold text-foreground">Configure Substrate</p>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Initialize an ElGamal keypair on-chain for your empty token bucket via the
-                        ZKP config extension.
-                      </p>
-                    </div>
+                      {(operation === 'deposit' ||
+                        operation === 'withdraw' ||
+                        operation === 'transfer') && (
+                        <div>
+                          <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                            Amount (in raw units)
+                          </label>
+                          <input
+                            type="number"
+                            value={amountInput}
+                            onChange={(e) => setAmountInput(e.target.value)}
+                            placeholder="e.g. 1000000"
+                            className="w-full rounded-xl border border-border bg-background/50 px-4 py-3 text-sm font-mono text-foreground placeholder:font-sans placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all"
+                          />
+                        </div>
+                      )}
 
-                    <div className="flex flex-col gap-2 rounded-xl bg-background/60 p-5 border border-border/30 shadow-sm relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-16 h-16 bg-accent/5 rounded-bl-full pointer-events-none" />
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent text-sm font-bold border border-accent/20">
-                        2
+                      <div className="pt-4 mt-4 border-t border-border/30">
+                        <button
+                          disabled
+                          className="w-full rounded-xl px-4 py-3.5 text-sm font-semibold transition-all shadow-none bg-muted text-muted-foreground cursor-not-allowed opacity-70"
+                          title="Requires local WASM ZKP client bindings (currently disabled)"
+                        >
+                          Execute {activeOp.title} (WASM Only)
+                        </button>
                       </div>
-                      <p className="text-sm font-bold text-foreground">Encrypted Deposit</p>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Burn your public tokens locally while simultaneously incrementing your
-                        ciphertext ElGamal representation securely.
-                      </p>
                     </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      <div className="flex flex-col gap-2 rounded-xl bg-background/60 p-5 border border-border/30 shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-16 h-16 bg-accent/5 rounded-bl-full pointer-events-none" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent text-sm font-bold border border-accent/20">
+                          1
+                        </div>
+                        <p className="text-sm font-bold text-foreground">Configure Substrate</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Initialize an ElGamal keypair on-chain for your empty token bucket via the
+                          ZKP config extension.
+                        </p>
+                      </div>
 
-                    <div className="flex flex-col gap-2 rounded-xl bg-background/60 p-5 border border-border/30 shadow-sm relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-16 h-16 bg-accent/5 rounded-bl-full pointer-events-none" />
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent text-sm font-bold border border-accent/20">
-                        3
+                      <div className="flex flex-col gap-2 rounded-xl bg-background/60 p-5 border border-border/30 shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-16 h-16 bg-accent/5 rounded-bl-full pointer-events-none" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent text-sm font-bold border border-accent/20">
+                          2
+                        </div>
+                        <p className="text-sm font-bold text-foreground">Encrypted Deposit</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Burn your public tokens locally while simultaneously incrementing your
+                          ciphertext ElGamal representation securely.
+                        </p>
                       </div>
-                      <p className="text-sm font-bold text-foreground">Shielded Transfers</p>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Execute full peer-to-peer hidden-amount bridging. Validated opaquely
-                        entirely via network consensus ZKP verification.
-                      </p>
+
+                      <div className="flex flex-col gap-2 rounded-xl bg-background/60 p-5 border border-border/30 shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-16 h-16 bg-accent/5 rounded-bl-full pointer-events-none" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent text-sm font-bold border border-accent/20">
+                          3
+                        </div>
+                        <p className="text-sm font-bold text-foreground">Shielded Transfers</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Execute full peer-to-peer hidden-amount bridging. Validated opaquely
+                          entirely via network consensus ZKP verification.
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </motion.div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );

@@ -48,7 +48,10 @@ pub struct Seize<'info> {
     pub token_program: Interface<'info, TokenInterface>,
 }
 
-pub fn handler_seize(ctx: Context<Seize>, amount: u64) -> Result<()> {
+pub fn handler_seize<'info>(
+    ctx: Context<'_, '_, '_, 'info, Seize<'info>>,
+    amount: u64,
+) -> Result<()> {
     require!(amount > 0, SssError::ZeroAmount);
 
     let mint_key = ctx.accounts.mint.key();
@@ -65,8 +68,21 @@ pub fn handler_seize(ctx: Context<Seize>, amount: u64) -> Result<()> {
         to: ctx.accounts.to.to_account_info(),
         authority: ctx.accounts.config.to_account_info(),
     };
-    let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts)
-        .with_signer(signer_seeds);
+
+    // SSS-2 mints have a transfer hook that requires additional accounts
+    // (extra_account_metas PDA, sender/receiver blacklist PDAs, hook program).
+    // The caller must supply these as remaining_accounts so that Token-2022
+    // can CPI into the hook during the transfer.
+    //
+    // SSS-1 / SSS-3: no hook — remaining_accounts will be empty.
+    let remaining: Vec<AccountInfo<'info>> = ctx.remaining_accounts.to_vec();
+    let mut cpi_ctx =
+        CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts)
+            .with_signer(signer_seeds);
+
+    if !remaining.is_empty() {
+        cpi_ctx = cpi_ctx.with_remaining_accounts(remaining);
+    }
 
     token_interface::transfer_checked(cpi_ctx, amount, decimals)?;
 

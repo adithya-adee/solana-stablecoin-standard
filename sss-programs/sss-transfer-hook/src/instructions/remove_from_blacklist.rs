@@ -1,4 +1,5 @@
 use super::admin_verify::verify_blacklister_for_mint;
+use crate::events::BlacklistRemoved;
 use crate::state::BlacklistEntry;
 use anchor_lang::prelude::*;
 
@@ -26,6 +27,7 @@ pub struct RemoveFromBlacklist<'info> {
 
 pub fn handler_remove_from_blacklist(ctx: Context<RemoveFromBlacklist>) -> Result<()> {
     let mint_key = ctx.accounts.blacklist_entry.mint;
+    let address_key = ctx.accounts.blacklist_entry.address;
 
     // Verify the caller has Blacklister role in sss-core for this mint.
     verify_blacklister_for_mint(
@@ -33,6 +35,12 @@ pub fn handler_remove_from_blacklist(ctx: Context<RemoveFromBlacklist>) -> Resul
         &mint_key,
         &ctx.accounts.blacklister.key(),
     )?;
+
+    emit!(BlacklistRemoved {
+        mint: mint_key,
+        address: address_key,
+        removed_by: ctx.accounts.blacklister.key(),
+    });
 
     // Account closure handled by Anchor via `close = blacklister`.
     Ok(())

@@ -39,24 +39,33 @@ pub fn handler_initialize(ctx: Context<InitializeExtraAccountMetas>) -> Result<(
     //   4 = extra_account_metas PDA (validation state)
     //
     // We need two additional accounts (resolved by Token-2022):
-    //   5 = sender blacklist PDA  (seeds: [b"blacklist", mint, source_authority])
+    //   5 = sender blacklist PDA  (seeds: [b"blacklist", mint, source_owner])
     //   6 = receiver blacklist PDA (seeds: [b"blacklist", mint, dest_owner])
+    //
+    // SECURITY — both PDAs use the token account's stored `owner` field
+    // (at byte offset 32), NOT the transfer authority (index 3). This prevents
+    // a blacklisted user from bypassing the denylist by authorizing a clean
+    // delegate to transfer on their behalf.
     let account_metas = vec![
-        // Sender blacklist: PDA derived from this program with seeds
-        // [b"blacklist", mint_pubkey, source_authority_pubkey]
+        // Sender blacklist: PDA derived from [b"blacklist", mint, source_token_account.owner]
+        // Reading source owner from account data (offset 32, 32 bytes) prevents
+        // bypass via delegated transfers.
         ExtraAccountMeta::new_with_seeds(
             &[
                 Seed::Literal {
                     bytes: BlacklistEntry::BLACKLIST_SEED.to_vec(),
                 },
                 Seed::AccountKey { index: 1 }, // mint
-                Seed::AccountKey { index: 3 }, // source authority
+                Seed::AccountData {
+                    account_index: 0, // source token account
+                    data_index: 32,   // offset of `owner` field in token account layout
+                    length: 32,       // Pubkey is 32 bytes
+                },
             ],
             false, // is_signer
             false, // is_writable
         )?,
-        // Receiver blacklist: PDA derived from this program with seeds
-        // [b"blacklist", mint_pubkey, destination_owner]
+        // Receiver blacklist: PDA derived from [b"blacklist", mint, destination_owner]
         // The destination owner is extracted from the destination token account
         // data at offset 32, length 32 (the `owner` field in token account layout).
         ExtraAccountMeta::new_with_seeds(

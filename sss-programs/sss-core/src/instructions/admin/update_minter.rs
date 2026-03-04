@@ -26,8 +26,17 @@ pub struct UpdateMinter<'info> {
     pub admin_role: Account<'info, RoleAccount>,
 
     /// The minter's role account to update. Must be a Minter role.
+    /// Seeds are explicitly validated (defense-in-depth) to prevent a
+    /// crafted RoleAccount with matching data fields from being substituted.
     #[account(
         mut,
+        seeds = [
+            RoleAccount::SSS_ROLE_SEED,
+            config.key().as_ref(),
+            minter_role.address.as_ref(),
+            &[Role::Minter.as_u8()],
+        ],
+        bump = minter_role.bump,
         constraint = minter_role.config == config.key(),
         constraint = minter_role.role == Role::Minter,
     )]

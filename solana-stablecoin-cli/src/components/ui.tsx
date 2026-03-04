@@ -59,6 +59,7 @@ export function Success({ label = 'Success', value }: ResultProps) {
       </Box>
       <Box marginLeft={2}>
         <Text color={Theme.dim as any}>tx: </Text>
+        {/* @ts-ignore ink-link types conflict with react typings in this build setup */}
         <Link url={formatExplorerUrl(value)}>
           <Text color={Theme.text as any}>{value}</Text>
         </Link>

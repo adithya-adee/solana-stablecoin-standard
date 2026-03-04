@@ -44,7 +44,7 @@ export function useTokenState(mintAddress: string | null) {
     try {
       new PublicKey(mintAddress);
     } catch {
-      setError('Please enter a valid Solana address');
+      setError('Invalid address format. Base58 addresses cannot contain 0, O, I, or l.');
       setLoading(false);
       return;
     }

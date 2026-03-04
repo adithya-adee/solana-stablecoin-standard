@@ -27,6 +27,11 @@ pub struct TokensBurned {
     pub amount: u64,
     pub burner: Pubkey,
     pub new_supply: u64,
+    /// Owner of the `from` token account at burn time. When `from_owner !=
+    /// burner`, this was a privileged permanent-delegate burn (the Burner role
+    /// acted on a third-party account). Compliance systems should flag and
+    /// independently verify all burns where `from_owner != burner`.
+    pub from_owner: Pubkey,
 }
 
 #[event]

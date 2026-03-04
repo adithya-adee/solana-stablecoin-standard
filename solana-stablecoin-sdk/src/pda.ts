@@ -1,4 +1,5 @@
 import { PublicKey } from '@solana/web3.js';
+import { Buffer } from 'buffer';
 import type {
   AccessRole,
   TokenMintKey,
@@ -8,10 +9,11 @@ import type {
 } from './types';
 import { ROLE_ID_MAP } from './types';
 
+// Program ID
 export const STBL_CORE_PROGRAM_ID = new PublicKey('SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP');
-
 export const STBL_HOOK_PROGRAM_ID = new PublicKey('HookFvKFaoF9KL8TUXUnQK5r2mJoMYdBENu549seRyXW');
 
+// Static Seeds
 const STBL_CONFIG_SEED = Buffer.from('sss-config');
 const STBL_ROLE_SEED = Buffer.from('sss-role');
 const DENY_LIST_SEED = Buffer.from('blacklist');
