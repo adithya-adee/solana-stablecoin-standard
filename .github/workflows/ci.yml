@@ -29,28 +29,48 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
 
-      # ─── SCCACHE (replaces raw `actions/cache` on `target/`) ──────────────────
+      # ─── SCCACHE ───────────────────────────────────────────────────────────────
+      # FIX: Use the local disk cache (~/.cache/sccache) instead of SCCACHE_GHA_ENABLED.
+      # The GHA backend talks to Azure Artifact Cache via HTTP. When that endpoint
+      # returns a transient 400/503 (as seen in the failure), sccache's server
+      # refuses to start entirely and rustc fails immediately.
+      #
+      # By using local disk + actions/cache, we bypass the Azure CDN completely.
+      # actions/cache degrades gracefully on a miss (cold build), whereas a broken
+      # GHA backend hard-crashes sccache and fails the entire job.
       - name: Setup sccache
         uses: mozilla-actions/sccache-action@v0.0.7
 
-      - name: Configure sccache environment
+      - name: Configure sccache (local disk backend)
         run: |
-          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
-          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
-          # Disable incremental compilation — it's useless in ephemeral CI environments
-          # and wastes cache space with artifacts that can never be reused.
-          echo "CARGO_INCREMENTAL=0" >> $GITHUB_ENV
+          echo "RUSTC_WRAPPER=sccache"           >> $GITHUB_ENV
+          echo "SCCACHE_GHA_ENABLED=false"        >> $GITHUB_ENV
+          echo "SCCACHE_DIR=$HOME/.cache/sccache" >> $GITHUB_ENV
+          echo "CARGO_INCREMENTAL=0"              >> $GITHUB_ENV
 
-      # ─── CARGO REGISTRY CACHE ─────────────────────────────────────────────────
-      - name: Cache Cargo Registry
+      # Cache the sccache disk directory via actions/cache.
+      # restore-keys gives a partial hit when only some crates changed.
+      - name: Cache sccache storage
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/sccache
+          key: sccache-${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            sccache-${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-
+
+      # ─── CARGO REGISTRY ────────────────────────────────────────────────────────
+      # Cache crate source downloads separately from compiled artifacts.
+      # Intentionally NOT caching `target/` — sccache handles compiled output.
+      - name: Cache Cargo registry
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: cargo-${{ runner.os }}-
+            ~/.cargo/registry/cache
+            ~/.cargo/registry/index
+            ~/.cargo/git/db
+          key: cargo-registry-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-registry-${{ runner.os }}-
 
       # ─── SOLANA CLI ────────────────────────────────────────────────────────────
       - name: Cache Solana Binaries
@@ -62,8 +82,7 @@ jobs:
 
       - name: Install Solana CLI
         if: steps.cache-solana.outputs.cache-hit != 'true'
-        run: |
-          sh -c "$(curl -sSfL https://release.anza.xyz/v${{ env.SOLANA_VERSION }}/install)"
+        run: sh -c "$(curl -sSfL https://release.anza.xyz/v${{ env.SOLANA_VERSION }}/install)"
 
       - name: Add Solana to Path
         run: echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
@@ -72,27 +91,32 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
 
       # ─── ANCHOR CLI ────────────────────────────────────────────────────────────
-      - name: Cache Anchor AVM
-        id: cache-avm
+      # Use the prebuilt binary — avoids compiling AVM from source (~15 min).
+      - name: Cache Anchor CLI binary
+        id: cache-anchor
         uses: actions/cache@v4
         with:
-          path: ~/.avm
-          key: avm-${{ runner.os }}-${{ env.ANCHOR_VERSION }}
+          path: ~/.local/bin/anchor
+          key: anchor-bin-${{ runner.os }}-${{ env.ANCHOR_VERSION }}
 
-      - name: Install Anchor AVM & CLI
-        if: steps.cache-avm.outputs.cache-hit != 'true'
+      - name: Install Anchor CLI (prebuilt binary)
+        if: steps.cache-anchor.outputs.cache-hit != 'true'
         run: |
-          cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
-          export PATH="$HOME/.avm/bin:$PATH"
-          avm install ${{ env.ANCHOR_VERSION }}
-          avm use ${{ env.ANCHOR_VERSION }}
+          mkdir -p ~/.local/bin
+          curl -sSfL \
+            "https://github.com/coral-xyz/anchor/releases/download/v${{ env.ANCHOR_VERSION }}/anchor-${{ env.ANCHOR_VERSION }}-x86_64-unknown-linux-gnu" \
+            -o ~/.local/bin/anchor
+          chmod +x ~/.local/bin/anchor
 
-      - name: Add AVM to Path
-        run: echo "$HOME/.avm/bin" >> $GITHUB_PATH
+      - name: Add Anchor to Path
+        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       # ─── BUILD ─────────────────────────────────────────────────────────────────
       - name: Build Programs
         run: anchor build
+
+      - name: Show sccache stats
+        run: sccache --show-stats
 
       - name: Run Rust Unit Tests
         run: cargo test --workspace
@@ -126,7 +150,6 @@ jobs:
         run: anchor test --skip-build
 
       # ─── ARTIFACTS ─────────────────────────────────────────────────────────────
-      # (idl/, types/, deploy/*.so)
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -153,6 +176,14 @@ jobs:
         with:
           version: 9
 
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-${{ runner.os }}-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -178,6 +209,14 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 9
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-${{ runner.os }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -215,9 +254,7 @@ jobs:
           mkdir -p target/idl target/types
           docker compose build backend
         env:
-          # Enable BuildKit cache to GitHub Actions Cache backend
           DOCKER_BUILDKIT: 1
-
 
       # OPTIONAL ENHANCEMENT (commented out): If you push to a registry (GHCR/ECR),
       # replace the above with docker/build-push-action which supports
