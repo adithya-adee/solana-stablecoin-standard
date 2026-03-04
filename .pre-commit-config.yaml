@@ -1,0 +1,11 @@
+repos:
+  - repo: local
+    hooks:
+      - id: pnpm-format
+        name: pnpm format
+        description: Run workspace `pnpm format` to format files
+        entry: pnpm format
+        language: system
+        types: ["javascript", "javascriptreact", "typescript", "typescriptreact", "json", "markdown", "yaml", "yml"]
+        pass_filenames: false
+        stages: [commit]
