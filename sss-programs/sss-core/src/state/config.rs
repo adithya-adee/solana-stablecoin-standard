@@ -62,7 +62,14 @@ impl StablecoinConfig {
 
     /// Checks whether `amount` tokens can be minted without exceeding
     /// the supply cap or overflowing the total_minted counter.
+    ///
+    /// Returns `false` for `amount == 0` — a zero-amount mint is never valid
+    /// and would otherwise pass the cap check even when the supply cap is
+    /// exactly exhausted, giving confusing semantics to callers.
     pub fn can_mint(&self, amount: u64) -> bool {
+        if amount == 0 {
+            return false;
+        }
         let new_total = match self.total_minted.checked_add(amount) {
             Some(v) => v,
             None => return false,
@@ -158,11 +165,12 @@ mod tests {
     #[test]
     fn test_can_mint_zero() {
         let mut cfg = default_config();
-        assert!(cfg.can_mint(0));
+        // Zero is never a valid mint amount, regardless of cap state.
+        assert!(!cfg.can_mint(0));
 
         cfg.supply_cap = Some(100);
         cfg.total_minted = 100;
-        // At cap, zero should still succeed
-        assert!(cfg.can_mint(0));
+        // At cap, zero is still rejected.
+        assert!(!cfg.can_mint(0));
     }
 }
