@@ -23,12 +23,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # ─── RUST TOOLCHAIN ────────────────────────────────────────────────────────
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
 
-      - name: Cache Cargo
+      # ─── SCCACHE (replaces raw `actions/cache` on `target/`) ──────────────────
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.7
+
+      - name: Configure sccache environment
+        run: |
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+          # Disable incremental compilation — it's useless in ephemeral CI environments
+          # and wastes cache space with artifacts that can never be reused.
+          echo "CARGO_INCREMENTAL=0" >> $GITHUB_ENV
+
+      # ─── CARGO REGISTRY CACHE ─────────────────────────────────────────────────
+      - name: Cache Cargo Registry
         uses: actions/cache@v4
         with:
           path: |
@@ -38,6 +52,7 @@ jobs:
           key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: cargo-${{ runner.os }}-
 
+      # ─── SOLANA CLI ────────────────────────────────────────────────────────────
       - name: Cache Solana Binaries
         id: cache-solana
         uses: actions/cache@v4
@@ -56,6 +71,7 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
 
+      # ─── ANCHOR CLI ────────────────────────────────────────────────────────────
       - name: Cache Anchor AVM
         id: cache-avm
         uses: actions/cache@v4
@@ -74,12 +90,14 @@ jobs:
       - name: Add AVM to Path
         run: echo "$HOME/.avm/bin" >> $GITHUB_PATH
 
+      # ─── BUILD ─────────────────────────────────────────────────────────────────
       - name: Build Programs
         run: anchor build
 
       - name: Run Rust Unit Tests
         run: cargo test --workspace
 
+      # ─── NODE / PNPM ───────────────────────────────────────────────────────────
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -90,6 +108,14 @@ jobs:
         with:
           version: 9
 
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-${{ runner.os }}-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -99,11 +125,16 @@ jobs:
       - name: Run Integration Tests
         run: anchor test --skip-build
 
+      # ─── ARTIFACTS ─────────────────────────────────────────────────────────────
+      # (idl/, types/, deploy/*.so)
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: program-artifacts
-          path: target/
+          path: |
+            target/idl/
+            target/types/
+            target/deploy/*.so
 
   sdk-test:
     name: SDK Tests
@@ -183,3 +214,20 @@ jobs:
         run: |
           mkdir -p target/idl target/types
           docker compose build backend
+        env:
+          # Enable BuildKit cache to GitHub Actions Cache backend
+          DOCKER_BUILDKIT: 1
+
+
+      # OPTIONAL ENHANCEMENT (commented out): If you push to a registry (GHCR/ECR),
+      # replace the above with docker/build-push-action which supports
+      # inline registry-based layer caching — even faster than GHA cache:
+      #
+      # - name: Build backend image
+      #   uses: docker/build-push-action@v6
+      #   with:
+      #     context: .
+      #     file: ./Dockerfile.backend
+      #     push: false
+      #     cache-from: type=gha
+      #     cache-to: type=gha,mode=max
