@@ -26,6 +26,11 @@ pub struct StablecoinConfig {
     pub default_account_frozen: bool,
     /// Number of active admins. Used to prevent revoking the last admin.
     pub admin_count: u32,
+    /// Pyth price feed ID (32-byte hex) that oracle-gated minting must match.
+    /// `None` means oracle-adjusted minting is disabled for this stablecoin.
+    /// Must be set via `update_oracle_feed` before passing a `price_update` account
+    /// to `mint_tokens`. Using a wildcard (all-zeros) is explicitly rejected.
+    pub oracle_feed_id: Option<[u8; 32]>,
 }
 
 impl StablecoinConfig {
@@ -47,7 +52,8 @@ impl StablecoinConfig {
         1 +  // enable_permanent_delegate
         1 +  // enable_transfer_hook
         1 +  // default_account_frozen
-        4;   // admin_count
+        4 +  // admin_count
+        33;  // Option<[u8; 32]> oracle_feed_id (1 + 32)
 
     /// Returns the current circulating supply (minted minus burned).
     pub fn current_supply(&self) -> u64 {
@@ -94,6 +100,7 @@ mod tests {
             enable_transfer_hook: false,
             default_account_frozen: false,
             admin_count: 1,
+            oracle_feed_id: None,
         }
     }
 

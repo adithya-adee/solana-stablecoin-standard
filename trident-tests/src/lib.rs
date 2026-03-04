@@ -14,10 +14,22 @@
 //! 5. **Blacklist invariants**: Blacklisted addresses remain blacklisted
 //!    until explicitly removed.
 //!
+//! **Audit-driven additions (security fixes):**
+//!
+//! 6. **Oracle feed guard (C-1)**: Oracle minting requires a pinned feed ID;
+//!    wildcard/zero IDs and wrong IDs are rejected.
+//! 7. **Pause-role guard (H-2)**: Non-Admin role grants/revokes are blocked
+//!    while the token is paused; Admin ops always remain available.
+//! 8. **Burn audit trail (C-2)**: `TokensBurned` events always carry the
+//!    token account owner (`from_owner`) so privileged burns are detectable.
+//!
 //! For on-chain fuzz testing with Trident (honggfuzz), see `trident-tests/fuzz_0/`.
 
 mod arithmetic;
+mod burn_audit;
 mod invariants;
+mod oracle_feed;
 mod pause_bypass;
+mod pause_roles;
 mod role_escalation;
 mod supply_cap;

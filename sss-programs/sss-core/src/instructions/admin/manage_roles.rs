@@ -62,6 +62,16 @@ pub fn handler_grant(ctx: Context<GrantRole>, role: u8) -> Result<()> {
         _ => return Err(error!(crate::error::SssError::InvalidRole)),
     };
 
+    // Admin role grants/revokes are exempt from pause so admins can always
+    // perform incident-response actions (revoke compromised keys, add new admins)
+    // even while operations are paused. All other role changes are blocked.
+    if role_enum != Role::Admin {
+        require!(
+            !ctx.accounts.config.paused,
+            crate::error::SssError::Paused
+        );
+    }
+
     if role_enum == Role::Admin {
         ctx.accounts.config.admin_count = ctx
             .accounts
@@ -126,6 +136,17 @@ pub struct RevokeRole<'info> {
 }
 
 pub fn handler_revoke(ctx: Context<RevokeRole>) -> Result<()> {
+    let role_account = &ctx.accounts.role_account;
+
+    // Admin role revocations are exempt from pause for incident response.
+    // All other role revocations are blocked while paused.
+    if role_account.role != Role::Admin {
+        require!(
+            !ctx.accounts.config.paused,
+            crate::error::SssError::Paused
+        );
+    }
+
     // Prevent revoking the last admin — would brick the config permanently.
     // NOTE: This only blocks self-revocation. Admin A can still revoke Admin B
     // even if B is the last admin. Counting total admins on-chain would require

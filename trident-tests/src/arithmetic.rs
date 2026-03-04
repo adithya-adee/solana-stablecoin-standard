@@ -23,6 +23,7 @@ fn default_config() -> StablecoinConfig {
         enable_transfer_hook: false,
         default_account_frozen: false,
         admin_count: 1,
+        oracle_feed_id: None,
     }
 }
 
