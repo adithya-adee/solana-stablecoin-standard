@@ -34,7 +34,7 @@ pub struct StablecoinConfig {
 }
 
 impl StablecoinConfig {
-    pub const SSS_CONFIG_SEED: &[u8] = b"sss-config";
+    pub const SSS_CONFIG_SEED: &'static [u8] = b"sss-config";
 
     pub const CONFIG_SPACE: usize = 8 + // discriminator
         32 + // authority
