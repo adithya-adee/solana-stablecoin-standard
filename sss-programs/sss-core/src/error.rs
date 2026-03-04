@@ -38,4 +38,6 @@ pub enum SssError {
     UriTooLong,
     #[msg("Oracle price is stale")]
     OraclePriceStale,
+    #[msg("Oracle feed ID not configured — call update_oracle_feed before using a price update")]
+    OracleFeedNotConfigured,
 }

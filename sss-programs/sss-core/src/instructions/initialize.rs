@@ -19,6 +19,10 @@ pub struct InitializeArgs {
     pub enable_transfer_hook: Option<bool>,
     /// Override preset default for default-frozen accounts. If None, derived from preset.
     pub default_account_frozen: Option<bool>,
+    /// Optional Pyth oracle feed ID (32-byte array) for oracle-gated supply caps.
+    /// If None, oracle-adjusted minting is disabled for this stablecoin.
+    /// Can be set later via `update_oracle_feed`.
+    pub oracle_feed_id: Option<[u8; 32]>,
 }
 
 #[derive(Accounts)]
@@ -93,6 +97,7 @@ pub fn handler_initialize(ctx: Context<Initialize>, args: InitializeArgs) -> Res
     config.enable_transfer_hook = args.enable_transfer_hook.unwrap_or(default_hook);
     config.default_account_frozen = args.default_account_frozen.unwrap_or(default_frozen);
     config.admin_count = 1;
+    config.oracle_feed_id = args.oracle_feed_id;
 
     let admin_role = &mut ctx.accounts.admin_role;
     admin_role.config = config.key();

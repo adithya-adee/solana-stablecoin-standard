@@ -27,8 +27,12 @@ export function useTransaction() {
         await connection.confirmTransaction(signature, 'confirmed');
         setResult({ signature, error: null, loading: false });
         return signature;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
+      } catch (err: any) {
+        console.error('Transaction execution failed:', err);
+        if (err.logs) {
+          console.error('Simulation logs:', err.logs);
+        }
+        const message = err.message || String(err);
         setResult({ signature: null, error: message, loading: false });
         return null;
       }

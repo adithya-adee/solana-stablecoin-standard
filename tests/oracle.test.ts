@@ -296,6 +296,16 @@ describe('Oracle — PriceUpdateV2 (bankrun)', () => {
         mintResult.mint.publicKey,
         recipient.publicKey,
       );
+
+      // Pin the oracle feed ID (all-zeros matches mock PriceUpdateV2 feed_id)
+      await coreProgram.methods
+        .updateOracleFeed(Array(32).fill(0))
+        .accountsPartial({
+          admin: provider.wallet.publicKey,
+          config: mintResult.configPda,
+          adminRole: mintResult.adminRolePda,
+        })
+        .rpc();
     });
 
     it('succeeds minting under oracle-adjusted cap', async () => {
@@ -392,6 +402,16 @@ describe('Oracle — PriceUpdateV2 (bankrun)', () => {
         recipient.publicKey,
       );
 
+      // Pin the oracle feed ID (all-zeros matches mock PriceUpdateV2 feed_id)
+      await coreProgram.methods
+        .updateOracleFeed(Array(32).fill(0))
+        .accountsPartial({
+          admin: provider.wallet.publicKey,
+          config: capMint.configPda,
+          adminRole: capMint.adminRolePda,
+        })
+        .rpc();
+
       // cap = 100 USD, $2.00 => token_cap = 50_000_000 (50 tokens)
       const oracleKey = injectMockPriceUpdate(BigInt(200_000_000), -8);
 
@@ -455,6 +475,16 @@ describe('Oracle — PriceUpdateV2 (bankrun)', () => {
         capMint.mint.publicKey,
         recipient.publicKey,
       );
+
+      // Pin the oracle feed ID (all-zeros matches mock PriceUpdateV2 feed_id)
+      await coreProgram.methods
+        .updateOracleFeed(Array(32).fill(0))
+        .accountsPartial({
+          admin: provider.wallet.publicKey,
+          config: capMint.configPda,
+          adminRole: capMint.adminRolePda,
+        })
+        .rpc();
 
       // cap = 100 USD, $0.50 => token_cap = 200_000_000 (200 tokens)
       const oracleKey = injectMockPriceUpdate(BigInt(50_000_000), -8);
@@ -522,6 +552,16 @@ describe('Oracle — PriceUpdateV2 (bankrun)', () => {
         recipient.publicKey,
       );
 
+      // Pin the oracle feed ID (all-zeros matches mock PriceUpdateV2 feed_id)
+      await coreProgram.methods
+        .updateOracleFeed(Array(32).fill(0))
+        .accountsPartial({
+          admin: provider.wallet.publicKey,
+          config: mint.configPda,
+          adminRole: mint.adminRolePda,
+        })
+        .rpc();
+
       const oracleKey = injectMockPriceUpdate(BigInt(100_000_000), -8);
 
       await coreProgram.methods
@@ -566,6 +606,16 @@ describe('Oracle — PriceUpdateV2 (bankrun)', () => {
         mint.mint.publicKey,
         recipient.publicKey,
       );
+
+      // Pin the oracle feed ID (all-zeros matches mock PriceUpdateV2 feed_id)
+      await coreProgram.methods
+        .updateOracleFeed(Array(32).fill(0))
+        .accountsPartial({
+          admin: provider.wallet.publicKey,
+          config: mint.configPda,
+          adminRole: mint.adminRolePda,
+        })
+        .rpc();
 
       // Publish time 5 minutes ago — stale
       const staleTime = BigInt(Math.floor(Date.now() / 1000) - 300);
@@ -615,6 +665,16 @@ describe('Oracle — PriceUpdateV2 (bankrun)', () => {
         mint.mint.publicKey,
         recipient.publicKey,
       );
+
+      // Pin the oracle feed ID (all-zeros matches mock PriceUpdateV2 feed_id)
+      await coreProgram.methods
+        .updateOracleFeed(Array(32).fill(0))
+        .accountsPartial({
+          admin: provider.wallet.publicKey,
+          config: mint.configPda,
+          adminRole: mint.adminRolePda,
+        })
+        .rpc();
 
       const oracleKey = injectMockPriceUpdate(BigInt(-100_000_000), -8);
 

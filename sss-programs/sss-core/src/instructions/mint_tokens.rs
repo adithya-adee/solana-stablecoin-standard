@@ -90,8 +90,16 @@ pub fn handler_mint_tokens(ctx: Context<MintTokens>, amount: u64) -> Result<()> 
     // Oracle-aware supply cap: if a Pyth PriceUpdateV2 account is provided,
     // convert the USD-denominated cap to token units using the live price.
     // This is backward-compatible — omitting the oracle uses the raw cap.
+    //
+    // SECURITY: A configured oracle_feed_id is REQUIRED before passing a
+    // price_update. Using a wildcard (all-zeros) feed ID is no longer accepted —
+    // this prevents an attacker from substituting a cheap-asset price feed to
+    // inflate the effective cap. Call `update_oracle_feed` to pin the feed ID.
     let effective_cap = if let Some(ref price_update) = ctx.accounts.price_update {
-        adjust_cap_with_oracle(config.supply_cap, price_update, decimals)?
+        let feed_id = config
+            .oracle_feed_id
+            .ok_or(error!(SssError::OracleFeedNotConfigured))?;
+        adjust_cap_with_oracle(config.supply_cap, price_update, decimals, &feed_id)?
     } else {
         config.supply_cap
     };
@@ -154,10 +162,8 @@ pub fn handler_mint_tokens(ctx: Context<MintTokens>, amount: u64) -> Result<()> 
 /// Uses `get_price_no_older_than` which enforces:
 ///   • Staleness — price must be ≤ `ORACLE_MAX_AGE_SECS` old.
 ///   • Positive price — prices ≤ 0 are rejected by the SDK.
-///
-/// The `feed_id` parameter is currently `None` which skips feed-ID
-/// validation (accepts any well-formed price update).  Protocols that
-/// pin to specific feeds should pass the 32-byte feed ID here.
+///   • Feed ID match — the `feed_id` must match the on-chain price account,
+///     preventing substitution of a different (cheaper) asset's price feed.
 ///
 /// Cap conversion:
 ///   token_cap = usd_cap × 10^mint_decimals / (price × 10^exponent)
@@ -167,19 +173,19 @@ fn adjust_cap_with_oracle(
     usd_cap: Option<u64>,
     price_update: &Account<PriceUpdateV2>,
     mint_decimals: u8,
+    feed_id: &[u8; 32],
 ) -> Result<Option<u64>> {
     let Some(cap) = usd_cap else {
         return Ok(None);
     };
 
-    // Retrieve price, enforcing staleness check.
+    // Retrieve price, enforcing staleness check and feed ID verification.
     // ORACLE_MAX_AGE_SECS = 120; the SDK rejects updates older than this.
-    // `feed_id` is all-zeros here (wildcard); protocols should pin the
-    // actual Pyth feed ID for the asset to prevent feed spoofing.
-    let feed_id: [u8; 32] = [0u8; 32];
+    // `feed_id` is the caller-supplied feed ID pinned in StablecoinConfig,
+    // preventing substitution of a cheap-asset feed to inflate the cap.
     let clock = Clock::get()?;
     let price_data = price_update
-        .get_price_no_older_than(&clock, ORACLE_MAX_AGE_SECS, &feed_id)
+        .get_price_no_older_than(&clock, ORACLE_MAX_AGE_SECS, feed_id)
         .map_err(|_| error!(SssError::OraclePriceStale))?;
 
     let price_i64 = price_data.price;

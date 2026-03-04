@@ -5,6 +5,7 @@ import { PublicKey } from '@solana/web3.js';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { PageHeader } from '@/components/page-header';
 import { MintSelector } from '@/components/mint-selector';
+import { useActiveMint } from '@/hooks/use-active-mint';
 import { deriveConfigPda } from '@/lib/pda';
 
 interface HistoryEntry {
@@ -37,7 +38,7 @@ function formatDate(ts: number): string {
 
 export default function HistoryPage() {
   const { connection } = useConnection();
-  const [activeMint, setActiveMint] = useState<string | null>(null);
+  const { activeMint, setActiveMint } = useActiveMint();
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

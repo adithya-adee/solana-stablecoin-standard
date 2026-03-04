@@ -10,12 +10,13 @@ export type AccessRole = Brand<
 >;
 export type AccessRoleId = Brand<0 | 1 | 2 | 3 | 4 | 5 | 6, 'AccessRoleId'>;
 
-export const asTier = (v: 'sss-1' | 'sss-2' | 'sss-3') => v as TierLabel;
+export const asTier = (v: 'sss-1' | 'sss-2' | 'sss-3'): TierLabel => v as TierLabel;
 export const asRole = (
   v: 'admin' | 'minter' | 'freezer' | 'pauser' | 'burner' | 'blacklister' | 'seizer',
-) => v as AccessRole;
-export const asRoleId = (v: 0 | 1 | 2 | 3 | 4 | 5 | 6) => v as AccessRoleId;
+): AccessRole => v as AccessRole;
+export const asRoleId = (v: 0 | 1 | 2 | 3 | 4 | 5 | 6): AccessRoleId => v as AccessRoleId;
 
+// Branded key types for compile-time distinction of PublicKey uses
 export type TokenMintKey = Brand<PublicKey, 'TokenMintKey'>;
 export type ConfigAccountKey = Brand<PublicKey, 'ConfigAccountKey'>;
 export type RoleAccountKey = Brand<PublicKey, 'RoleAccountKey'>;
@@ -58,7 +59,8 @@ export interface DenyListInfo {
   reason: string;
 }
 
-export const ROLE_ID_MAP = {
+// String-keyed maps with branded type values
+export const ROLE_ID_MAP: Record<string, AccessRoleId> = {
   admin: asRoleId(0),
   minter: asRoleId(1),
   freezer: asRoleId(2),
@@ -66,13 +68,13 @@ export const ROLE_ID_MAP = {
   burner: asRoleId(4),
   blacklister: asRoleId(5),
   seizer: asRoleId(6),
-} as Record<AccessRole, AccessRoleId>;
+};
 
-export const TIER_ORDINAL_MAP = {
+export const TIER_ORDINAL_MAP: Record<string, number> = {
   'sss-1': 1,
   'sss-2': 2,
   'sss-3': 3,
-} as Record<TierLabel, number>;
+};
 
 export const ORDINAL_TO_TIER_MAP: Record<number, TierLabel> = {
   1: asTier('sss-1'),

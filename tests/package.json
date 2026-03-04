@@ -1,6 +1,7 @@
 {
   "name": "sss-tests",
   "private": true,
+  "type": "module",
   "scripts": {
     "test": "ts-mocha -p ./tsconfig.json -t 120000 ./**/*.test.ts",
     "format": "prettier --write \"**/*.ts\"",

@@ -1,0 +1,10 @@
+repos:
+  - repo: local
+    hooks:
+      - id: pnpm-format
+        name: pnpm format
+        description: Run workspace `pnpm format` to format files
+        entry: pnpm format
+        language: system
+        pass_filenames: false
+        stages: [commit]

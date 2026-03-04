@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 
 use crate::constants::MAX_REASON_LEN;
 use crate::error::TransferHookError;
+use crate::events::BlacklistAdded;
 use crate::state::BlacklistEntry;
 
 use super::admin_verify::verify_blacklister_for_mint;
@@ -54,8 +55,16 @@ pub fn handler_add_to_blacklist(ctx: Context<AddToBlacklist>, reason: String) ->
     entry.address = ctx.accounts.address.key();
     entry.added_by = ctx.accounts.blacklister.key();
     entry.added_at = Clock::get()?.unix_timestamp;
-    entry.reason = reason;
+    entry.reason = reason.clone();
     entry.bump = ctx.bumps.blacklist_entry;
+
+    emit!(BlacklistAdded {
+        mint: entry.mint,
+        address: entry.address,
+        added_by: entry.added_by,
+        added_at: entry.added_at,
+        reason,
+    });
 
     Ok(())
 }

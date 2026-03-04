@@ -41,7 +41,7 @@ pub mod sss_core {
         instructions::unpause::handler_unpause(ctx)
     }
 
-    pub fn seize(ctx: Context<Seize>, amount: u64) -> Result<()> {
+    pub fn seize<'info>(ctx: Context<'_, '_, '_, 'info, Seize<'info>>, amount: u64) -> Result<()> {
         instructions::seize::handler_seize(ctx, amount)
     }
 
@@ -66,5 +66,12 @@ pub mod sss_core {
 
     pub fn update_minter(ctx: Context<UpdateMinter>, new_quota: Option<u64>) -> Result<()> {
         instructions::update_minter::handler_update_minter(ctx, new_quota)
+    }
+
+    pub fn update_oracle_feed(
+        ctx: Context<UpdateOracleFeed>,
+        oracle_feed_id: Option<[u8; 32]>,
+    ) -> Result<()> {
+        instructions::update_oracle::handler_update_oracle_feed(ctx, oracle_feed_id)
     }
 }

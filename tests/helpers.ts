@@ -245,10 +245,11 @@ export async function createSss1Mint(
       symbol: args.symbol,
       uri: args.uri,
       decimals: args.decimals,
-      supplyCap: args.supplyCap,
+      supplyCap: args.supplyCap ?? null,
       enablePermanentDelegate: null,
       enableTransferHook: null,
       defaultAccountFrozen: null,
+      oracleFeedId: null,
     })
     .accountsPartial({
       authority,
@@ -400,10 +401,11 @@ export async function createSss2Mint(
       symbol: args.symbol,
       uri: args.uri,
       decimals: args.decimals,
-      supplyCap: args.supplyCap,
+      supplyCap: args.supplyCap ?? null,
       enablePermanentDelegate: null,
       enableTransferHook: null,
       defaultAccountFrozen: null,
+      oracleFeedId: null,
     })
     .accountsPartial({
       authority,
@@ -557,10 +559,11 @@ export async function createSss3Mint(
       symbol: args.symbol,
       uri: args.uri,
       decimals: args.decimals,
-      supplyCap: args.supplyCap,
+      supplyCap: args.supplyCap ?? null,
       enablePermanentDelegate: null,
       enableTransferHook: null,
       defaultAccountFrozen: null,
+      oracleFeedId: null,
     })
     .accountsPartial({
       authority,

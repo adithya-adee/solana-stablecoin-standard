@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { BN } from '@coral-xyz/anchor';
-import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
+import { TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Coins, Zap, Flame, ShieldAlert, Play, ShieldBan } from 'lucide-react';
@@ -12,19 +12,14 @@ import { twMerge } from 'tailwind-merge';
 import { PageHeader } from '@/components/page-header';
 import { MintSelector } from '@/components/mint-selector';
 import { TxFeedback } from '@/components/tx-feedback';
-import { useLedgerProgram } from '@/hooks/use-ledger-program';
+import { useStablecoin } from '@/hooks/use-stablecoin';
 import { useTransaction } from '@/hooks/use-transaction';
-import { deriveConfigPda, deriveRolePda } from '@/lib/pda';
+import { useActiveMint } from '@/hooks/use-active-mint';
 import { isValidPubkey } from '@/lib/validation';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
-
-const ROLE_MINTER = 1;
-const ROLE_FREEZER = 2;
-const ROLE_PAUSER = 3;
-const ROLE_BURNER = 4;
 
 type OperationType = 'mint' | 'burn' | 'freeze' | 'thaw' | 'pause' | 'unpause';
 
@@ -42,7 +37,8 @@ const OPERATIONS: Record<
   mint: {
     id: 'mint',
     title: 'Mint Tokens',
-    description: 'Issue new tokens to a recipient token account. Requires minter role.',
+    description:
+      'Issue new tokens to a recipient token account. Automatically creates ATA if missing. Requires minter role.',
     icon: Coins,
     color: 'text-success bg-success/10 border-success/20',
     buttonVariant: 'primary',
@@ -152,10 +148,10 @@ function ActionButton({
 
 export default function OperationsPage() {
   const { publicKey } = useWallet();
-  const program = useLedgerProgram();
-  const { loading, error, signature, execute, reset } = useTransaction();
+  const { client, loading: clientLoading } = useStablecoin();
+  const { loading: txLoading, error, signature, execute, reset } = useTransaction();
 
-  const [activeMint, setActiveMint] = useState<string | null>(null);
+  const { activeMint, setActiveMint } = useActiveMint();
   const [operation, setOperation] = useState<OperationType>('mint');
   const [isOpen, setIsOpen] = useState(false);
 
@@ -163,125 +159,97 @@ export default function OperationsPage() {
   const [addressInput, setAddressInput] = useState('');
   const [amountInput, setAmountInput] = useState('');
 
-  const canOperate = !!publicKey && !!program && !!activeMint;
+  // Permission State
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [checkingPermission, setCheckingPermission] = useState(false);
+
+  const requiresAddress = ['mint', 'burn', 'freeze', 'thaw'].includes(operation);
+  const requiresAmount = ['mint', 'burn'].includes(operation);
+
+  const loading = clientLoading || txLoading;
+  const canOperate = !!publicKey && !!client && !!activeMint;
+
+  // Check permissions when operation or activeMint changes
+  useEffect(() => {
+    async function checkPerms() {
+      if (!client || !publicKey) {
+        setHasPermission(null);
+        return;
+      }
+
+      setCheckingPermission(true);
+      try {
+        const role =
+          operation === 'mint'
+            ? 'minter'
+            : operation === 'burn'
+              ? 'burner'
+              : operation === 'freeze' || operation === 'thaw'
+                ? 'freezer'
+                : 'pauser';
+
+        const ok = await client.accessControl.check(publicKey, role as any);
+        setHasPermission(ok);
+      } catch (err) {
+        console.error('Failed to check permission:', err);
+        setHasPermission(null);
+      } finally {
+        setCheckingPermission(false);
+      }
+    }
+
+    checkPerms();
+  }, [client, publicKey, operation, activeMint]);
 
   const handleSubmit = useCallback(async () => {
-    if (!canOperate) return;
+    if (!canOperate || !client) return;
 
     // Address validation for ops that require it
-    if (['mint', 'burn', 'freeze', 'thaw'].includes(operation)) {
+    if (requiresAddress) {
       if (!addressInput || !isValidPubkey(addressInput)) return;
     }
 
     // Amount validation
-    if (['mint', 'burn'].includes(operation)) {
+    if (requiresAmount) {
       if (!amountInput || amountInput === '0') return;
     }
 
     reset();
 
-    const mintPubkey = new PublicKey(activeMint!);
-    const [configPda] = deriveConfigPda(mintPubkey);
-    const userPubkey = publicKey!;
-
     try {
       let tx;
+      const targetPubkey = requiresAddress ? new PublicKey(addressInput) : null;
+      const amountBigInt = requiresAmount ? BigInt(amountInput) : 0n;
 
       if (operation === 'mint') {
-        const [rolePda] = deriveRolePda(configPda, userPubkey, ROLE_MINTER);
-        tx = await program!.methods
-          .mintTokens(new BN(amountInput))
-          .accountsPartial({
-            minter: userPubkey,
-            config: configPda,
-            minterRole: rolePda,
-            mint: mintPubkey,
-            to: new PublicKey(addressInput),
-            tokenProgram: TOKEN_2022_PROGRAM_ID,
-          })
-          .transaction();
+        tx = await client.composeMintTokens(targetPubkey!, amountBigInt);
       } else if (operation === 'burn') {
-        const [rolePda] = deriveRolePda(configPda, userPubkey, ROLE_BURNER);
-        tx = await program!.methods
-          .burnTokens(new BN(amountInput))
-          .accountsPartial({
-            burner: userPubkey,
-            config: configPda,
-            burnerRole: rolePda,
-            mint: mintPubkey,
-            from: new PublicKey(addressInput),
-            tokenProgram: TOKEN_2022_PROGRAM_ID,
-          })
-          .transaction();
+        tx = await client.composeBurnTokens(targetPubkey!, amountBigInt);
       } else if (operation === 'freeze') {
-        const [rolePda] = deriveRolePda(configPda, userPubkey, ROLE_FREEZER);
-        tx = await program!.methods
-          .freezeAccount()
-          .accountsPartial({
-            freezer: userPubkey,
-            config: configPda,
-            freezerRole: rolePda,
-            mint: mintPubkey,
-            tokenAccount: new PublicKey(addressInput),
-            tokenProgram: TOKEN_2022_PROGRAM_ID,
-          })
-          .transaction();
+        tx = await client.composeFreezeAccount(targetPubkey!);
       } else if (operation === 'thaw') {
-        const [rolePda] = deriveRolePda(configPda, userPubkey, ROLE_FREEZER);
-        tx = await program!.methods
-          .thawAccount()
-          .accountsPartial({
-            freezer: userPubkey,
-            config: configPda,
-            freezerRole: rolePda,
-            mint: mintPubkey,
-            tokenAccount: new PublicKey(addressInput),
-            tokenProgram: TOKEN_2022_PROGRAM_ID,
-          })
-          .transaction();
+        tx = await client.composeThawAccount(targetPubkey!);
       } else if (operation === 'pause') {
-        const [rolePda] = deriveRolePda(configPda, userPubkey, ROLE_PAUSER);
-        tx = await program!.methods
-          .pause()
-          .accountsPartial({
-            pauser: userPubkey,
-            config: configPda,
-            pauserRole: rolePda,
-          })
-          .transaction();
+        tx = await client.composePause();
       } else if (operation === 'unpause') {
-        const [rolePda] = deriveRolePda(configPda, userPubkey, ROLE_PAUSER);
-        tx = await program!.methods
-          .unpause()
-          .accountsPartial({
-            pauser: userPubkey,
-            config: configPda,
-            pauserRole: rolePda,
-          })
-          .transaction();
+        tx = await client.composeResume();
+      }
+
+      // If it's a string, it means it already sent. If it's a Transaction, we execute it.
+      if (typeof tx === 'string') {
+        // This is a bit of a hack since some methods still return sigs
+        // We'll update the SDK further if needed, but let's handle it for now.
+        return;
       }
 
       if (tx) await execute(tx);
     } catch (err) {
       console.error(err);
     }
-  }, [
-    canOperate,
-    operation,
-    addressInput,
-    amountInput,
-    activeMint,
-    publicKey,
-    program,
-    execute,
-    reset,
-  ]);
+  }, [canOperate, client, operation, addressInput, amountInput, execute, reset]);
 
   const activeOp = OPERATIONS[operation];
   const ActiveIcon = activeOp.icon;
-
-  const requiresAddress = ['mint', 'burn', 'freeze', 'thaw'].includes(operation);
-  const requiresAmount = ['mint', 'burn'].includes(operation);
 
   return (
     <div>
@@ -301,6 +269,15 @@ export default function OperationsPage() {
           <div className="rounded-xl border border-warning/20 bg-warning/5 p-5 text-center shadow-sm">
             <p className="text-sm text-warning font-medium">
               Connect your wallet to execute transactions.
+            </p>
+          </div>
+        )}
+
+        {publicKey && activeMint && hasPermission === false && !checkingPermission && (
+          <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-5 flex items-center gap-3 shadow-sm">
+            <ShieldBan className="text-destructive shrink-0" size={20} />
+            <p className="text-sm text-destructive font-medium">
+              Unauthorized: Your wallet lacks the required role to perform this operation.
             </p>
           </div>
         )}

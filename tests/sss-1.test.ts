@@ -446,7 +446,6 @@ describe('SSS-1: Minimal Stablecoin', () => {
         from: recipientAta,
         to: treasuryAta,
         tokenProgram: TOKEN_2022_PROGRAM_ID,
-        priceUpdate: null,
       })
       .rpc();
 
@@ -469,6 +468,27 @@ describe('SSS-1: Minimal Stablecoin', () => {
         roleAccount: minterRolePda,
       })
       .rpc();
+
+    it('rejects zero-amount mint (can_mint(0) audit fix)', async () => {
+      try {
+        await coreProgram.methods
+          .mintTokens(new BN(0))
+          .accountsPartial({
+            minter: minter.publicKey,
+            config: mintResult.configPda,
+            minterRole: minterRolePda,
+            mint: mintResult.mint.publicKey,
+            to: recipientAta,
+            tokenProgram: TOKEN_2022_PROGRAM_ID,
+            priceUpdate: null,
+          })
+          .signers([minter])
+          .rpc();
+        expect.fail('Should have failed for zero-amount mint');
+      } catch (err: any) {
+        expect(err.toString()).to.include('AmountMustBeNonZero');
+      }
+    });
 
     // Verify the role PDA is closed
     const roleInfo = await provider.connection.getAccountInfo(minterRolePda);

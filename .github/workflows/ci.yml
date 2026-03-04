@@ -188,11 +188,11 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
-      - name: Typecheck backend
-        run: cd solana-stablecoin-backend && npx tsc --noEmit
+      - name: Build backend
+        run: pnpm --filter solana-stablecoin-backend build
 
-      - name: Typecheck frontend
-        run: cd solana-stablecoin-frontend && npx tsc --noEmit
+      - name: Build frontend
+        run: pnpm --filter solana-stablecoin-frontend build
 
   docker-build:
     name: Docker Build Check

@@ -9,7 +9,10 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { PageHeader } from '@/components/page-header';
 import { MintSelector } from '@/components/mint-selector';
-import { deriveBlacklistPda } from '@/lib/pda';
+import { TxFeedback } from '@/components/tx-feedback';
+import { useStablecoin } from '@/hooks/use-stablecoin';
+import { useTransaction } from '@/hooks/use-transaction';
+import { useActiveMint } from '@/hooks/use-active-mint';
 import { isValidPubkey } from '@/lib/validation';
 
 function cn(...inputs: ClassValue[]) {
@@ -40,7 +43,7 @@ const OPERATIONS: Record<
   add: {
     id: 'add',
     title: 'Add to Blacklist',
-    description: 'Block an address from transferring tokens.',
+    description: 'Block an address from transferring tokens. Requires blacklister role.',
     icon: ShieldOff,
     color: 'text-destructive bg-destructive/10 border-destructive/20',
     buttonVariant: 'destructive',
@@ -48,7 +51,7 @@ const OPERATIONS: Record<
   remove: {
     id: 'remove',
     title: 'Remove from Blacklist',
-    description: "Restore an address's ability to transfer tokens.",
+    description: "Restore an address's ability to transfer tokens. Requires blacklister role.",
     icon: ShieldAlert,
     color: 'text-warning bg-warning/10 border-warning/20',
     buttonVariant: 'warning',
@@ -56,9 +59,10 @@ const OPERATIONS: Record<
 };
 
 export default function BlacklistPage() {
-  const { connection } = useConnection();
   const { publicKey } = useWallet();
-  const [activeMint, setActiveMint] = useState<string | null>(null);
+  const { client, loading: clientLoading } = useStablecoin();
+  const { loading: txLoading, error: txError, signature, execute, reset } = useTransaction();
+  const { activeMint, setActiveMint } = useActiveMint();
 
   const [operation, setOperation] = useState<OperationType>('check');
   const [isOpen, setIsOpen] = useState(false);
@@ -71,30 +75,46 @@ export default function BlacklistPage() {
   >('idle');
   const [checkError, setCheckError] = useState<string | null>(null);
 
-  const handleCheck = useCallback(async () => {
-    if (!activeMint || !addressInput) return;
-    if (!isValidPubkey(addressInput) || !isValidPubkey(activeMint)) {
+  const loading = clientLoading || txLoading;
+
+  const handleAction = useCallback(async () => {
+    if (!client || !addressInput) return;
+    if (!isValidPubkey(addressInput)) {
       setCheckError('Invalid address format');
       setCheckResult('error');
       return;
     }
 
-    setCheckResult('loading');
-    setCheckError(null);
+    reset();
 
-    try {
-      const mintPubkey = new PublicKey(activeMint);
-      const addressPubkey = new PublicKey(addressInput);
-      const [blacklistPda] = deriveBlacklistPda(mintPubkey, addressPubkey);
+    if (operation === 'check') {
+      setCheckResult('loading');
+      setCheckError(null);
 
-      const accountInfo = await connection.getAccountInfo(blacklistPda);
-      setCheckResult(accountInfo !== null ? 'blacklisted' : 'clean');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Check failed';
-      setCheckError(message);
-      setCheckResult('error');
+      try {
+        const isBlacklisted = await client.denyList.check(new PublicKey(addressInput));
+        setCheckResult(isBlacklisted ? 'blacklisted' : 'clean');
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Check failed';
+        setCheckError(message);
+        setCheckResult('error');
+      }
+    } else {
+      try {
+        let tx;
+        const targetPubkey = new PublicKey(addressInput);
+        if (operation === 'add') {
+          tx = await client.composeBlacklistAdd(targetPubkey, reasonInput || 'Manual blacklist');
+        } else {
+          tx = await client.composeBlacklistRemove(targetPubkey);
+        }
+
+        if (tx) await execute(tx);
+      } catch (err) {
+        console.error(err);
+      }
     }
-  }, [activeMint, addressInput, connection]);
+  }, [client, operation, addressInput, reasonInput, execute, reset]);
 
   const activeOp = OPERATIONS[operation];
   const ActiveIcon = activeOp.icon;
@@ -143,6 +163,13 @@ export default function BlacklistPage() {
             animate={{ opacity: 1, scale: 1 }}
             className="rounded-2xl border border-border/50 bg-card/60 backdrop-blur-xl p-8 shadow-xl relative z-10"
           >
+            {/* Transactions Feedback */}
+            {operation !== 'check' && (
+              <div className="mb-6">
+                <TxFeedback loading={txLoading} error={txError} signature={signature} />
+              </div>
+            )}
+
             {/* Custom Dropdown */}
             <div className="relative mb-8">
               <label className="mb-2 block text-sm font-medium text-muted-foreground">
@@ -335,8 +362,8 @@ export default function BlacklistPage() {
 
                   <div className="pt-4 mt-4 border-t border-border/30">
                     <button
-                      onClick={operation === 'check' ? handleCheck : undefined}
-                      disabled={!addressInput || operation !== 'check'}
+                      onClick={handleAction}
+                      disabled={!addressInput || loading}
                       className={cn(
                         'w-full rounded-xl px-4 py-3.5 text-sm font-semibold transition-all shadow-lg active:scale-[0.98]',
                         activeOp.buttonVariant === 'primary' &&
@@ -345,24 +372,16 @@ export default function BlacklistPage() {
                           'bg-warning hover:bg-warning/80 text-black shadow-warning/20',
                         activeOp.buttonVariant === 'destructive' &&
                           'bg-destructive hover:bg-destructive/80 text-white shadow-destructive/20',
-                        (!addressInput || operation !== 'check') &&
+                        (!addressInput || loading) &&
                           'opacity-50 cursor-not-allowed shadow-none active:scale-100',
                       )}
-                      title={
-                        operation !== 'check'
-                          ? 'Requires SSS Transfer Hook IDL client bindings (coming soon)'
-                          : undefined
-                      }
                     >
-                      {operation === 'check'
-                        ? 'Query On-Chain Status'
-                        : `${activeOp.title} (Coming Soon)`}
+                      {loading
+                        ? 'Processing...'
+                        : operation === 'check'
+                          ? 'Query On-Chain Status'
+                          : `Execute ${activeOp.title}`}
                     </button>
-                    {operation !== 'check' && (
-                      <p className="text-xs text-muted-foreground text-center mt-3">
-                        Blacklist mutation commands require the direct SDK or CLI presently.
-                      </p>
-                    )}
                   </div>
                 </motion.div>
               </AnimatePresence>

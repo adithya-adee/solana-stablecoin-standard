@@ -10,28 +10,29 @@ import { twMerge } from 'tailwind-merge';
 import { PageHeader } from '@/components/page-header';
 import { MintSelector } from '@/components/mint-selector';
 import { TxFeedback } from '@/components/tx-feedback';
-import { useLedgerProgram } from '@/hooks/use-ledger-program';
+import { useStablecoin } from '@/hooks/use-stablecoin';
 import { useTransaction } from '@/hooks/use-transaction';
-import { deriveConfigPda, deriveRolePda } from '@/lib/pda';
+import { useActiveMint } from '@/hooks/use-active-mint';
 import { isValidPubkey } from '@/lib/validation';
+import { type AccessRole, asRole } from '@stbr/sss-token';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-type Role = 'Admin' | 'Minter' | 'Freezer' | 'Pauser' | 'Burner' | 'Blacklister' | 'Seizer';
+type RoleName = 'Admin' | 'Minter' | 'Freezer' | 'Pauser' | 'Burner' | 'Blacklister' | 'Seizer';
 
-const ROLE_MAP: Record<Role, number> = {
-  Admin: 0,
-  Minter: 1,
-  Freezer: 2,
-  Pauser: 3,
-  Burner: 4,
-  Blacklister: 5,
-  Seizer: 6,
+const ROLE_DISPLAY_MAP: Record<RoleName, AccessRole> = {
+  Admin: asRole('admin'),
+  Minter: asRole('minter'),
+  Freezer: asRole('freezer'),
+  Pauser: asRole('pauser'),
+  Burner: asRole('burner'),
+  Blacklister: asRole('blacklister'),
+  Seizer: asRole('seizer'),
 };
 
-const ROLE_DESCRIPTIONS: Record<Role, string> = {
+const ROLE_DESCRIPTIONS: Record<RoleName, string> = {
   Admin: 'Full authority. Can grant/revoke roles, update config, and manage supply cap.',
   Minter: 'Can mint new tokens up to the supply cap.',
   Freezer: 'Can freeze and thaw individual token accounts for compliance.',
@@ -41,7 +42,7 @@ const ROLE_DESCRIPTIONS: Record<Role, string> = {
   Seizer: 'Can seize tokens via permanent delegate. Works even when paused.',
 };
 
-type OperationType = 'grant' | 'revoke' | 'info';
+type OperationType = 'grant' | 'revoke' | 'check' | 'info';
 
 const OPERATIONS: Record<
   OperationType,
@@ -78,81 +79,88 @@ const OPERATIONS: Record<
     color: 'text-accent bg-accent/10 border-accent/20',
     buttonVariant: 'primary',
   },
+  check: {
+    id: 'check',
+    title: 'Check Role Status',
+    description: 'Verify all roles held by an address. Scans all recursive permission levels.',
+    icon: ScrollText,
+    color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+    buttonVariant: 'primary',
+  },
 };
 
 export default function RolesPage() {
   const { publicKey } = useWallet();
-  const program = useLedgerProgram();
-  const { loading, error, signature, execute, reset } = useTransaction();
+  const { client, loading: clientLoading } = useStablecoin();
+  const { loading: txLoading, error, signature, execute, reset } = useTransaction();
 
-  const [activeMint, setActiveMint] = useState<string | null>(null);
+  const { activeMint, setActiveMint } = useActiveMint();
   const [operation, setOperation] = useState<OperationType>('grant');
   const [isOpen, setIsOpen] = useState(false);
 
   const [addressInput, setAddressInput] = useState('');
-  const [selectedRole, setSelectedRole] = useState<Role>('Minter');
+  const [selectedRole, setSelectedRole] = useState<RoleName>('Minter');
+  const [foundRoles, setFoundRoles] = useState<any[]>([]);
+  const [isChecking, setIsChecking] = useState(false);
+  const [lastCheckedAddress, setLastCheckedAddress] = useState<string | null>(null);
 
-  const canOperate = !!publicKey && !!program && !!activeMint;
+  const loading = clientLoading || txLoading;
+  const canOperate = !!publicKey && !!client && !!activeMint;
 
   const handleSubmit = useCallback(async () => {
-    if (!canOperate) return;
+    if (!canOperate || !client) return;
     if (operation === 'info') return;
     if (!addressInput || !isValidPubkey(addressInput)) return;
 
     reset();
 
-    const mintPubkey = new PublicKey(activeMint!);
-    const [configPda] = deriveConfigPda(mintPubkey);
-    const [adminRolePda] = deriveRolePda(configPda, publicKey!, ROLE_MAP.Admin);
     const targetPubkey = new PublicKey(addressInput);
-    const roleValue = ROLE_MAP[selectedRole];
-    const [roleAccountPda] = deriveRolePda(configPda, targetPubkey, roleValue);
+    const roleValue = ROLE_DISPLAY_MAP[selectedRole];
 
     try {
+      if (operation === 'check') {
+        setIsChecking(true);
+        setFoundRoles([]);
+        setLastCheckedAddress(addressInput);
+
+        const results = [];
+        // We still use the internal ledgerProgram for bulk scan to get full objects
+        for (const [roleName, sdkRole] of Object.entries(ROLE_DISPLAY_MAP)) {
+          try {
+            const [pda] = client.resolveRoleAccount(targetPubkey, sdkRole);
+            const info = await (client.ledgerProgram.account as any).roleAccount.fetch(pda);
+            results.push({
+              name: roleName,
+              ...info,
+            });
+          } catch (e) {
+            // Role not found, skip
+          }
+        }
+
+        setFoundRoles(results);
+        setIsChecking(false);
+        return;
+      }
+
       let tx;
 
       if (operation === 'grant') {
-        tx = await program!.methods
-          .grantRole(roleValue)
-          .accountsPartial({
-            admin: publicKey!,
-            config: configPda,
-            adminRole: adminRolePda,
-            grantee: targetPubkey,
-            roleAccount: roleAccountPda,
-            systemProgram: SystemProgram.programId,
-          })
-          .transaction();
+        tx = await client.composeGrantRole(targetPubkey, roleValue);
       } else if (operation === 'revoke') {
-        tx = await program!.methods
-          .revokeRole()
-          .accountsPartial({
-            admin: publicKey!,
-            config: configPda,
-            adminRole: adminRolePda,
-            roleAccount: roleAccountPda,
-          })
-          .transaction();
+        tx = await client.composeRevokeRole(targetPubkey, roleValue);
       }
 
-      const sig = await execute(tx!);
-      if (sig) {
-        setAddressInput('');
+      if (tx) {
+        const sig = await execute(tx);
+        if (sig) {
+          setAddressInput('');
+        }
       }
     } catch (err) {
       console.error(err);
     }
-  }, [
-    canOperate,
-    operation,
-    addressInput,
-    selectedRole,
-    activeMint,
-    publicKey,
-    program,
-    execute,
-    reset,
-  ]);
+  }, [canOperate, client, operation, addressInput, selectedRole, execute, reset]);
 
   const activeOp = OPERATIONS[operation];
   const ActiveIcon = activeOp.icon;
@@ -287,48 +295,152 @@ export default function RolesPage() {
                         />
                       </div>
 
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                          Role Type
-                        </label>
-                        <div className="relative">
-                          <select
-                            value={selectedRole}
-                            onChange={(e) => setSelectedRole(e.target.value as Role)}
-                            className="w-full appearance-none rounded-xl border border-border bg-background/50 px-4 py-3 text-sm text-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all cursor-pointer"
-                          >
-                            {Object.keys(ROLE_MAP).map((r) => (
-                              <option key={r} value={r}>
-                                {r}
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronDown
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-                            size={16}
-                          />
+                      {operation !== 'check' && (
+                        <div>
+                          <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                            Role Type
+                          </label>
+                          <div className="relative">
+                            <select
+                              value={selectedRole}
+                              onChange={(e) => setSelectedRole(e.target.value as RoleName)}
+                              className="w-full appearance-none rounded-xl border border-border bg-background/50 px-4 py-3 text-sm text-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all cursor-pointer"
+                            >
+                              {Object.keys(ROLE_DISPLAY_MAP).map((r) => (
+                                <option key={r} value={r}>
+                                  {r}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+                              size={16}
+                            />
+                          </div>
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            {ROLE_DESCRIPTIONS[selectedRole]}
+                          </p>
                         </div>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          {ROLE_DESCRIPTIONS[selectedRole]}
-                        </p>
-                      </div>
+                      )}
+
+                      {operation === 'check' && (
+                        <div className="pt-2">
+                          {isChecking && (
+                            <div className="flex flex-col items-center py-8 gap-3">
+                              <div className="h-6 w-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                              <p className="text-xs text-muted-foreground italic">
+                                Scanning all role levels...
+                              </p>
+                            </div>
+                          )}
+
+                          {!isChecking && lastCheckedAddress && (
+                            <div className="space-y-3">
+                              {foundRoles.length > 0 ? (
+                                <>
+                                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                    Active Permissions Found
+                                  </p>
+                                  <div className="grid grid-cols-1 gap-3">
+                                    {foundRoles.map((role) => (
+                                      <div
+                                        key={role.name}
+                                        className="rounded-xl border border-success/20 bg-success/5 p-4 space-y-3"
+                                      >
+                                        <div className="flex items-center justify-between">
+                                          <div className="flex items-center gap-2">
+                                            <div className="h-2 w-2 rounded-full bg-success ring-4 ring-success/20 animate-pulse" />
+                                            <p className="text-sm font-bold text-success capitalize">
+                                              {role.name}
+                                            </p>
+                                          </div>
+                                          <span className="text-[10px] text-muted-foreground font-mono bg-muted px-2 py-0.5 rounded">
+                                            Active
+                                          </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
+                                          <div>
+                                            <span className="text-muted-foreground block mb-0.5">
+                                              Granted By
+                                            </span>
+                                            <code className="text-foreground font-mono truncate block bg-background/50 px-1.5 py-0.5 rounded border border-border/50">
+                                              {role.grantedBy.toBase58()}
+                                            </code>
+                                          </div>
+                                          <div>
+                                            <span className="text-muted-foreground block mb-0.5">
+                                              Granted At
+                                            </span>
+                                            <span className="text-foreground block px-1.5 py-0.5">
+                                              {new Date(
+                                                role.grantedAt.toNumber() * 1000,
+                                              ).toLocaleDateString()}
+                                            </span>
+                                          </div>
+                                          {role.name === 'Minter' && (
+                                            <div className="col-span-2 pt-2 border-t border-success/10 mt-1">
+                                              <div className="flex justify-between items-center">
+                                                <span className="text-muted-foreground">
+                                                  Tokens Minted
+                                                </span>
+                                                <span className="text-foreground font-mono font-bold bg-success/10 px-2 py-0.5 rounded">
+                                                  {role.amountMinted.toString()}
+                                                </span>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="rounded-xl border border-dashed border-border bg-muted/10 p-10 text-center">
+                                  <div className="inline-flex items-center justify-center p-3 rounded-full bg-muted mb-4">
+                                    <ShieldMinus className="text-muted-foreground" size={24} />
+                                  </div>
+                                  <h4 className="text-sm font-semibold text-foreground">
+                                    No Permissions Found
+                                  </h4>
+                                  <p className="text-xs text-muted-foreground mt-1 max-w-[200px] mx-auto">
+                                    This address does not hold any roles for the selected
+                                    stablecoin.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       <div className="pt-4 mt-2 border-t border-border/30">
                         <button
                           onClick={handleSubmit}
-                          disabled={!canOperate || loading}
+                          disabled={
+                            !canOperate ||
+                            (operation !== 'check' && loading) ||
+                            (operation === 'check' && isChecking)
+                          }
                           className={cn(
                             'w-full rounded-xl px-4 py-3.5 text-sm font-semibold transition-all shadow-lg active:scale-[0.98]',
                             operation === 'grant'
                               ? 'bg-accent hover:bg-accent/80 text-white shadow-accent/20'
-                              : 'bg-destructive hover:bg-destructive/80 text-white shadow-destructive/20',
+                              : operation === 'revoke'
+                                ? 'bg-destructive hover:bg-destructive/80 text-white shadow-destructive/20'
+                                : 'bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20',
                             (!canOperate || loading) &&
+                              operation !== 'check' &&
                               'opacity-50 cursor-not-allowed shadow-none active:scale-100',
                           )}
                         >
-                          {loading
+                          {loading || isChecking
                             ? 'Processing...'
-                            : `${operation === 'grant' ? 'Grant' : 'Revoke'} Role`}
+                            : operation === 'grant'
+                              ? 'Grant Role'
+                              : operation === 'revoke'
+                                ? 'Revoke Role'
+                                : 'Check Status'}
                         </button>
                       </div>
                     </div>

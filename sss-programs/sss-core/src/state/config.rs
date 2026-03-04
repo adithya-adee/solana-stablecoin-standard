@@ -26,10 +26,15 @@ pub struct StablecoinConfig {
     pub default_account_frozen: bool,
     /// Number of active admins. Used to prevent revoking the last admin.
     pub admin_count: u32,
+    /// Pyth price feed ID (32-byte hex) that oracle-gated minting must match.
+    /// `None` means oracle-adjusted minting is disabled for this stablecoin.
+    /// Must be set via `update_oracle_feed` before passing a `price_update` account
+    /// to `mint_tokens`. Using a wildcard (all-zeros) is explicitly rejected.
+    pub oracle_feed_id: Option<[u8; 32]>,
 }
 
 impl StablecoinConfig {
-    pub const SSS_CONFIG_SEED: &[u8] = b"sss-config";
+    pub const SSS_CONFIG_SEED: &'static [u8] = b"sss-config";
 
     pub const CONFIG_SPACE: usize = 8 + // discriminator
         32 + // authority
@@ -47,7 +52,8 @@ impl StablecoinConfig {
         1 +  // enable_permanent_delegate
         1 +  // enable_transfer_hook
         1 +  // default_account_frozen
-        4;   // admin_count
+        4 +  // admin_count
+        33;  // Option<[u8; 32]> oracle_feed_id (1 + 32)
 
     /// Returns the current circulating supply (minted minus burned).
     pub fn current_supply(&self) -> u64 {
@@ -56,7 +62,14 @@ impl StablecoinConfig {
 
     /// Checks whether `amount` tokens can be minted without exceeding
     /// the supply cap or overflowing the total_minted counter.
+    ///
+    /// Returns `false` for `amount == 0` — a zero-amount mint is never valid
+    /// and would otherwise pass the cap check even when the supply cap is
+    /// exactly exhausted, giving confusing semantics to callers.
     pub fn can_mint(&self, amount: u64) -> bool {
+        if amount == 0 {
+            return false;
+        }
         let new_total = match self.total_minted.checked_add(amount) {
             Some(v) => v,
             None => return false,
@@ -94,6 +107,7 @@ mod tests {
             enable_transfer_hook: false,
             default_account_frozen: false,
             admin_count: 1,
+            oracle_feed_id: None,
         }
     }
 
@@ -151,11 +165,12 @@ mod tests {
     #[test]
     fn test_can_mint_zero() {
         let mut cfg = default_config();
-        assert!(cfg.can_mint(0));
+        // Zero is never a valid mint amount, regardless of cap state.
+        assert!(!cfg.can_mint(0));
 
         cfg.supply_cap = Some(100);
         cfg.total_minted = 100;
-        // At cap, zero should still succeed
-        assert!(cfg.can_mint(0));
+        // At cap, zero is still rejected.
+        assert!(!cfg.can_mint(0));
     }
 }
