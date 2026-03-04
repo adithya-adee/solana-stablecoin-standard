@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Box, Text } from 'ink';
 import { PublicKey } from '@solana/web3.js';
 import { BorshCoder, EventParser } from '@coral-xyz/anchor';
-import { SssCoreIdl, SSS_CORE_PROGRAM_ID } from '@stbr/sss-token';
+import { SssCoreIdl, STBL_CORE_PROGRAM_ID } from '@stbr/sss-token';
 import { Header, Spinner, Err, Card, Table } from '../components/ui.js';
 import { loadProvider, formatAmount } from '../utils/config.js';
 
@@ -29,7 +29,7 @@ export default function AuditLog({ options }: { options: AuditLogOptions }) {
         const limit = parseInt(options.limit ?? '20', 10);
 
         const sssCoder = new BorshCoder(SssCoreIdl as any);
-        const eventParser = new EventParser(SSS_CORE_PROGRAM_ID, sssCoder);
+        const eventParser = new EventParser(STBL_CORE_PROGRAM_ID, sssCoder);
 
         const signatures = await provider.connection.getSignaturesForAddress(mint, { limit });
 

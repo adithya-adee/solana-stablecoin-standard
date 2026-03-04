@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Text } from 'ink';
-import { SSS } from '@stbr/sss-token';
+import { SSS, asTier, type TokenDeployOptions } from '@stbr/sss-token';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import { Header, Spinner, Success, Err, Card, Table, Badge, Row } from '../components/ui.js';
 import { loadProvider, parseAmount, formatAmount } from '../utils/config.js';
-import { preset as mkPreset } from '@stbr/sss-token';
-import type { StablecoinCreateOptions } from '@stbr/sss-token';
+// removed deprecated `preset` import; use `asTier` to map preset strings
 import fs from 'fs';
 import toml from 'smol-toml';
 
@@ -51,7 +50,7 @@ export default function Init({ options }: { options: InitOptions }) {
         }
 
         // Resolve create options
-        let createOpts: StablecoinCreateOptions;
+        let createOpts: TokenDeployOptions;
 
         if (options.config) {
           const configContents = fs.readFileSync(options.config, 'utf-8');
@@ -67,7 +66,7 @@ export default function Init({ options }: { options: InitOptions }) {
           const configData = raw.stablecoin ?? raw;
 
           createOpts = {
-            preset: mkPreset(resolvedPreset),
+            preset: asTier(resolvedPreset),
             name: configData.name ?? options.name,
             symbol: configData.symbol ?? options.symbol,
             uri: configData.uri ?? options.uri,
@@ -76,7 +75,7 @@ export default function Init({ options }: { options: InitOptions }) {
           };
         } else {
           createOpts = {
-            preset: mkPreset(resolvedPreset),
+            preset: asTier(resolvedPreset),
             name: options.name,
             symbol: options.symbol,
             uri: options.uri,

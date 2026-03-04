@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { AnchorProvider } from '@coral-xyz/anchor';
-import { SSS } from '@stbr/sss-token';
+import { SSS, StablecoinClient } from '@stbr/sss-token';
 import { loadProvider } from '../utils/config.js';
 
 export function useSss(mintAddress: string | undefined) {
-  const [sss, setSss] = useState<SSS | null>(null);
+  const [sss, setSss] = useState<StablecoinClient | null>(null);
   const [provider, setProvider] = useState<AnchorProvider | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
