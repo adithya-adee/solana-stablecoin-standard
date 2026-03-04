@@ -9,7 +9,7 @@ import { ROLE_ID_MAP, asRole } from '../types';
 /**
  * Build the `initialize` instruction.
  */
-export function compileInitInstruction(
+export function createInitInstruction(
   program: Program<SssCore>,
   mint: TokenMintKey,
   authority: PublicKey,
@@ -52,7 +52,7 @@ export function compileInitInstruction(
 /**
  * Build the `mintTokens` instruction.
  */
-export function compileIssuanceInstruction(
+export function createIssuanceInstruction(
   program: Program<SssCore>,
   mint: TokenMintKey,
   minter: PublicKey,
@@ -79,7 +79,7 @@ export function compileIssuanceInstruction(
 /**
  * Build the `burnTokens` instruction.
  */
-export function compileRedemptionInstruction(
+export function createRedemptionInstruction(
   program: Program<SssCore>,
   mint: TokenMintKey,
   burner: PublicKey,
@@ -104,7 +104,7 @@ export function compileRedemptionInstruction(
 /**
  * Build the `freezeAccount` instruction.
  */
-export function compileFreezeInstruction(
+export function createFreezeInstruction(
   program: Program<SssCore>,
   mint: TokenMintKey,
   freezer: PublicKey,
@@ -128,7 +128,7 @@ export function compileFreezeInstruction(
 /**
  * Build the `thawAccount` instruction.
  */
-export function compileThawInstruction(
+export function createThawInstruction(
   program: Program<SssCore>,
   mint: TokenMintKey,
   freezer: PublicKey,
@@ -152,7 +152,7 @@ export function compileThawInstruction(
 /**
  * Build the `pause` instruction.
  */
-export function compilePauseInstruction(
+export function createPauseInstruction(
   program: Program<SssCore>,
   configPda: ConfigAccountKey,
   pauser: PublicKey,
@@ -172,7 +172,7 @@ export function compilePauseInstruction(
 /**
  * Build the `unpause` instruction.
  */
-export function compileResumeInstruction(
+export function createResumeInstruction(
   program: Program<SssCore>,
   configPda: ConfigAccountKey,
   pauser: PublicKey,
@@ -192,7 +192,7 @@ export function compileResumeInstruction(
 /**
  * Build the `seize` instruction.
  */
-export function compileSeizeInstruction(
+export function createSeizeInstruction(
   program: Program<SssCore>,
   mint: TokenMintKey,
   seizer: PublicKey,
@@ -219,7 +219,7 @@ export function compileSeizeInstruction(
 /**
  * Build the `grantRole` instruction.
  */
-export function compileGrantInstruction(
+export function createGrantInstruction(
   program: Program<SssCore>,
   configPda: ConfigAccountKey,
   admin: PublicKey,
@@ -244,7 +244,7 @@ export function compileGrantInstruction(
 /**
  * Build the `revokeRole` instruction.
  */
-export function compileRevokeInstruction(
+export function createRevokeInstruction(
   program: Program<SssCore>,
   configPda: ConfigAccountKey,
   admin: PublicKey,
@@ -266,7 +266,7 @@ export function compileRevokeInstruction(
 /**
  * Build the `transferAuthority` instruction.
  */
-export function compileAuthorityTransferInstruction(
+export function createAuthorityTransferInstruction(
   program: Program<SssCore>,
   configPda: ConfigAccountKey,
   admin: PublicKey,
@@ -295,7 +295,7 @@ export function compileAuthorityTransferInstruction(
 /**
  * Build the `updateMinter` instruction.
  */
-export function compileMinterUpdateInstruction(
+export function createMinterUpdateInstruction(
   program: Program<SssCore>,
   configPda: ConfigAccountKey,
   admin: PublicKey,
@@ -318,7 +318,7 @@ export function compileMinterUpdateInstruction(
 /**
  * Build the `updateSupplyCap` instruction.
  */
-export function compileCapUpdateInstruction(
+export function createCapUpdateInstruction(
   program: Program<SssCore>,
   configPda: ConfigAccountKey,
   admin: PublicKey,

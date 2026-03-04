@@ -14,7 +14,7 @@ import { asRole } from '../types';
 /**
  * Build the `initializeExtraAccountMetas` instruction.
  */
-export function compileHookMetaInitInstruction(
+export function createHookMetaInitInstruction(
   program: Program<SssTransferHook>,
   mint: TokenMintKey,
   payer: PublicKey,
@@ -31,7 +31,7 @@ export function compileHookMetaInitInstruction(
 /**
  * Build the `addToBlacklist` instruction.
  */
-export function compileDenyListAddInstruction(
+export function createDenyListAddInstruction(
   program: Program<SssTransferHook>,
   mint: TokenMintKey,
   blacklister: PublicKey,
@@ -61,7 +61,7 @@ export function compileDenyListAddInstruction(
 /**
  * Build the `removeFromBlacklist` instruction.
  */
-export function compileDenyListRemoveInstruction(
+export function createDenyListRemoveInstruction(
   program: Program<SssTransferHook>,
   mint: TokenMintKey,
   blacklister: PublicKey,

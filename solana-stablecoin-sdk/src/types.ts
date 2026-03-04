@@ -22,6 +22,11 @@ export type ConfigAccountKey = Brand<PublicKey, 'ConfigAccountKey'>;
 export type RoleAccountKey = Brand<PublicKey, 'RoleAccountKey'>;
 export type DenyListKey = Brand<PublicKey, 'DenyListKey'>;
 
+export const asMint = (v: PublicKey): TokenMintKey => v as TokenMintKey;
+export const asConfig = (v: PublicKey): ConfigAccountKey => v as ConfigAccountKey;
+export const asRoleKey = (v: PublicKey): RoleAccountKey => v as RoleAccountKey;
+export const asDenyListKey = (v: PublicKey): DenyListKey => v as DenyListKey;
+
 export interface TokenDeployOptions {
   preset: TierLabel;
   name: string;

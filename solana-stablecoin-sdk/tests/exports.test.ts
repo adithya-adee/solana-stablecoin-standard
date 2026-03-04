@@ -17,22 +17,22 @@ describe('SDK barrel exports', () => {
 
   describe('instruction builders', () => {
     const builders = [
-      'compileInitInstruction',
-      'compileIssuanceInstruction',
-      'compileRedemptionInstruction',
-      'compileFreezeInstruction',
-      'compileThawInstruction',
-      'compilePauseInstruction',
-      'compileResumeInstruction',
-      'compileSeizeInstruction',
-      'compileGrantInstruction',
-      'compileRevokeInstruction',
-      'compileAuthorityTransferInstruction',
-      'compileMinterUpdateInstruction',
-      'compileCapUpdateInstruction',
-      'compileHookMetaInitInstruction',
-      'compileDenyListAddInstruction',
-      'compileDenyListRemoveInstruction',
+      'createInitInstruction',
+      'createIssuanceInstruction',
+      'createRedemptionInstruction',
+      'createFreezeInstruction',
+      'createThawInstruction',
+      'createPauseInstruction',
+      'createResumeInstruction',
+      'createSeizeInstruction',
+      'createGrantInstruction',
+      'createRevokeInstruction',
+      'createAuthorityTransferInstruction',
+      'createMinterUpdateInstruction',
+      'createCapUpdateInstruction',
+      'createHookMetaInitInstruction',
+      'createDenyListAddInstruction',
+      'createDenyListRemoveInstruction',
     ];
 
     it.each(builders)('exports %s as a function', (name) => {
@@ -58,13 +58,13 @@ describe('SDK barrel exports', () => {
 
   describe('preset creators', () => {
     it('exports createSss1MintTransaction', () => {
-      expect(typeof SDK.createSss1MintTransaction).toBe('function');
+      expect(typeof SDK.createSss1MintTx).toBe('function');
     });
     it('exports createSss2MintTransaction', () => {
-      expect(typeof SDK.createSss2MintTransaction).toBe('function');
+      expect(typeof SDK.createSss2MintTx).toBe('function');
     });
     it('exports createSss3MintTransaction', () => {
-      expect(typeof SDK.createSss3MintTransaction).toBe('function');
+      expect(typeof SDK.createSss3MintTx).toBe('function');
     });
   });
 

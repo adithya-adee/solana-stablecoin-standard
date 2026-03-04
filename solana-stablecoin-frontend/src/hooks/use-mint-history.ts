@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 
 const STORAGE_KEY = 'sss-mint-history';
 
@@ -10,19 +10,18 @@ export interface HistoryItem {
 }
 
 export function useMintHistory() {
-  const [history, setHistory] = useState<HistoryItem[]>([]);
-
-  // Load from localStorage on mount
-  useEffect(() => {
+  const [history, setHistory] = useState<HistoryItem[]>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
-        setHistory(JSON.parse(stored));
+        return JSON.parse(stored);
       } catch (e) {
         console.error('Failed to parse mint history', e);
+        return [];
       }
     }
-  }, []);
+    return [];
+  });
 
   const addMint = useCallback((address: string) => {
     setHistory((prev) => {

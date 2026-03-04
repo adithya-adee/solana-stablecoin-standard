@@ -8,10 +8,11 @@ import {
   STBL_CORE_PROGRAM_ID,
   STBL_HOOK_PROGRAM_ID,
 } from '../src/pda';
+import { asMint, asConfig, asRole } from '../src/types';
 
 describe('PDA derivation', () => {
   it('derives config PDA deterministically', () => {
-    const mint = PublicKey.unique();
+    const mint = asMint(PublicKey.unique());
     const [pda1, bump1] = deriveConfigPda(mint, STBL_CORE_PROGRAM_ID);
     const [pda2, bump2] = deriveConfigPda(mint, STBL_CORE_PROGRAM_ID);
     expect(pda1.equals(pda2)).toBe(true);
@@ -19,56 +20,56 @@ describe('PDA derivation', () => {
   });
 
   it('derives different PDAs for different mints', () => {
-    const mint1 = PublicKey.unique();
-    const mint2 = PublicKey.unique();
+    const mint1 = asMint(PublicKey.unique());
+    const mint2 = asMint(PublicKey.unique());
     const [pda1] = deriveConfigPda(mint1, STBL_CORE_PROGRAM_ID);
     const [pda2] = deriveConfigPda(mint2, STBL_CORE_PROGRAM_ID);
     expect(pda1.equals(pda2)).toBe(false);
   });
 
   it('config PDA is off-curve', () => {
-    const mint = PublicKey.unique();
+    const mint = asMint(PublicKey.unique());
     const [pda] = deriveConfigPda(mint, STBL_CORE_PROGRAM_ID);
     expect(PublicKey.isOnCurve(pda.toBuffer())).toBe(false);
   });
 
   it('derives role PDA deterministically', () => {
-    const config = PublicKey.unique();
+    const config = asConfig(PublicKey.unique());
     const address = PublicKey.unique();
-    const [pda1] = deriveRolePda(config, address, 'minter', STBL_CORE_PROGRAM_ID);
-    const [pda2] = deriveRolePda(config, address, 'minter', STBL_CORE_PROGRAM_ID);
+    const [pda1] = deriveRolePda(config, address, asRole('minter'), STBL_CORE_PROGRAM_ID);
+    const [pda2] = deriveRolePda(config, address, asRole('minter'), STBL_CORE_PROGRAM_ID);
     expect(pda1.equals(pda2)).toBe(true);
   });
 
   it('derives different role PDAs for different roles', () => {
-    const config = PublicKey.unique();
+    const config = asConfig(PublicKey.unique());
     const address = PublicKey.unique();
-    const [minterPda] = deriveRolePda(config, address, 'minter', STBL_CORE_PROGRAM_ID);
-    const [freezerPda] = deriveRolePda(config, address, 'freezer', STBL_CORE_PROGRAM_ID);
+    const [minterPda] = deriveRolePda(config, address, asRole('minter'), STBL_CORE_PROGRAM_ID);
+    const [freezerPda] = deriveRolePda(config, address, asRole('freezer'), STBL_CORE_PROGRAM_ID);
     expect(minterPda.equals(freezerPda)).toBe(false);
   });
 
   it('derives different role PDAs for different addresses', () => {
-    const config = PublicKey.unique();
+    const config = asConfig(PublicKey.unique());
     const address1 = PublicKey.unique();
     const address2 = PublicKey.unique();
-    const [pda1] = deriveRolePda(config, address1, 'admin', STBL_CORE_PROGRAM_ID);
-    const [pda2] = deriveRolePda(config, address2, 'admin', STBL_CORE_PROGRAM_ID);
+    const [pda1] = deriveRolePda(config, address1, asRole('admin'), STBL_CORE_PROGRAM_ID);
+    const [pda2] = deriveRolePda(config, address2, asRole('admin'), STBL_CORE_PROGRAM_ID);
     expect(pda1.equals(pda2)).toBe(false);
   });
 
   it('derives all four role types without error', () => {
-    const config = PublicKey.unique();
+    const config = asConfig(PublicKey.unique());
     const address = PublicKey.unique();
     const roles = ['admin', 'minter', 'freezer', 'pauser'] as const;
-    const pdas = roles.map((r) => deriveRolePda(config, address, r, STBL_CORE_PROGRAM_ID));
+    const pdas = roles.map((r) => deriveRolePda(config, address, asRole(r), STBL_CORE_PROGRAM_ID));
     // All should be unique
     const pdaSet = new Set(pdas.map(([pda]) => pda.toBase58()));
     expect(pdaSet.size).toBe(4);
   });
 
   it('derives blacklist PDA deterministically', () => {
-    const mint = PublicKey.unique();
+    const mint = asMint(PublicKey.unique());
     const address = PublicKey.unique();
     const [pda1] = deriveBlacklistPda(mint, address, STBL_HOOK_PROGRAM_ID);
     const [pda2] = deriveBlacklistPda(mint, address, STBL_HOOK_PROGRAM_ID);
@@ -76,14 +77,14 @@ describe('PDA derivation', () => {
   });
 
   it('blacklist PDA is off-curve', () => {
-    const mint = PublicKey.unique();
+    const mint = asMint(PublicKey.unique());
     const address = PublicKey.unique();
     const [pda] = deriveBlacklistPda(mint, address, STBL_HOOK_PROGRAM_ID);
     expect(PublicKey.isOnCurve(pda.toBuffer())).toBe(false);
   });
 
   it('derives different blacklist PDAs for different addresses', () => {
-    const mint = PublicKey.unique();
+    const mint = asMint(PublicKey.unique());
     const address1 = PublicKey.unique();
     const address2 = PublicKey.unique();
     const [pda1] = deriveBlacklistPda(mint, address1, STBL_HOOK_PROGRAM_ID);
@@ -92,20 +93,20 @@ describe('PDA derivation', () => {
   });
 
   it('derives extra account metas PDA deterministically', () => {
-    const mint = PublicKey.unique();
+    const mint = asMint(PublicKey.unique());
     const [pda1] = deriveExtraAccountMetasPda(mint, STBL_HOOK_PROGRAM_ID);
     const [pda2] = deriveExtraAccountMetasPda(mint, STBL_HOOK_PROGRAM_ID);
     expect(pda1.equals(pda2)).toBe(true);
   });
 
   it('extra account metas PDA is off-curve', () => {
-    const mint = PublicKey.unique();
+    const mint = asMint(PublicKey.unique());
     const [pda] = deriveExtraAccountMetasPda(mint, STBL_HOOK_PROGRAM_ID);
     expect(PublicKey.isOnCurve(pda.toBuffer())).toBe(false);
   });
 
   it('uses correct default program IDs', () => {
-    const mint = PublicKey.unique();
+    const mint = asMint(PublicKey.unique());
     // Default should use STBL_CORE_PROGRAM_ID
     const [pdaDefault] = deriveConfigPda(mint);
     const [pdaExplicit] = deriveConfigPda(mint, STBL_CORE_PROGRAM_ID);

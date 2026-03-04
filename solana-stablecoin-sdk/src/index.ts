@@ -41,6 +41,8 @@ import {
   asTier,
   asRole,
   asRoleId,
+  asMint,
+  asConfig,
 } from './types';
 
 export { ROLE_ID_MAP };
@@ -56,6 +58,8 @@ export { asRole };
 /** @deprecated Use asRoleId instead */
 export { asRoleId as roleId };
 export { asRoleId };
+export { asMint };
+export { asConfig };
 
 // Backwards-compatible aliases for older barrel consumers/tests
 export const Presets = {
@@ -133,23 +137,17 @@ import { createSss1MintTx } from './presets/sss1';
 import type { Tier1MintParams } from './presets/sss1';
 export { createSss1MintTx };
 export type { Tier1MintParams };
-/** @deprecated Use createSss1MintTx */
-export const createSss1MintTransaction = createSss1MintTx;
 
 import { createSss2MintTx } from './presets/sss2';
 import type { Tier2MintParams } from './presets/sss2';
 export { createSss2MintTx };
 export type { Tier2MintParams };
-/** @deprecated Use createSss2MintTx */
-export const createSss2MintTransaction = createSss2MintTx;
 
-import { createSss3MintTx, compileConfidentialMintInstruction } from './presets/sss3';
+import { createSss3MintTx, createConfidentialMintInstruction } from './presets/sss3';
 import type { Tier3MintParams } from './presets/sss3';
 export { createSss3MintTx };
-export { compileConfidentialMintInstruction };
+export { createConfidentialMintInstruction };
 export type { Tier3MintParams };
-/** @deprecated Use createSss3MintTx */
-export const createSss3MintTransaction = createSss3MintTx;
 
 import { PrivacyOpsBuilder, generateDummyElgamalKeys, generateDummyAesKey } from './confidential';
 export { PrivacyOpsBuilder };
@@ -157,40 +155,40 @@ export { generateDummyElgamalKeys };
 export { generateDummyAesKey };
 
 import {
-  compileInitInstruction,
-  compileIssuanceInstruction,
-  compileRedemptionInstruction,
-  compileFreezeInstruction,
-  compileThawInstruction,
-  compilePauseInstruction,
-  compileResumeInstruction,
-  compileSeizeInstruction,
-  compileGrantInstruction,
-  compileRevokeInstruction,
-  compileAuthorityTransferInstruction,
-  compileMinterUpdateInstruction,
-  compileCapUpdateInstruction,
-  compileHookMetaInitInstruction,
-  compileDenyListAddInstruction,
-  compileDenyListRemoveInstruction,
+  createInitInstruction,
+  createIssuanceInstruction,
+  createRedemptionInstruction,
+  createFreezeInstruction,
+  createThawInstruction,
+  createPauseInstruction,
+  createResumeInstruction,
+  createSeizeInstruction,
+  createGrantInstruction,
+  createRevokeInstruction,
+  createAuthorityTransferInstruction,
+  createMinterUpdateInstruction,
+  createCapUpdateInstruction,
+  createHookMetaInitInstruction,
+  createDenyListAddInstruction,
+  createDenyListRemoveInstruction,
 } from './instructions';
 
-export { compileInitInstruction };
-export { compileIssuanceInstruction };
-export { compileRedemptionInstruction };
-export { compileFreezeInstruction };
-export { compileThawInstruction };
-export { compilePauseInstruction };
-export { compileResumeInstruction };
-export { compileSeizeInstruction };
-export { compileGrantInstruction };
-export { compileRevokeInstruction };
-export { compileAuthorityTransferInstruction };
-export { compileMinterUpdateInstruction };
-export { compileCapUpdateInstruction };
-export { compileHookMetaInitInstruction };
-export { compileDenyListAddInstruction };
-export { compileDenyListRemoveInstruction };
+export { createInitInstruction };
+export { createIssuanceInstruction };
+export { createRedemptionInstruction };
+export { createFreezeInstruction };
+export { createThawInstruction };
+export { createPauseInstruction };
+export { createResumeInstruction };
+export { createSeizeInstruction };
+export { createGrantInstruction };
+export { createRevokeInstruction };
+export { createAuthorityTransferInstruction };
+export { createMinterUpdateInstruction };
+export { createCapUpdateInstruction };
+export { createHookMetaInitInstruction };
+export { createDenyListAddInstruction };
+export { createDenyListRemoveInstruction };
 
 export type { SssCore } from './idl/sss_core';
 export type { SssTransferHook } from './idl/sss_transfer_hook';

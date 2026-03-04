@@ -32,7 +32,7 @@ export interface Tier3MintParams {
   autoApproveNewAccounts?: boolean;
 }
 
-export function compileConfidentialMintInstruction(
+export function createConfidentialMintInstruction(
   mint: PublicKey,
   authority: PublicKey | null,
   autoApproveNewAccounts: boolean,
@@ -118,7 +118,7 @@ export async function createSss3MintTx(
       configPda,
       TOKEN_2022_PROGRAM_ID,
     ),
-    compileConfidentialMintInstruction(mintKeypair.publicKey, configPda, autoApprove, auditorKey),
+    createConfidentialMintInstruction(mintKeypair.publicKey, configPda, autoApprove, auditorKey),
     createInitializeMint2Instruction(
       mintKeypair.publicKey,
       decimals,

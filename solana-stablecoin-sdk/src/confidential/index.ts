@@ -1,5 +1,6 @@
 import { Connection, PublicKey, TransactionInstruction } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
+import { Buffer } from 'buffer';
 
 export { generateDummyElgamalKeys, generateDummyAesKey, deriveElGamalKeypair } from './keys';
 
@@ -10,7 +11,7 @@ export class PrivacyOpsBuilder {
     private owner: PublicKey,
   ) {}
 
-  compileDepositInstruction(
+  createDepositInstruction(
     tokenAccount: PublicKey,
     amount: bigint,
     decimals: number,
@@ -18,7 +19,7 @@ export class PrivacyOpsBuilder {
     const data = Buffer.alloc(11);
     data.writeUInt8(27, 0);
     data.writeUInt8(5, 1);
-    data.writeBigUInt64LE(amount, 2);
+    (data as any).writeBigUInt64LE(amount, 2);
     data.writeUInt8(decimals, 10);
 
     return new TransactionInstruction({
@@ -32,7 +33,7 @@ export class PrivacyOpsBuilder {
     });
   }
 
-  compileSettlePendingInstruction(tokenAccount: PublicKey): TransactionInstruction {
+  createSettlePendingInstruction(tokenAccount: PublicKey): TransactionInstruction {
     const data = Buffer.alloc(2);
     data.writeUInt8(27, 0);
     data.writeUInt8(8, 1);
