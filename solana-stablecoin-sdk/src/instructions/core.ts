@@ -2,7 +2,7 @@ import { Program, BN } from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import type { SssCore } from '../idl/sss_core';
-import { resolveConfigAccount, resolveRoleAccount } from '../pda';
+import { deriveConfigPda, deriveRolePda } from '../pda';
 import type { AccessRole, TokenMintKey, ConfigAccountKey, RoleAccountKey } from '../types';
 import { ROLE_ID_MAP, asRole } from '../types';
 
@@ -25,13 +25,8 @@ export function compileInitInstruction(
     defaultAccountFrozen?: boolean | null;
   },
 ) {
-  const [configPda] = resolveConfigAccount(mint, program.programId);
-  const [adminRolePda] = resolveRoleAccount(
-    configPda,
-    authority,
-    asRole('admin'),
-    program.programId,
-  );
+  const [configPda] = deriveConfigPda(mint, program.programId);
+  const [adminRolePda] = deriveRolePda(configPda, authority, asRole('admin'), program.programId);
 
   return program.methods
     .initialize({
@@ -65,13 +60,8 @@ export function compileIssuanceInstruction(
   amount: BN,
   priceUpdate: PublicKey | null = null,
 ) {
-  const [configPda] = resolveConfigAccount(mint, program.programId);
-  const [minterRolePda] = resolveRoleAccount(
-    configPda,
-    minter,
-    asRole('minter'),
-    program.programId,
-  );
+  const [configPda] = deriveConfigPda(mint, program.programId);
+  const [minterRolePda] = deriveRolePda(configPda, minter, asRole('minter'), program.programId);
 
   return program.methods
     .mintTokens(amount)
@@ -96,13 +86,8 @@ export function compileRedemptionInstruction(
   from: PublicKey,
   amount: BN,
 ) {
-  const [configPda] = resolveConfigAccount(mint, program.programId);
-  const [burnerRolePda] = resolveRoleAccount(
-    configPda,
-    burner,
-    asRole('burner'),
-    program.programId,
-  );
+  const [configPda] = deriveConfigPda(mint, program.programId);
+  const [burnerRolePda] = deriveRolePda(configPda, burner, asRole('burner'), program.programId);
 
   return program.methods
     .burnTokens(amount)
@@ -125,13 +110,8 @@ export function compileFreezeInstruction(
   freezer: PublicKey,
   tokenAccount: PublicKey,
 ) {
-  const [configPda] = resolveConfigAccount(mint, program.programId);
-  const [freezerRolePda] = resolveRoleAccount(
-    configPda,
-    freezer,
-    asRole('freezer'),
-    program.programId,
-  );
+  const [configPda] = deriveConfigPda(mint, program.programId);
+  const [freezerRolePda] = deriveRolePda(configPda, freezer, asRole('freezer'), program.programId);
 
   return program.methods
     .freezeAccount()
@@ -154,13 +134,8 @@ export function compileThawInstruction(
   freezer: PublicKey,
   tokenAccount: PublicKey,
 ) {
-  const [configPda] = resolveConfigAccount(mint, program.programId);
-  const [freezerRolePda] = resolveRoleAccount(
-    configPda,
-    freezer,
-    asRole('freezer'),
-    program.programId,
-  );
+  const [configPda] = deriveConfigPda(mint, program.programId);
+  const [freezerRolePda] = deriveRolePda(configPda, freezer, asRole('freezer'), program.programId);
 
   return program.methods
     .thawAccount()
@@ -182,12 +157,7 @@ export function compilePauseInstruction(
   configPda: ConfigAccountKey,
   pauser: PublicKey,
 ) {
-  const [pauserRolePda] = resolveRoleAccount(
-    configPda,
-    pauser,
-    asRole('pauser'),
-    program.programId,
-  );
+  const [pauserRolePda] = deriveRolePda(configPda, pauser, asRole('pauser'), program.programId);
 
   return program.methods
     .pause()
@@ -207,12 +177,7 @@ export function compileResumeInstruction(
   configPda: ConfigAccountKey,
   pauser: PublicKey,
 ) {
-  const [pauserRolePda] = resolveRoleAccount(
-    configPda,
-    pauser,
-    asRole('pauser'),
-    program.programId,
-  );
+  const [pauserRolePda] = deriveRolePda(configPda, pauser, asRole('pauser'), program.programId);
 
   return program.methods
     .unpause()
@@ -235,13 +200,8 @@ export function compileSeizeInstruction(
   to: PublicKey,
   amount: BN,
 ) {
-  const [configPda] = resolveConfigAccount(mint, program.programId);
-  const [seizerRolePda] = resolveRoleAccount(
-    configPda,
-    seizer,
-    asRole('seizer'),
-    program.programId,
-  );
+  const [configPda] = deriveConfigPda(mint, program.programId);
+  const [seizerRolePda] = deriveRolePda(configPda, seizer, asRole('seizer'), program.programId);
 
   return program.methods
     .seize(amount)
@@ -266,8 +226,8 @@ export function compileGrantInstruction(
   grantee: PublicKey,
   role: AccessRole,
 ) {
-  const [adminRolePda] = resolveRoleAccount(configPda, admin, asRole('admin'), program.programId);
-  const [roleAccountPda] = resolveRoleAccount(configPda, grantee, role, program.programId);
+  const [adminRolePda] = deriveRolePda(configPda, admin, asRole('admin'), program.programId);
+  const [roleAccountPda] = deriveRolePda(configPda, grantee, role, program.programId);
 
   return program.methods
     .grantRole((ROLE_ID_MAP as any)[role] as number)
@@ -290,7 +250,7 @@ export function compileRevokeInstruction(
   admin: PublicKey,
   roleAccountPda: RoleAccountKey,
 ) {
-  const [adminRolePda] = resolveRoleAccount(configPda, admin, asRole('admin'), program.programId);
+  const [adminRolePda] = deriveRolePda(configPda, admin, asRole('admin'), program.programId);
 
   return program.methods
     .revokeRole()
@@ -312,14 +272,14 @@ export function compileAuthorityTransferInstruction(
   admin: PublicKey,
   newAuthority: PublicKey,
 ) {
-  const [adminRolePda] = resolveRoleAccount(configPda, admin, asRole('admin'), program.programId);
-  const [newAdminRolePda] = resolveRoleAccount(
+  const [adminRolePda] = deriveRolePda(configPda, admin, asRole('admin'), program.programId);
+  // derive new admin role PDA
+  const [newAdminRolePda] = deriveRolePda(
     configPda,
     newAuthority,
     asRole('admin'),
     program.programId,
   );
-
   return program.methods
     .transferAuthority()
     .accountsPartial({
@@ -342,7 +302,7 @@ export function compileMinterUpdateInstruction(
   minterRoleAccountPda: RoleAccountKey,
   newQuota: BN | null,
 ) {
-  const [adminRolePda] = resolveRoleAccount(configPda, admin, asRole('admin'), program.programId);
+  const [adminRolePda] = deriveRolePda(configPda, admin, asRole('admin'), program.programId);
 
   return program.methods
     .updateMinter(newQuota)
@@ -364,7 +324,7 @@ export function compileCapUpdateInstruction(
   admin: PublicKey,
   newSupplyCap: BN | null,
 ) {
-  const [adminRolePda] = resolveRoleAccount(configPda, admin, asRole('admin'), program.programId);
+  const [adminRolePda] = deriveRolePda(configPda, admin, asRole('admin'), program.programId);
 
   return program.methods
     .updateSupplyCap(newSupplyCap)

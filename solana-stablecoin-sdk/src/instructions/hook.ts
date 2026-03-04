@@ -3,10 +3,10 @@ import { PublicKey } from '@solana/web3.js';
 import type { SssTransferHook } from '../idl/sss_transfer_hook';
 import type { TokenMintKey } from '../types';
 import {
-  resolveDenyListAccount,
-  resolveConfigAccount,
-  resolveHookMetaAccount,
-  resolveRoleAccount,
+  deriveBlacklistPda,
+  deriveConfigPda,
+  deriveExtraAccountMetasPda,
+  deriveRolePda,
   STBL_CORE_PROGRAM_ID,
 } from '../pda';
 import { asRole } from '../types';
@@ -39,8 +39,8 @@ export function compileDenyListAddInstruction(
   reason: string,
   coreProgramId: PublicKey = STBL_CORE_PROGRAM_ID,
 ) {
-  const [configPda] = resolveConfigAccount(mint, coreProgramId);
-  const [blacklisterRolePda] = resolveRoleAccount(
+  const [configPda] = deriveConfigPda(mint, coreProgramId);
+  const [blacklisterRolePda] = deriveRolePda(
     configPda,
     blacklister,
     asRole('blacklister'),
@@ -68,10 +68,10 @@ export function compileDenyListRemoveInstruction(
   address: PublicKey,
   coreProgramId: PublicKey = STBL_CORE_PROGRAM_ID,
 ) {
-  const [blacklistEntryPda] = resolveDenyListAccount(mint, address, program.programId);
+  const [blacklistEntryPda] = deriveBlacklistPda(mint, address, program.programId);
 
-  const [configPda] = resolveConfigAccount(mint, coreProgramId);
-  const [blacklisterRolePda] = resolveRoleAccount(
+  const [configPda] = deriveConfigPda(mint, coreProgramId);
+  const [blacklisterRolePda] = deriveRolePda(
     configPda,
     blacklister,
     asRole('blacklister'),

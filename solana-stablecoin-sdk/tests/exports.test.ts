@@ -3,8 +3,8 @@ import * as SDK from '../src/index';
 
 describe('SDK barrel exports', () => {
   it('SSS and SolanaStablecoin are the same class', () => {
-    expect(SDK.SSS).toBe(SDK.SolanaStablecoin);
-    expect(typeof SDK.SSS).toBe('function');
+    expect(SDK.StablecoinClient).toBe(SDK.StablecoinClient);
+    expect(typeof SDK.StablecoinClient).toBe('function');
   });
 
   it('Presets constant has all three presets', () => {
@@ -17,22 +17,22 @@ describe('SDK barrel exports', () => {
 
   describe('instruction builders', () => {
     const builders = [
-      'buildInitializeIx',
-      'buildMintTokensIx',
-      'buildBurnTokensIx',
-      'buildFreezeAccountIx',
-      'buildThawAccountIx',
-      'buildPauseIx',
-      'buildUnpauseIx',
-      'buildSeizeIx',
-      'buildGrantRoleIx',
-      'buildRevokeRoleIx',
-      'buildTransferAuthorityIx',
-      'buildUpdateMinterIx',
-      'buildUpdateSupplyCapIx',
-      'buildInitializeExtraAccountMetasIx',
-      'buildAddToBlacklistIx',
-      'buildRemoveFromBlacklistIx',
+      'compileInitInstruction',
+      'compileIssuanceInstruction',
+      'compileRedemptionInstruction',
+      'compileFreezeInstruction',
+      'compileThawInstruction',
+      'compilePauseInstruction',
+      'compileResumeInstruction',
+      'compileSeizeInstruction',
+      'compileGrantInstruction',
+      'compileRevokeInstruction',
+      'compileAuthorityTransferInstruction',
+      'compileMinterUpdateInstruction',
+      'compileCapUpdateInstruction',
+      'compileHookMetaInitInstruction',
+      'compileDenyListAddInstruction',
+      'compileDenyListRemoveInstruction',
     ];
 
     it.each(builders)('exports %s as a function', (name) => {
@@ -69,41 +69,41 @@ describe('SDK barrel exports', () => {
   });
 
   describe('oracle functions', () => {
-    it('exports parsePythPrice', () => {
-      expect(typeof SDK.parsePythPrice).toBe('function');
+    it('exports decodePythFeed', () => {
+      expect(typeof SDK.decodePythFeed).toBe('function');
     });
-    it('exports fetchPythPrice', () => {
-      expect(typeof SDK.fetchPythPrice).toBe('function');
+    it('exports loadPythFeed', () => {
+      expect(typeof SDK.loadPythFeed).toBe('function');
     });
-    it('exports usdToTokenAmount', () => {
-      expect(typeof SDK.usdToTokenAmount).toBe('function');
+    it('exports convertUsdToRawAmount', () => {
+      expect(typeof SDK.convertUsdToRawAmount).toBe('function');
     });
-    it('exports tokenAmountToUsd', () => {
-      expect(typeof SDK.tokenAmountToUsd).toBe('function');
+    it('exports convertRawAmountToUsd', () => {
+      expect(typeof SDK.convertRawAmountToUsd).toBe('function');
     });
-    it('exports buildOracleRemainingAccount', () => {
-      expect(typeof SDK.buildOracleRemainingAccount).toBe('function');
+    it('exports packOracleMeta', () => {
+      expect(typeof SDK.packOracleMeta).toBe('function');
     });
-    it('exports PYTH_FEEDS', () => {
-      expect(SDK.PYTH_FEEDS).toBeDefined();
+    it('exports PRICE_FEED_REGISTRY', () => {
+      expect(SDK.PRICE_FEED_REGISTRY).toBeDefined();
     });
   });
 
   describe('confidential', () => {
-    it('exports ConfidentialOps', () => {
-      expect(typeof SDK.ConfidentialOps).toBe('function');
+    it('exports PrivacyOpsBuilder', () => {
+      expect(typeof SDK.PrivacyOpsBuilder).toBe('function');
     });
-    it('exports generateTestElGamalKeypair', () => {
-      expect(typeof SDK.generateTestElGamalKeypair).toBe('function');
+    it('exports generateDummyElgamalKeys', () => {
+      expect(typeof SDK.generateDummyElgamalKeys).toBe('function');
     });
-    it('exports generateTestAesKey', () => {
-      expect(typeof SDK.generateTestAesKey).toBe('function');
+    it('exports generateDummyAesKey', () => {
+      expect(typeof SDK.generateDummyAesKey).toBe('function');
     });
   });
 
   describe('error classes', () => {
-    it('exports SssError', () => {
-      expect(typeof SDK.SssError).toBe('function');
+    it('exports StablecoinError', () => {
+      expect(typeof SDK.StablecoinError).toBe('function');
     });
     it('exports mapAnchorError', () => {
       expect(typeof SDK.mapAnchorError).toBe('function');

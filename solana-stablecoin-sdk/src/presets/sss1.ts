@@ -13,7 +13,7 @@ import {
 } from '@solana/spl-token';
 import { createInitializeInstruction, pack, type TokenMetadata } from '@solana/spl-token-metadata';
 import type { TokenMintKey } from '../types';
-import { resolveConfigAccount } from '../pda';
+import { deriveConfigPda } from '../pda';
 
 export interface Tier1MintParams {
   name: string;
@@ -22,14 +22,14 @@ export interface Tier1MintParams {
   decimals?: number;
 }
 
-export async function assembleTier1MintTx(
+export async function createSss1MintTx(
   connection: Connection,
   payer: PublicKey,
   mintKeypair: Keypair,
   options: Tier1MintParams,
   coreProgramId: PublicKey,
 ): Promise<Transaction> {
-  const [configPda] = resolveConfigAccount(mintKeypair.publicKey as TokenMintKey, coreProgramId);
+  const [configPda] = deriveConfigPda(mintKeypair.publicKey as TokenMintKey, coreProgramId);
   const decimals = options.decimals ?? 6;
 
   const extensions = [ExtensionType.MetadataPointer, ExtensionType.PermanentDelegate];

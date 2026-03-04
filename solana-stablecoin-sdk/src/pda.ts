@@ -19,7 +19,7 @@ const STBL_ROLE_SEED = Buffer.from('sss-role');
 const DENY_LIST_SEED = Buffer.from('blacklist');
 const HOOK_EXTRA_METAS_SEED = Buffer.from('extra-account-metas');
 
-export function resolveConfigAccount(
+export function deriveConfigPda(
   mint: TokenMintKey,
   programId: PublicKey = STBL_CORE_PROGRAM_ID,
 ): [ConfigAccountKey, number] {
@@ -30,7 +30,7 @@ export function resolveConfigAccount(
   return [pda as ConfigAccountKey, bump];
 }
 
-export function resolveRoleAccount(
+export function deriveRolePda(
   config: ConfigAccountKey,
   address: PublicKey,
   role: AccessRole,
@@ -48,7 +48,7 @@ export function resolveRoleAccount(
   return [pda as RoleAccountKey, bump];
 }
 
-export function resolveDenyListAccount(
+export function deriveBlacklistPda(
   mint: TokenMintKey,
   address: PublicKey,
   programId: PublicKey = STBL_HOOK_PROGRAM_ID,
@@ -60,7 +60,7 @@ export function resolveDenyListAccount(
   return [pda as DenyListKey, bump];
 }
 
-export function resolveHookMetaAccount(
+export function deriveExtraAccountMetasPda(
   mint: TokenMintKey,
   programId: PublicKey = STBL_HOOK_PROGRAM_ID,
 ): [PublicKey, number] {

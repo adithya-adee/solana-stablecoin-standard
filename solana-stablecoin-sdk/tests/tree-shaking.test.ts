@@ -7,7 +7,7 @@ export {};
 describe('Tree shaking and explicit exports', () => {
   it('resolveConfigAccount can be imported from pda submodule', async () => {
     const pdaSdk = await import('../src/pda');
-    expect(typeof pdaSdk.resolveConfigAccount).toBe('function');
+    expect(typeof pdaSdk.deriveConfigPda).toBe('function');
   });
 
   it('StablecoinTiers can be imported from types submodule', async () => {

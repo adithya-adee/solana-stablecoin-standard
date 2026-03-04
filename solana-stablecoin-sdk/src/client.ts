@@ -10,9 +10,10 @@ import type { SssCore } from './idl/sss_core';
 import type { SssTransferHook } from './idl/sss_transfer_hook';
 import { SssCoreIdl, SssTransferHookIdl } from './idl';
 import {
-  resolveConfigAccount,
-  resolveRoleAccount,
-  resolveDenyListAccount,
+  deriveConfigPda,
+  deriveRolePda,
+  deriveBlacklistPda,
+  deriveExtraAccountMetasPda,
   STBL_CORE_PROGRAM_ID,
   STBL_HOOK_PROGRAM_ID,
 } from './pda';
@@ -29,9 +30,9 @@ import { TIER_ORDINAL_MAP, ORDINAL_TO_TIER_MAP, ROLE_ID_MAP, asTier, asRole } fr
 import { translateAnchorError } from './errors';
 import * as coreix from './instructions/core';
 import * as hookix from './instructions/hook';
-import { assembleTier1MintTx } from './presets/sss1';
-import { assembleTier2MintTx } from './presets/sss2';
-import { assembleTier3MintTx } from './presets/sss3';
+import { createSss1MintTx } from './presets/sss1';
+import { createSss2MintTx } from './presets/sss2';
+import { createSss3MintTx } from './presets/sss3';
 import { PrivacyOpsBuilder } from './confidential';
 
 export class StablecoinClient {
@@ -62,7 +63,7 @@ export class StablecoinClient {
    * Resolves the PDA for a specific role account.
    */
   resolveRoleAccount(owner: PublicKey, role: AccessRole): [PublicKey, number] {
-    return resolveRoleAccount(this.configPda, owner, role);
+    return deriveRolePda(this.configPda, owner, role);
   }
 
   private async dispatchInstruction(
@@ -116,7 +117,7 @@ export class StablecoinClient {
     let mintTx: Transaction;
     switch (opts.preset) {
       case 'sss-1':
-        mintTx = await assembleTier1MintTx(
+        mintTx = await createSss1MintTx(
           provider.connection,
           payer,
           mint,
@@ -130,7 +131,7 @@ export class StablecoinClient {
         );
         break;
       case 'sss-2':
-        mintTx = await assembleTier2MintTx(
+        mintTx = await createSss2MintTx(
           provider.connection,
           payer,
           mint,
@@ -144,7 +145,7 @@ export class StablecoinClient {
         );
         break;
       case 'sss-3':
-        mintTx = await assembleTier3MintTx(
+        mintTx = await createSss3MintTx(
           provider.connection,
           payer,
           mint,
@@ -192,7 +193,7 @@ export class StablecoinClient {
       throw translateAnchorError(err);
     }
 
-    const [configPda, configBump] = resolveConfigAccount(
+    const [configPda, configBump] = deriveConfigPda(
       mint.publicKey as TokenMintKey,
       ledgerProgram.programId,
     );
@@ -234,7 +235,7 @@ export class StablecoinClient {
 
   static async load(provider: AnchorProvider, mint: TokenMintKey): Promise<StablecoinClient> {
     const { ledgerProgram, guardProgram } = StablecoinClient.buildProgramPair(provider);
-    const [configPda, configBump] = resolveConfigAccount(mint, ledgerProgram.programId);
+    const [configPda, configBump] = deriveConfigPda(mint, ledgerProgram.programId);
 
     const configAccount = await ledgerProgram.account.stablecoinConfig.fetchNullable(configPda);
     if (!configAccount) {
@@ -304,7 +305,7 @@ export class StablecoinClient {
         priceUpdate = new PublicKey('J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix'); // Default Devnet SOL
       }
     } catch (e) {
-      console.warn('Failed to fetch config for oracle resolution, proceeding without it');
+      console.error('Failed to fetch config for oracle resolution, proceeding without it');
     }
 
     const mintIx = await coreix.compileIssuanceInstruction(
@@ -576,7 +577,7 @@ export class StablecoinClient {
 
   async composeUpdateMinter(minter: PublicKey, newQuota: bigint | null): Promise<Transaction> {
     const admin = this.anchorProvider.publicKey;
-    const [rolePda] = resolveRoleAccount(
+    const [rolePda] = deriveRolePda(
       this.configPda,
       minter,
       asRole('minter'),
@@ -606,7 +607,7 @@ export class StablecoinClient {
       },
 
       check: async (address: PublicKey, role: AccessRole): Promise<boolean> => {
-        const [rolePda] = resolveRoleAccount(
+        const [rolePda] = deriveRolePda(
           this.configPda,
           address,
           role,
@@ -632,7 +633,7 @@ export class StablecoinClient {
 
   async composeRevokeRole(address: PublicKey, role: AccessRole): Promise<Transaction> {
     const admin = this.anchorProvider.publicKey;
-    const [roleAccountPda] = resolveRoleAccount(
+    const [roleAccountPda] = deriveRolePda(
       this.configPda,
       address,
       role,
@@ -660,7 +661,7 @@ export class StablecoinClient {
       },
 
       check: async (address: PublicKey): Promise<boolean> => {
-        const [blacklistPda] = resolveDenyListAccount(
+        const [blacklistPda] = deriveBlacklistPda(
           this.mintAddress,
           address,
           this.guardProgram.programId,

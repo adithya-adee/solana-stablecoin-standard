@@ -16,7 +16,7 @@ import {
 } from '@solana/spl-token';
 import { createInitializeInstruction, pack, type TokenMetadata } from '@solana/spl-token-metadata';
 import type { TokenMintKey } from '../types';
-import { resolveConfigAccount, STBL_HOOK_PROGRAM_ID } from '../pda';
+import { deriveConfigPda, STBL_HOOK_PROGRAM_ID } from '../pda';
 
 export interface Tier2MintParams {
   name: string;
@@ -26,14 +26,14 @@ export interface Tier2MintParams {
   hookProgramId?: PublicKey;
 }
 
-export async function assembleTier2MintTx(
+export async function createSss2MintTx(
   connection: Connection,
   payer: PublicKey,
   mintKeypair: Keypair,
   options: Tier2MintParams,
   coreProgramId: PublicKey,
 ): Promise<Transaction> {
-  const [configPda] = resolveConfigAccount(mintKeypair.publicKey as TokenMintKey, coreProgramId);
+  const [configPda] = deriveConfigPda(mintKeypair.publicKey as TokenMintKey, coreProgramId);
   const hookProgramId = options.hookProgramId ?? STBL_HOOK_PROGRAM_ID;
   const decimals = options.decimals ?? 6;
 
