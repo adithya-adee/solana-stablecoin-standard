@@ -13,7 +13,6 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <ConnectionProvider endpoint={RPC_ENDPOINT}>
       <WalletProvider wallets={wallets} autoConnect>
-        {/* @ts-expect-error react 19 typing mismatch with wallet-adapter */}
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>

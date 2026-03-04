@@ -40,9 +40,10 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.0",
-    "@solana/web3.js": "^1.98",
     "@solana/spl-token": "^0.4",
-    "@solana/spl-token-metadata": "^0.1"
+    "@solana/spl-token-metadata": "^0.1",
+    "@solana/web3.js": "^1.98",
+    "buffer": "^6.0.3"
   },
   "devDependencies": {
     "@types/node": "^22",
