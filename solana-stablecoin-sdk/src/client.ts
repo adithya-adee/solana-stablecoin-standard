@@ -173,6 +173,7 @@ export class StablecoinClient {
         uri: opts.uri ?? '',
         decimals,
         supplyCap,
+        oracleFeedId: opts.oracleFeedId ?? null,
       },
     );
 
@@ -228,6 +229,7 @@ export class StablecoinClient {
         uri: options.uri,
         decimals: options.decimals,
         supplyCap: options.supplyCap,
+        oracleFeedId: options.oracleFeedId,
       },
       mintKeypair,
     );

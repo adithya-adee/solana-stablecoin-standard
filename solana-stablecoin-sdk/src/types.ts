@@ -35,6 +35,7 @@ export interface TokenDeployOptions {
   decimals?: number;
   supplyCap?: bigint;
   mint?: Keypair;
+  oracleFeedId?: Uint8Array | number[];
 }
 
 export interface TokenStateSnapshot {
@@ -107,4 +108,5 @@ export interface TokenExtensionOptions {
   decimals?: number;
   supplyCap?: bigint;
   extensions: ExtensionFlags;
+  oracleFeedId?: Uint8Array | number[];
 }
