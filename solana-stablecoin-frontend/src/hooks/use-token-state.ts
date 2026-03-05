@@ -24,6 +24,7 @@ export interface TokenState {
   decimals: number;
   name: string;
   symbol: string;
+  uri?: string;
   currentSupply: bigint;
 }
 
@@ -88,6 +89,7 @@ export function useTokenState(mintAddress: string | null) {
         decimals,
         name: configAccount.name ?? 'Unknown',
         symbol: configAccount.symbol ?? '???',
+        uri: configAccount.uri ?? '',
         currentSupply,
       });
     } catch (err) {

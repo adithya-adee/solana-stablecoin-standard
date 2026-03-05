@@ -179,6 +179,20 @@ export class StablecoinClient {
 
     mintTx.add(initIx);
 
+    // Auto-grant Minter role to the creator
+    const [configPda, configBump] = deriveConfigPda(
+      mint.publicKey as TokenMintKey,
+      ledgerProgram.programId,
+    );
+    const grantMinterIx = await coreix.createGrantInstruction(
+      ledgerProgram,
+      configPda,
+      payer,
+      payer,
+      asRole('minter'),
+    );
+    mintTx.add(grantMinterIx);
+
     if (opts.preset === 'sss-2') {
       const hookInitIx = await hookix.createHookMetaInitInstruction(
         guardProgram,
@@ -193,11 +207,6 @@ export class StablecoinClient {
     } catch (err) {
       throw translateAnchorError(err);
     }
-
-    const [configPda, configBump] = deriveConfigPda(
-      mint.publicKey as TokenMintKey,
-      ledgerProgram.programId,
-    );
 
     return new StablecoinClient(
       mint.publicKey as TokenMintKey,

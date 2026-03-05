@@ -209,9 +209,14 @@ export default function HistoryPage() {
 
                     {/* Details */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground font-mono truncate">
+                      <a
+                        href={`https://explorer.solana.com/tx/${entry.signature}?cluster=devnet`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-foreground font-mono truncate block hover:underline"
+                      >
                         {entry.signature.slice(0, 32)}...
-                      </p>
+                      </a>
                       <div className="flex items-center gap-3 mt-0.5">
                         <span className="text-xs text-muted-foreground">
                           {formatDate(entry.timestamp)} {formatTime(entry.timestamp)}
@@ -228,10 +233,15 @@ export default function HistoryPage() {
                     </div>
 
                     {/* Signature link */}
-                    <div className="shrink-0">
-                      <code className="text-xs text-muted-foreground font-mono">
+                    <div className="shrink-0 flex flex-col items-end">
+                      <a
+                        href={`https://explorer.solana.com/tx/${entry.signature}?cluster=devnet`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-muted-foreground font-mono hover:text-foreground hover:underline transition-colors"
+                      >
                         {entry.signature.slice(0, 8)}...{entry.signature.slice(-4)}
-                      </code>
+                      </a>
                     </div>
                   </div>
                 ))}

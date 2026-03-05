@@ -9,6 +9,8 @@ import { useMintHistory } from '@/hooks/use-mint-history';
 import { useActiveMint } from '@/hooks/use-active-mint';
 import { SSS_CORE_PROGRAM_ID } from '@/lib/constants';
 import bs58 from 'bs58';
+import { Progress } from '@/components/ui/progress';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 function StatCard({
   label,
@@ -197,22 +199,29 @@ export default function DashboardPage() {
         {data && !loading && (
           <>
             {/* Token identity */}
-            <div className="rounded-xl border border-border bg-card p-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
-                    <span className="text-lg font-bold">{data.symbol[0]}</span>
+            <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row items-center gap-6">
+                <Avatar className="h-20 w-20 border border-border bg-muted/30 shadow-sm transition-all duration-300 hover:scale-105">
+                  <AvatarImage src={data.uri} alt={data.name} className="object-cover" />
+                  <AvatarFallback className="bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 text-4xl font-semibold">
+                    {data.symbol[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="text-center sm:text-left flex-1 space-y-2">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4">
+                    <h3 className="text-3xl font-bold tracking-tight text-foreground">
+                      {data.name}
+                    </h3>
+                    <span className="inline-flex items-center rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700 ring-1 ring-inset ring-purple-700/10 dark:bg-purple-400/10 dark:text-purple-400 dark:ring-purple-400/20">
+                      {data.presetName}
+                    </span>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground">{data.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {data.symbol} &middot; {data.decimals} decimals
-                    </p>
-                  </div>
+                  <p className="text-lg text-muted-foreground flex items-center justify-center sm:justify-start gap-3">
+                    <span className="font-semibold text-foreground/80">{data.symbol}</span>
+                    <span className="h-1 w-1 rounded-full bg-border" />
+                    <span>{data.decimals} decimals</span>
+                  </p>
                 </div>
-                <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
-                  {data.presetName}
-                </span>
               </div>
             </div>
 
@@ -258,14 +267,10 @@ export default function DashboardPage() {
                     {formatSupply(data.supplyCap, data.decimals)}
                   </p>
                 </div>
-                <div className="h-2 w-full rounded-full bg-muted">
-                  <div
-                    className="h-2 rounded-full bg-accent transition-all"
-                    style={{
-                      width: `${Math.min(Number((data.currentSupply * 100n) / data.supplyCap), 100)}%`,
-                    }}
-                  />
-                </div>
+                <Progress
+                  value={Math.min(Number((data.currentSupply * 100n) / data.supplyCap), 100)}
+                  className="h-2"
+                />
               </div>
             )}
 

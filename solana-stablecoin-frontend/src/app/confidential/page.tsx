@@ -11,7 +11,9 @@ import { Separator } from '@/components/ui/separator';
 import { PageHeader } from '@/components/page-header';
 import { MintSelector } from '@/components/mint-selector';
 import { useActiveMint } from '@/hooks/use-active-mint';
+import { useTokenState } from '@/hooks/use-token-state';
 import { cn } from '@/lib/utils';
+import { AlertCircle } from 'lucide-react';
 
 function StatusBadge({ label, active }: { label: string; active: boolean }) {
   return (
@@ -105,6 +107,7 @@ const OPERATIONS: Record<
 
 export default function ConfidentialPage() {
   const { activeMint, setActiveMint } = useActiveMint();
+  const { data: tokenState, loading: tokenLoading } = useTokenState(activeMint);
   const [operation, setOperation] = useState<OperationType>('config');
   const [isOpen, setIsOpen] = useState(false);
 
@@ -210,7 +213,59 @@ export default function ConfidentialPage() {
           </Card>
         )}
 
-        {activeMint && (
+        {activeMint && tokenLoading && (
+          <Card className="p-12 text-center border-dashed">
+            <div className="flex flex-col items-center gap-2">
+              <svg
+                className="h-5 w-5 animate-spin text-muted-foreground"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
+              </svg>
+              <CardDescription>Loading token configuration...</CardDescription>
+            </div>
+          </Card>
+        )}
+
+        {activeMint && !tokenLoading && tokenState && tokenState.preset !== 3 && (
+          <Card className="border-destructive/30 bg-destructive/5 p-6 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-destructive/10 border border-destructive/20 shadow-inner">
+                <AlertCircle className="w-6 h-6 text-destructive" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-destructive">
+                  Confidential Transfers Not Supported
+                </h3>
+                <p className="mt-1 text-sm text-foreground/80 leading-relaxed">
+                  The selected token (
+                  <span className="font-mono font-bold">{tokenState.symbol}</span>) uses the{' '}
+                  <span className="font-bold">{tokenState.presetName}</span> preset.
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                  Confidential transfers are only available for tokens using the{' '}
+                  <strong>SSS-3 (Private)</strong> preset, which includes the necessary SPL
+                  Token-2022 encrypted balance extensions.
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {activeMint && !tokenLoading && tokenState && tokenState.preset === 3 && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
