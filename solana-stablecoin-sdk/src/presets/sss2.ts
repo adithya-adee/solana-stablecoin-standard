@@ -54,7 +54,8 @@ export async function createSss2MintTx(
     updateAuthority: configPda,
   };
   const metadataLen = pack(metadata).length;
-  const totalLen = mintLen + TYPE_SIZE + LENGTH_SIZE + metadataLen;
+  const rawLen = mintLen + TYPE_SIZE + LENGTH_SIZE + metadataLen;
+  const totalLen = rawLen % 4 === 0 ? rawLen : rawLen + 4 - (rawLen % 4);
 
   const lamports = await connection.getMinimumBalanceForRentExemption(totalLen);
 
@@ -62,7 +63,7 @@ export async function createSss2MintTx(
     SystemProgram.createAccount({
       fromPubkey: payer,
       newAccountPubkey: mintKeypair.publicKey,
-      space: mintLen,
+      space: totalLen,
       lamports,
       programId: TOKEN_2022_PROGRAM_ID,
     }),

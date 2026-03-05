@@ -84,10 +84,14 @@ function formatSupply(raw: bigint, decimals: number): string {
   const divisor = 10n ** BigInt(decimals);
   const whole = raw / divisor;
   const frac = raw % divisor;
-  const fracStr = frac.toString().padStart(decimals, '0').slice(0, 2);
-  const wholeNum = Number(whole);
-  const formatted = wholeNum.toLocaleString();
-  return Number(fracStr) > 0 ? `${formatted}.${fracStr}` : formatted;
+
+  const wholeStr = Number(whole).toLocaleString();
+  if (frac === 0n) return wholeStr;
+
+  // Pad the fraction with leading zeros to match decimal places, then remove trailing zeros
+  const fracStr = frac.toString().padStart(decimals, '0').replace(/0+$/, '');
+
+  return fracStr.length > 0 ? `${wholeStr}.${fracStr}` : wholeStr;
 }
 
 export default function DashboardPage() {
@@ -219,7 +223,7 @@ export default function DashboardPage() {
                 value={formatSupply(data.currentSupply, data.decimals)}
                 subtext={
                   data.supplyCap
-                    ? `${Number((data.totalMinted * 1000n) / data.supplyCap) / 10}% of supply cap`
+                    ? `${Number((data.currentSupply * 1000n) / data.supplyCap) / 10}% of supply cap`
                     : 'No supply cap'
                 }
                 variant="success"
@@ -250,7 +254,7 @@ export default function DashboardPage() {
                     Supply Cap Utilization
                   </p>
                   <p className="text-sm font-medium text-foreground">
-                    {formatSupply(data.totalMinted, data.decimals)} /{' '}
+                    {formatSupply(data.currentSupply, data.decimals)} /{' '}
                     {formatSupply(data.supplyCap, data.decimals)}
                   </p>
                 </div>
@@ -258,7 +262,7 @@ export default function DashboardPage() {
                   <div
                     className="h-2 rounded-full bg-accent transition-all"
                     style={{
-                      width: `${Math.min(Number((data.totalMinted * 100n) / data.supplyCap), 100)}%`,
+                      width: `${Math.min(Number((data.currentSupply * 100n) / data.supplyCap), 100)}%`,
                     }}
                   />
                 </div>

@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { ModeToggle } from '@/components/mode-toggle';
+import { cn } from '@/lib/utils';
 
 const navigation = [
   {
@@ -9,7 +11,7 @@ const navigation = [
     href: '/',
     icon: (
       <svg
-        className="w-5 h-5"
+        className="w-4 h-4 shrink-0"
         fill="none"
         viewBox="0 0 24 24"
         strokeWidth={1.5}
@@ -28,7 +30,7 @@ const navigation = [
     href: '/create',
     icon: (
       <svg
-        className="w-5 h-5"
+        className="w-4 h-4 shrink-0"
         fill="none"
         viewBox="0 0 24 24"
         strokeWidth={1.5}
@@ -43,7 +45,7 @@ const navigation = [
     href: '/operations',
     icon: (
       <svg
-        className="w-5 h-5"
+        className="w-4 h-4 shrink-0"
         fill="none"
         viewBox="0 0 24 24"
         strokeWidth={1.5}
@@ -62,7 +64,7 @@ const navigation = [
     href: '/roles',
     icon: (
       <svg
-        className="w-5 h-5"
+        className="w-4 h-4 shrink-0"
         fill="none"
         viewBox="0 0 24 24"
         strokeWidth={1.5}
@@ -81,7 +83,7 @@ const navigation = [
     href: '/blacklist',
     icon: (
       <svg
-        className="w-5 h-5"
+        className="w-4 h-4 shrink-0"
         fill="none"
         viewBox="0 0 24 24"
         strokeWidth={1.5}
@@ -100,7 +102,7 @@ const navigation = [
     href: '/confidential',
     icon: (
       <svg
-        className="w-5 h-5"
+        className="w-4 h-4 shrink-0"
         fill="none"
         viewBox="0 0 24 24"
         strokeWidth={1.5}
@@ -119,7 +121,7 @@ const navigation = [
     href: '/history',
     icon: (
       <svg
-        className="w-5 h-5"
+        className="w-4 h-4 shrink-0"
         fill="none"
         viewBox="0 0 24 24"
         strokeWidth={1.5}
@@ -139,42 +141,55 @@ export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-card">
-      <div className="flex h-16 items-center gap-3 border-b border-border px-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent">
-          <span className="text-sm font-bold text-white">S</span>
+    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-card flex flex-col">
+      {/* Logo / Brand header */}
+      <div className="flex h-16 items-center gap-3 border-b border-border px-5 shrink-0">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shrink-0">
+          <span className="text-sm font-bold">S</span>
         </div>
-        <div>
-          <h1 className="text-sm font-semibold text-foreground">SSS Admin</h1>
-          <p className="text-xs text-muted-foreground">Stablecoin Standard</p>
+        <div className="min-w-0">
+          <h1 className="text-sm font-semibold text-foreground truncate">SSS Admin</h1>
+          <p className="text-xs text-muted-foreground truncate">Stablecoin Standard</p>
         </div>
       </div>
 
-      <nav className="mt-4 space-y-1 px-3">
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
         {navigation.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              className={cn(
+                'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-150',
                 isActive
-                  ? 'bg-accent/10 text-accent'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
+                  ? 'bg-primary/10 text-primary border border-primary/20'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent',
+              )}
             >
               {item.icon}
-              {item.name}
+              <span>{item.name}</span>
+              {isActive && (
+                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+              )}
             </Link>
           );
         })}
       </nav>
 
-      <div className="absolute bottom-0 left-0 right-0 border-t border-border p-4">
-        <div className="rounded-lg bg-muted/50 p-3">
-          <p className="text-xs font-medium text-muted-foreground">Network</p>
-          <p className="text-sm font-medium text-foreground">Devnet</p>
+      {/* Bottom bar: network badge + theme toggle */}
+      <div className="shrink-0 border-t border-border px-4 py-3 flex items-center justify-between gap-2">
+        <div className="rounded-md bg-muted px-3 py-2 min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Network
+          </p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
+            <p className="text-xs font-semibold text-foreground">Devnet</p>
+          </div>
         </div>
+        <ModeToggle />
       </div>
     </aside>
   );

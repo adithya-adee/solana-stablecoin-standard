@@ -5,8 +5,11 @@ import { PublicKey } from '@solana/web3.js';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Search, ShieldOff, ShieldAlert, Info } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { PageHeader } from '@/components/page-header';
 import { MintSelector } from '@/components/mint-selector';
 import { TxFeedback } from '@/components/tx-feedback';
@@ -14,10 +17,7 @@ import { useStablecoin } from '@/hooks/use-stablecoin';
 import { useTransaction } from '@/hooks/use-transaction';
 import { useActiveMint } from '@/hooks/use-active-mint';
 import { isValidPubkey } from '@/lib/validation';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from '@/lib/utils';
 
 type OperationType = 'check' | 'add' | 'remove';
 
@@ -120,272 +120,244 @@ export default function BlacklistPage() {
   const ActiveIcon = activeOp.icon;
 
   return (
-    <div>
+    <div className="flex flex-col gap-6">
       <PageHeader title="Blacklist Management" />
-      <div className="p-6 space-y-6 max-w-4xl mx-auto">
+      <div className="p-6 space-y-6 max-w-4xl mx-auto w-full">
         <MintSelector onSelect={setActiveMint} currentMint={activeMint} />
 
         {/* SSS-2 notice */}
-        <div className="flex items-center gap-3 rounded-xl border border-accent/30 bg-accent/5 p-4 shadow-sm">
+        <Card className="border-accent/30 bg-accent/5 p-4 shadow-sm flex items-center gap-3">
           <Info className="h-5 w-5 text-accent shrink-0" />
           <div>
-            <p className="text-sm font-semibold text-foreground">SSS-2 Feature</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-sm font-semibold">SSS-2 Feature</p>
+            <p className="text-xs text-muted-foreground">
               Blacklist management is available for SSS-2 (Compliant) presets with the transfer hook
               program enabled.
             </p>
           </div>
-        </div>
+        </Card>
 
         {!activeMint && (
-          <div className="rounded-xl border border-border bg-card p-12 text-center shadow-sm">
-            <p className="text-sm text-muted-foreground">
+          <Card className="p-12 text-center border-dashed">
+            <CardDescription>
               Select a mint address above to check blacklist status.
-            </p>
-          </div>
+            </CardDescription>
+          </Card>
         )}
 
         {!publicKey && activeMint && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl border border-warning/20 bg-warning/5 p-5 text-center shadow-sm"
-          >
+          <Card className="border-warning/50 bg-warning/5 p-4 text-center">
             <p className="text-sm text-warning font-medium">
               Connect your wallet to manage blacklist entries.
             </p>
-          </motion.div>
+          </Card>
         )}
 
         {activeMint && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="rounded-2xl border border-border/50 bg-card/60 backdrop-blur-xl p-8 shadow-xl relative z-10"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full"
           >
-            {/* Transactions Feedback */}
-            {operation !== 'check' && (
-              <div className="mb-6">
-                <TxFeedback loading={txLoading} error={txError} signature={signature} />
-              </div>
-            )}
-
-            {/* Custom Dropdown */}
-            <div className="relative mb-8">
-              <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                Select Operation
-              </label>
-              <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-between rounded-xl border border-border bg-background/50 px-4 py-4 text-left shadow-sm hover:border-accent/50 transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={cn('p-2 rounded-lg border', activeOp.color)}>
-                    <ActiveIcon size={20} />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-foreground">{activeOp.title}</h4>
-                  </div>
-                </div>
-                <ChevronDown
-                  className={cn(
-                    'text-muted-foreground transition-transform duration-200',
-                    isOpen && 'rotate-180',
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden">
+              <CardHeader className="pb-4">
+                <div className="flex flex-col gap-4">
+                  {/* Transactions Feedback */}
+                  {operation !== 'check' && (
+                    <TxFeedback loading={txLoading} error={txError} signature={signature} />
                   )}
-                  size={20}
-                />
-              </button>
 
-              <AnimatePresence>
-                {isOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute top-full left-0 right-0 mt-2 rounded-xl border border-border bg-card shadow-2xl overflow-hidden z-50"
-                  >
-                    {Object.values(OPERATIONS).map((op) => (
-                      <button
-                        key={op.id}
-                        onClick={() => {
-                          setOperation(op.id);
-                          setIsOpen(false);
-                          setAddressInput('');
-                          setReasonInput('');
-                          setCheckResult('idle');
-                        }}
+                  <div className="relative">
+                    <Label className="mb-2 block text-xs uppercase tracking-wider text-muted-foreground font-bold">
+                      Select Operation
+                    </Label>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between h-14 px-4 bg-background/50 hover:bg-background/80"
+                      onClick={() => setIsOpen(!isOpen)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn('p-2 rounded-md border', activeOp.color)}>
+                          <ActiveIcon size={18} />
+                        </div>
+                        <span className="font-semibold">{activeOp.title}</span>
+                      </div>
+                      <ChevronDown
                         className={cn(
-                          'w-full flex items-center gap-4 px-4 py-3 text-left transition-colors hover:bg-muted/50 border-b border-border/50 last:border-0',
-                          operation === op.id && 'bg-accent/5',
+                          'ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-200',
+                          isOpen && 'rotate-180',
                         )}
-                      >
-                        <div className={cn('p-2 rounded-lg border', op.color)}>
-                          <op.icon size={18} />
-                        </div>
-                        <div>
-                          <div className="text-sm font-semibold text-foreground">{op.title}</div>
-                          <div className="text-xs text-muted-foreground mt-0.5">
-                            {op.description}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Dynamic Form Area */}
-            <div className="bg-background/30 rounded-xl p-6 border border-border/30 overflow-hidden">
-              <div className="mb-6 flex items-start gap-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-foreground mb-1">{activeOp.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {activeOp.description}
-                  </p>
-                </div>
-              </div>
-
-              <AnimatePresence mode="popLayout">
-                <motion.div
-                  key={operation}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-5"
-                >
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                      Target Address
-                    </label>
-                    <input
-                      type="text"
-                      value={addressInput}
-                      onChange={(e) => {
-                        setAddressInput(e.target.value);
-                        if (operation === 'check') {
-                          setCheckResult('idle');
-                          setCheckError(null);
-                        }
-                      }}
-                      placeholder="Enter Solana wallet address..."
-                      className="w-full rounded-xl border border-border bg-background/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all"
-                    />
-                  </div>
-
-                  {operation === 'add' && (
-                    <div>
-                      <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                        Reason (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        value={reasonInput}
-                        onChange={(e) => setReasonInput(e.target.value)}
-                        placeholder="e.g. OFAC sanctioned entity"
-                        maxLength={128}
-                        className="w-full rounded-xl border border-border bg-background/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all"
                       />
-                      <p className="mt-2 text-xs text-muted-foreground text-right">
-                        {reasonInput.length}/128
-                      </p>
-                    </div>
-                  )}
+                    </Button>
 
-                  {operation === 'check' && (
-                    <>
-                      {checkResult === 'loading' && (
-                        <div className="flex items-center gap-3 rounded-xl bg-muted/50 border border-muted p-4">
-                          <svg
-                            className="h-4 w-4 animate-spin text-muted-foreground"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            />
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                            />
-                          </svg>
-                          <span className="text-sm font-medium text-foreground">
-                            Querying on-chain state...
-                          </span>
-                        </div>
-                      )}
-
-                      {checkResult === 'error' && (
-                        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4">
-                          <p className="text-sm font-semibold text-destructive">
-                            {checkError ?? 'Failed to check address'}
-                          </p>
-                        </div>
-                      )}
-
-                      {(checkResult === 'clean' || checkResult === 'blacklisted') && (
+                    <AnimatePresence>
+                      {isOpen && (
                         <motion.div
-                          initial={{ opacity: 0, y: 5 }}
+                          initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className={cn(
-                            'flex items-center gap-3 rounded-xl border p-4 shadow-sm',
-                            checkResult === 'clean'
-                              ? 'border-success/30 bg-success/10 text-success'
-                              : 'border-destructive/30 bg-destructive/10 text-destructive',
-                          )}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="absolute top-full left-0 right-0 mt-2 rounded-md border border-border bg-popover shadow-xl z-50 overflow-hidden"
                         >
-                          <div
-                            className={cn(
-                              'h-2.5 w-2.5 rounded-full shadow-sm',
-                              checkResult === 'clean'
-                                ? 'bg-success shadow-success/50'
-                                : 'bg-destructive shadow-destructive/50',
-                            )}
-                          />
-                          <p className="text-sm font-semibold">
-                            {checkResult === 'clean'
-                              ? 'Address is NOT blacklisted'
-                              : 'Address is EXPLICITLY BLACKLISTED'}
-                          </p>
+                          <div className="p-1">
+                            {Object.values(OPERATIONS).map((op) => (
+                              <button
+                                key={op.id}
+                                onClick={() => {
+                                  setOperation(op.id);
+                                  setIsOpen(false);
+                                  setAddressInput('');
+                                  setReasonInput('');
+                                  setCheckResult('idle');
+                                }}
+                                className={cn(
+                                  'w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-sm transition-colors hover:bg-accent hover:text-accent-foreground',
+                                  operation === op.id && 'bg-accent/50',
+                                )}
+                              >
+                                <div className={cn('p-1.5 rounded border', op.color)}>
+                                  <op.icon size={16} />
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium">{op.title}</span>
+                                  <span className="text-[10px] text-muted-foreground line-clamp-1">
+                                    {op.description}
+                                  </span>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
                         </motion.div>
                       )}
-                    </>
-                  )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </CardHeader>
 
-                  <div className="pt-4 mt-4 border-t border-border/30">
-                    <button
+              <Separator className="bg-border/50" />
+
+              <CardContent className="pt-6">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={operation}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.15 }}
+                    className="space-y-6"
+                  >
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-semibold tracking-tight">{activeOp.title}</h3>
+                      <p className="text-sm text-muted-foreground">{activeOp.description}</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="address">Target Address</Label>
+                        <Input
+                          id="address"
+                          placeholder="Enter Solana wallet address..."
+                          value={addressInput}
+                          onChange={(e) => {
+                            setAddressInput(e.target.value);
+                            if (operation === 'check') {
+                              setCheckResult('idle');
+                              setCheckError(null);
+                            }
+                          }}
+                          className="bg-background/50 h-11"
+                        />
+                      </div>
+
+                      {operation === 'add' && (
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <Label htmlFor="reason">Reason (Optional)</Label>
+                            <span className="text-[10px] text-muted-foreground">
+                              {reasonInput.length}/128
+                            </span>
+                          </div>
+                          <Input
+                            id="reason"
+                            placeholder="e.g. OFAC sanctioned entity"
+                            maxLength={128}
+                            value={reasonInput}
+                            onChange={(e) => setReasonInput(e.target.value)}
+                            className="bg-background/50 h-11"
+                          />
+                        </div>
+                      )}
+
+                      {operation === 'check' && (
+                        <div className="pt-2">
+                          {checkResult === 'loading' && (
+                            <div className="flex items-center gap-3 rounded-md bg-muted/50 border border-border p-4">
+                              <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                              <span className="text-sm font-medium">
+                                Querying on-chain state...
+                              </span>
+                            </div>
+                          )}
+
+                          {checkResult === 'error' && (
+                            <Card className="border-destructive/30 bg-destructive/10 p-4">
+                              <p className="text-sm font-semibold text-destructive text-center">
+                                {checkError ?? 'Failed to check address'}
+                              </p>
+                            </Card>
+                          )}
+
+                          {(checkResult === 'clean' || checkResult === 'blacklisted') && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className={cn(
+                                'flex items-center gap-3 rounded-md border p-4 shadow-sm',
+                                checkResult === 'clean'
+                                  ? 'border-success/30 bg-success/10 text-success'
+                                  : 'border-destructive/30 bg-destructive/10 text-destructive',
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  'h-2.5 w-2.5 rounded-full shadow-sm',
+                                  checkResult === 'clean'
+                                    ? 'bg-success shadow-success/50'
+                                    : 'bg-destructive shadow-destructive/50',
+                                )}
+                              />
+                              <p className="text-sm font-semibold">
+                                {checkResult === 'clean'
+                                  ? 'Address is NOT blacklisted'
+                                  : 'Address is EXPLICITLY BLACKLISTED'}
+                              </p>
+                            </motion.div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <Button
+                      className="w-full h-12 text-base font-semibold"
+                      variant={
+                        activeOp.buttonVariant === 'destructive'
+                          ? 'destructive'
+                          : activeOp.buttonVariant === 'warning'
+                            ? 'secondary'
+                            : 'default'
+                      }
                       onClick={handleAction}
                       disabled={!addressInput || loading}
-                      className={cn(
-                        'w-full rounded-xl px-4 py-3.5 text-sm font-semibold transition-all shadow-lg active:scale-[0.98]',
-                        activeOp.buttonVariant === 'primary' &&
-                          'bg-accent hover:bg-accent/80 text-white shadow-accent/20',
-                        activeOp.buttonVariant === 'warning' &&
-                          'bg-warning hover:bg-warning/80 text-black shadow-warning/20',
-                        activeOp.buttonVariant === 'destructive' &&
-                          'bg-destructive hover:bg-destructive/80 text-white shadow-destructive/20',
-                        (!addressInput || loading) &&
-                          'opacity-50 cursor-not-allowed shadow-none active:scale-100',
-                      )}
                     >
                       {loading
                         ? 'Processing...'
                         : operation === 'check'
                           ? 'Query On-Chain Status'
                           : `Execute ${activeOp.title}`}
-                    </button>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-            </div>
+                    </Button>
+                  </motion.div>
+                </AnimatePresence>
+              </CardContent>
+            </Card>
           </motion.div>
         )}
       </div>

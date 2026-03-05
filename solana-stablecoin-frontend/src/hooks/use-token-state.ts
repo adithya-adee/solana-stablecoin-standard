@@ -59,25 +59,30 @@ export function useTokenState(mintAddress: string | null) {
       // Fetch the on-chain StablecoinConfig account
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const configAccount = await (program.account as any).stablecoinConfig.fetch(configPda);
+      console.log(configAccount);
 
       // Fetch mint info for decimals and current supply
       const mintInfo = await getMint(connection, mint, 'confirmed', TOKEN_2022_PROGRAM_ID);
 
       const decimals = mintInfo.decimals;
       const currentSupply = mintInfo.supply;
+
       const totalMinted = configAccount.totalMinted
         ? BigInt(configAccount.totalMinted.toString())
         : currentSupply;
+
       const totalBurned = configAccount.totalBurned
         ? BigInt(configAccount.totalBurned.toString())
         : 0n;
+
+      const supplyCap = configAccount.supplyCap ? BigInt(configAccount.supplyCap.toString()) : null;
 
       setData({
         preset: configAccount.preset,
         presetName: PRESET_NAMES[configAccount.preset] ?? `Preset ${configAccount.preset}`,
         authority: configAccount.authority?.toBase58() ?? 'Unknown',
         paused: configAccount.paused ?? false,
-        supplyCap: configAccount.supplyCap ? BigInt(configAccount.supplyCap.toString()) : null,
+        supplyCap,
         totalMinted,
         totalBurned,
         decimals,

@@ -8,20 +8,25 @@ import {
   createSss1MintTx,
   createSss2MintTx,
   createSss3MintTx,
-  buildInitializeIx,
-  buildInitializeExtraAccountMetasIx,
+  createInitInstruction,
+  createHookMetaInitInstruction,
   type TokenMintKey,
   SssCoreIdl,
   SssTransferHookIdl,
   type SssCore,
   type SssTransferHook,
 } from '@stbr/sss-token';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SSS_CORE_PROGRAM_ID } from '@/lib/constants';
 import { PageHeader } from '@/components/page-header';
 import { TxFeedback } from '@/components/tx-feedback';
 import { useTransaction } from '@/hooks/use-transaction';
 import { useMintHistory } from '@/hooks/use-mint-history';
 import { useActiveMint } from '@/hooks/use-active-mint';
+import { cn } from '@/lib/utils';
 
 type PresetChoice = 'sss-1' | 'sss-2' | 'sss-3';
 
@@ -30,70 +35,6 @@ const PRESET_ORDINAL: Record<PresetChoice, number> = {
   'sss-2': 2,
   'sss-3': 3,
 };
-
-function FormInput({
-  label,
-  placeholder,
-  value,
-  onChange,
-  type = 'text',
-}: {
-  label: string;
-  placeholder: string;
-  value: string;
-  onChange: (v: string) => void;
-  type?: string;
-}) {
-  return (
-    <div>
-      <label className="mb-1.5 block text-sm font-medium text-muted-foreground">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-      />
-    </div>
-  );
-}
-
-function PresetCard({
-  id,
-  title,
-  description,
-  selected,
-  onSelect,
-}: {
-  id: PresetChoice;
-  title: string;
-  description: string;
-  selected: boolean;
-  onSelect: (id: PresetChoice) => void;
-}) {
-  return (
-    <div
-      onClick={() => onSelect(id)}
-      className={`cursor-pointer rounded-xl border p-4 transition-colors ${
-        selected ? 'border-accent bg-accent/10' : 'border-border bg-card hover:border-accent/50'
-      }`}
-    >
-      <div className="flex items-center gap-3">
-        <div
-          className={`h-4 w-4 rounded-full border flex items-center justify-center ${
-            selected ? 'border-accent' : 'border-muted-foreground'
-          }`}
-        >
-          {selected && <div className="h-2 w-2 rounded-full bg-accent" />}
-        </div>
-        <div>
-          <h4 className="font-semibold text-foreground text-sm">{title}</h4>
-          <p className="text-xs text-muted-foreground mt-1">{description}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function CreateStablecoinPage() {
   const { connection } = useConnection();
@@ -160,7 +101,7 @@ export default function CreateStablecoinPage() {
       }
 
       // Build sss-core initialize ix
-      const initIx = await buildInitializeIx(
+      const initIx = await createInitInstruction(
         coreProgram,
         mintKeypair.publicKey as TokenMintKey,
         payer,
@@ -180,7 +121,7 @@ export default function CreateStablecoinPage() {
       if (preset === 'sss-2') {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const hookProgram = new Program<SssTransferHook>(SssTransferHookIdl as any, provider);
-        const hookInitIx = await buildInitializeExtraAccountMetasIx(
+        const hookInitIx = await createHookMetaInitInstruction(
           hookProgram,
           mintKeypair.publicKey as TokenMintKey,
           payer,
@@ -216,112 +157,149 @@ export default function CreateStablecoinPage() {
   ]);
 
   return (
-    <div>
+    <div className="flex flex-col gap-6">
       <PageHeader title="Deploy New Stablecoin" />
-      <div className="p-6 space-y-6 max-w-4xl mx-auto">
-        <div className="bg-card border border-border rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-1">Configuration</h3>
-          <p className="text-sm text-muted-foreground mb-6">
-            Generate a new mint keypair and deploy a stablecoin powered by SSS.
-          </p>
+      <div className="p-6 space-y-6 max-w-4xl mx-auto w-full">
+        <Card className="border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden">
+          <CardHeader>
+            <CardTitle>Configuration</CardTitle>
+            <CardDescription>
+              Generate a new mint keypair and deploy a stablecoin powered by SSS.
+            </CardDescription>
+          </CardHeader>
 
-          <div className="space-y-6">
+          <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormInput
-                label="Token Name"
-                placeholder="e.g. US Dollar"
-                value={name}
-                onChange={setName}
-              />
-              <FormInput
-                label="Token Symbol"
-                placeholder="e.g. USD"
-                value={symbol}
-                onChange={setSymbol}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormInput
-                label="Decimals"
-                placeholder="6"
-                value={decimals}
-                onChange={setDecimals}
-                type="number"
-              />
-              <FormInput
-                label="Supply Cap (Optional)"
-                placeholder="Leave empty for infinite"
-                value={supplyCap}
-                onChange={setSupplyCap}
-                type="number"
-              />
-            </div>
-
-            <FormInput
-              label="Metadata URI (Optional)"
-              placeholder="https://..."
-              value={uri}
-              onChange={setUri}
-            />
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                Select Preset
-              </label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <PresetCard
-                  id="sss-1"
-                  title="SSS-1 (Minimal)"
-                  description="Standard Token-2022 mint. Lightweight."
-                  selected={preset === 'sss-1'}
-                  onSelect={setPreset}
+              <div className="space-y-2">
+                <Label htmlFor="name">Token Name</Label>
+                <Input
+                  id="name"
+                  placeholder="e.g. US Dollar"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="bg-background/50 h-11"
                 />
-                <PresetCard
-                  id="sss-2"
-                  title="SSS-2 (Compliant)"
-                  description="Includes Transfer Hook & Blacklisting."
-                  selected={preset === 'sss-2'}
-                  onSelect={setPreset}
-                />
-                <PresetCard
-                  id="sss-3"
-                  title="SSS-3 (Confidential)"
-                  description="Zero-knowledge private transfers."
-                  selected={preset === 'sss-3'}
-                  onSelect={setPreset}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="symbol">Token Symbol</Label>
+                <Input
+                  id="symbol"
+                  placeholder="e.g. USD"
+                  value={symbol}
+                  onChange={(e) => setSymbol(e.target.value)}
+                  className="bg-background/50 h-11"
                 />
               </div>
             </div>
 
-            <div className="pt-4 border-t border-border">
-              <button
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="decimals">Decimals</Label>
+                <Input
+                  id="decimals"
+                  type="number"
+                  placeholder="6"
+                  value={decimals}
+                  onChange={(e) => setDecimals(e.target.value)}
+                  className="bg-background/50 h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="supplyCap">Supply Cap (Optional)</Label>
+                <Input
+                  id="supplyCap"
+                  type="number"
+                  placeholder="Leave empty for infinite"
+                  value={supplyCap}
+                  onChange={(e) => setSupplyCap(e.target.value)}
+                  className="bg-background/50 h-11"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="uri">Metadata URI (Optional)</Label>
+              <Input
+                id="uri"
+                placeholder="https://..."
+                value={uri}
+                onChange={(e) => setUri(e.target.value)}
+                className="bg-background/50 h-11"
+              />
+            </div>
+
+            <div className="space-y-4">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">
+                Select Preset
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  {
+                    id: 'sss-1',
+                    title: 'SSS-1 (Minimal)',
+                    description: 'Standard Token-2022 mint. Lightweight.',
+                  },
+                  {
+                    id: 'sss-2',
+                    title: 'SSS-2 (Compliant)',
+                    description: 'Includes Transfer Hook & Blacklisting.',
+                  },
+                  {
+                    id: 'sss-3',
+                    title: 'SSS-3 (Confidential)',
+                    description: 'Zero-knowledge private transfers.',
+                  },
+                ].map((p) => (
+                  <Card
+                    key={p.id}
+                    className={cn(
+                      'cursor-pointer transition-all duration-200 bg-background/30 hover:border-foreground/30',
+                      preset === p.id
+                        ? 'border-foreground bg-foreground/5 ring-1 ring-foreground/30'
+                        : 'border-border',
+                    )}
+                    onClick={() => setPreset(p.id as PresetChoice)}
+                  >
+                    <CardHeader className="p-4">
+                      <div className="flex items-center gap-2 mb-1">
+                        {preset === p.id && (
+                          <span className="h-2 w-2 rounded-full bg-foreground shrink-0" />
+                        )}
+                        <CardTitle className="text-sm font-bold">{p.title}</CardTitle>
+                      </div>
+                      <CardDescription className="text-xs">{p.description}</CardDescription>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-4 mt-6 border-t border-border/50">
+              <Button
+                className="w-full h-12 text-base font-semibold"
                 onClick={handleCreate}
                 disabled={!canCreate || loading}
-                className={`w-full rounded-lg px-4 py-3 font-semibold transition-colors ${
-                  !canCreate || loading
-                    ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                    : 'bg-accent hover:bg-accent/80 text-white'
-                }`}
               >
                 {loading ? 'Deploying...' : 'Deploy Stablecoin'}
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         <TxFeedback loading={loading} error={error} signature={signature} />
 
         {createdMint && (
-          <div className="rounded-xl border border-success/30 bg-success/10 p-5 mt-4 text-center space-y-2">
-            <h4 className="text-success font-semibold">Deployment Successful!</h4>
-            <p className="text-sm text-foreground">
-              Your stablecoin works perfectly. You can now operate it using the mint address:
-            </p>
-            <code className="bg-background text-foreground px-4 py-2 rounded-lg font-mono text-sm inline-block shadow-sm select-all">
+          <Card className="border-success/30 bg-success/5 p-6 text-center space-y-4">
+            <div className="space-y-2">
+              <CardTitle className="text-success text-lg">Deployment Successful!</CardTitle>
+              <CardDescription className="text-foreground">
+                Your stablecoin works perfectly. You can now operate it using the mint address:
+              </CardDescription>
+            </div>
+            <code className="bg-background border border-success/20 text-foreground px-4 py-3 rounded-lg font-mono text-sm inline-block shadow-inner select-all w-full md:w-auto overflow-x-auto">
               {createdMint}
             </code>
-          </div>
+          </Card>
         )}
       </div>
     </div>

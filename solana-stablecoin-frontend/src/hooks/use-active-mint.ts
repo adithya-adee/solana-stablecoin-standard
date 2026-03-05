@@ -1,21 +1,22 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
 
 const STORAGE_KEY = 'sss-active-mint';
 
 export function useActiveMint() {
+  const { connected } = useWallet();
   const [activeMint, setActiveMintState] = useState<string | null>(null);
 
   // Load from localStorage on mount
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const stored = window.localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(STORAGE_KEY);
     if (stored && stored !== 'null' && stored !== 'undefined') {
       setActiveMintState(stored);
     } else {
       // Smart default: check sss-mint-history
-      const history = window.localStorage.getItem('sss-mint-history');
+      const history = localStorage.getItem('sss-mint-history');
       if (history) {
         try {
           const parsed = JSON.parse(history);
@@ -31,14 +32,12 @@ export function useActiveMint() {
 
   const setActiveMint = useCallback((address: string | null) => {
     setActiveMintState(address);
-    if (typeof window !== 'undefined') {
-      if (address) {
-        window.localStorage.setItem(STORAGE_KEY, address);
-      } else {
-        window.localStorage.removeItem(STORAGE_KEY);
-      }
+    if (address) {
+      localStorage.setItem(STORAGE_KEY, address);
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
     }
   }, []);
 
-  return { activeMint, setActiveMint };
+  return { activeMint: connected ? activeMint : null, setActiveMint };
 }
