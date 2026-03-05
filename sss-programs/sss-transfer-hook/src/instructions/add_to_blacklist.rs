@@ -25,12 +25,12 @@ pub struct AddToBlacklist<'info> {
     pub address: UncheckedAccount<'info>,
 
     #[account(
-    init,
-    payer = blacklister,
-    space = 8 + 32 + 32 + 32 + 8 + (4 + reason.len()) + 1,
-    seeds = [BlacklistEntry::BLACKLIST_SEED, mint.key().as_ref(), address.key().as_ref()],
-    bump,
-  )]
+        init,
+        payer = blacklister,
+        space = BlacklistEntry::compute_space(&reason),
+        seeds = [BlacklistEntry::BLACKLIST_SEED, mint.key().as_ref(), address.key().as_ref()],
+        bump,
+    )]
     pub blacklist_entry: Account<'info, BlacklistEntry>,
 
     pub system_program: Program<'info, System>,

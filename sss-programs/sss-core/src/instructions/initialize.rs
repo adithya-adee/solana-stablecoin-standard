@@ -34,7 +34,7 @@ pub struct Initialize<'info> {
     #[account(
         init,
         payer = authority,
-        space = StablecoinConfig::CONFIG_SPACE,
+        space = StablecoinConfig::compute_space(&args.name, &args.symbol, &args.uri),
         seeds = [StablecoinConfig::SSS_CONFIG_SEED, mint.key().as_ref()],
         bump,
     )]

@@ -18,8 +18,17 @@ pub struct BlacklistEntry {
 
 impl BlacklistEntry {
     pub const BLACKLIST_SEED: &[u8] = b"blacklist";
-    /// BlacklistEntry account space:
-    /// discriminator(8) + mint(32) + address(32) + added_by(32)
-    /// + added_at(8) + reason string(4 + 512) + bump(1) = 629
-    pub const BLACKLIST_SPACE: usize = 629;
+    /// Fixed account space breakdown:
+    /// discriminator(8)
+    /// + mint(32)
+    /// + address(32)
+    /// + added_by(32)
+    /// + added_at(8)
+    /// + bump(1)
+    pub const BASE_SIZE: usize = 8 + 32 + 32 + 32 + 8 + 1;
+
+    /// Compute the dynamic account space required for a given reason string.
+    pub fn compute_space(reason: &str) -> usize {
+        Self::BASE_SIZE + 4 + reason.len()
+    }
 }

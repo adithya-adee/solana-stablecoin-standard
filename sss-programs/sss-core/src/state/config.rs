@@ -10,11 +10,11 @@ pub struct StablecoinConfig {
     pub total_minted: u64,
     pub total_burned: u64,
     pub bump: u8,
-    /// Stablecoin name (max 32 chars).
+    /// Stablecoin name (max 32 bytes).
     pub name: String,
-    /// Stablecoin ticker symbol (max 10 chars).
+    /// Stablecoin ticker symbol (max 10 bytes).
     pub symbol: String,
-    /// Metadata URI (max 200 chars).
+    /// Metadata URI (max 200 bytes, may be empty).
     pub uri: String,
     /// Token decimals (e.g. 6 for USDC-style).
     pub decimals: u8,
@@ -36,24 +36,31 @@ pub struct StablecoinConfig {
 impl StablecoinConfig {
     pub const SSS_CONFIG_SEED: &'static [u8] = b"sss-config";
 
-    pub const CONFIG_SPACE: usize = 8 + // discriminator
-        32 + // authority
-        32 + // mint
-        1 +  // preset
-        1 +  // paused
-        9 +  // Option<u64> supply_cap (1 + 8)
-        8 +  // total_minted
-        8 +  // total_burned
-        1 +  // bump
-        36 + // name (4 + 32)
-        14 + // symbol (4 + 10)
-        204 + // uri (4 + 200)
-        1 +  // decimals
-        1 +  // enable_permanent_delegate
-        1 +  // enable_transfer_hook
-        1 +  // default_account_frozen
-        4 +  // admin_count
-        33;  // Option<[u8; 32]> oracle_feed_id (1 + 32)
+    /// Fixed-size portion of the account (all non-string fields).
+    /// Breakdown:
+    ///   8   discriminator
+    ///   32  authority
+    ///   32  mint
+    ///   1   preset
+    ///   1   paused
+    ///   9   Option<u64> supply_cap  (1 flag + 8 value)
+    ///   8   total_minted
+    ///   8   total_burned
+    ///   1   bump
+    ///   1   decimals
+    ///   1   enable_permanent_delegate
+    ///   1   enable_transfer_hook
+    ///   1   default_account_frozen
+    ///   4   admin_count (u32)
+    ///   33  Option<[u8;32]> oracle_feed_id (1 flag + 32 bytes)
+    pub const BASE_SIZE: usize = 8 + 32 + 32 + 1 + 1 + 9 + 8 + 8 + 1 + 1 + 1 + 1 + 1 + 4 + 33;
+
+    /// Compute the total account space needed for a specific set of string lengths.
+    /// Borsh serialises `String` as a `u32` length prefix (4 bytes) followed by the
+    /// UTF-8 content bytes, so each string field costs `4 + len` bytes.
+    pub fn compute_space(name: &str, symbol: &str, uri: &str) -> usize {
+        Self::BASE_SIZE + (4 + name.len()) + (4 + symbol.len()) + (4 + uri.len())
+    }
 
     /// Returns the current circulating supply (minted minus burned).
     pub fn current_supply(&self) -> u64 {
