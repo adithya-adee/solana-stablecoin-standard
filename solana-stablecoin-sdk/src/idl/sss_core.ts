@@ -47,6 +47,20 @@ export type SssCore = {
         },
         {
           name: 'from';
+          docs: [
+            'SECURITY NOTE — PRIVILEGED PERMANENT-DELEGATE BURN:',
+            'The config PDA is the permanent delegate for this mint, so a Burner-role',
+            'holder can burn tokens from ANY token account of this mint — not only',
+            'their own. This is intentional for protocol compliance (e.g., burning',
+            'sanctioned tokens), but it is an extremely powerful capability.',
+            '',
+            'Operational safeguards REQUIRED:',
+            '1. The Burner role must be assigned to a multisig (e.g., Squads).',
+            '2. All burns where `from.owner != burner` must be logged and reviewed.',
+            '3. The `TokensBurned` event emits `from_owner` to surface third-party',
+            'burns for compliance audit trails.',
+            '4. Unlike `seize`, burn is IRREVERSIBLE — the tokens are destroyed.',
+          ];
           writable: true;
         },
         {
@@ -532,7 +546,11 @@ export type SssCore = {
         },
         {
           name: 'minterRole';
-          docs: ["The minter's role account to update. Must be a Minter role."];
+          docs: [
+            "The minter's role account to update. Must be a Minter role.",
+            'Seeds are explicitly validated (defense-in-depth) to prevent a',
+            'crafted RoleAccount with matching data fields from being substituted.',
+          ];
           writable: true;
         },
       ];
@@ -541,6 +559,47 @@ export type SssCore = {
           name: 'newQuota';
           type: {
             option: 'u64';
+          };
+        },
+      ];
+    },
+    {
+      name: 'updateOracleFeed';
+      discriminator: [91, 183, 142, 143, 231, 140, 227, 32];
+      accounts: [
+        {
+          name: 'admin';
+          signer: true;
+        },
+        {
+          name: 'config';
+          writable: true;
+          pda: {
+            seeds: [
+              {
+                kind: 'const';
+                value: [115, 115, 115, 45, 99, 111, 110, 102, 105, 103];
+              },
+              {
+                kind: 'account';
+                path: 'config.mint';
+                account: 'stablecoinConfig';
+              },
+            ];
+          };
+        },
+        {
+          name: 'adminRole';
+          docs: ['Admin role PDA — proves admin authorization.'];
+        },
+      ];
+      args: [
+        {
+          name: 'oracleFeedId';
+          type: {
+            option: {
+              array: ['u8', 32];
+            };
           };
         },
       ];
@@ -739,6 +798,11 @@ export type SssCore = {
       name: 'oraclePriceStale';
       msg: 'Oracle price is stale';
     },
+    {
+      code: 6018;
+      name: 'oracleFeedNotConfigured';
+      msg: 'Oracle feed ID not configured — call update_oracle_feed before using a price update';
+    },
   ];
   types: [
     {
@@ -873,6 +937,19 @@ export type SssCore = {
             ];
             type: {
               option: 'bool';
+            };
+          },
+          {
+            name: 'oracleFeedId';
+            docs: [
+              'Optional Pyth oracle feed ID (32-byte array) for oracle-gated supply caps.',
+              'If None, oracle-adjusted minting is disabled for this stablecoin.',
+              'Can be set later via `update_oracle_feed`.',
+            ];
+            type: {
+              option: {
+                array: ['u8', 32];
+              };
             };
           },
         ];
@@ -1182,17 +1259,17 @@ export type SssCore = {
           },
           {
             name: 'name';
-            docs: ['Stablecoin name (max 32 chars).'];
+            docs: ['Stablecoin name (max 32 bytes).'];
             type: 'string';
           },
           {
             name: 'symbol';
-            docs: ['Stablecoin ticker symbol (max 10 chars).'];
+            docs: ['Stablecoin ticker symbol (max 10 bytes).'];
             type: 'string';
           },
           {
             name: 'uri';
-            docs: ['Metadata URI (max 200 chars).'];
+            docs: ['Metadata URI (max 200 bytes, may be empty).'];
             type: 'string';
           },
           {
@@ -1219,6 +1296,20 @@ export type SssCore = {
             name: 'adminCount';
             docs: ['Number of active admins. Used to prevent revoking the last admin.'];
             type: 'u32';
+          },
+          {
+            name: 'oracleFeedId';
+            docs: [
+              'Pyth price feed ID (32-byte hex) that oracle-gated minting must match.',
+              '`None` means oracle-adjusted minting is disabled for this stablecoin.',
+              'Must be set via `update_oracle_feed` before passing a `price_update` account',
+              'to `mint_tokens`. Using a wildcard (all-zeros) is explicitly rejected.',
+            ];
+            type: {
+              option: {
+                array: ['u8', 32];
+              };
+            };
           },
         ];
       };
@@ -1285,6 +1376,16 @@ export type SssCore = {
           {
             name: 'newSupply';
             type: 'u64';
+          },
+          {
+            name: 'fromOwner';
+            docs: [
+              'Owner of the `from` token account at burn time. When `from_owner !=',
+              'burner`, this was a privileged permanent-delegate burn (the Burner role',
+              'acted on a third-party account). Compliance systems should flag and',
+              'independently verify all burns where `from_owner != burner`.',
+            ];
+            type: 'pubkey';
           },
         ];
       };
