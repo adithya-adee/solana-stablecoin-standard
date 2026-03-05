@@ -224,10 +224,11 @@ For deep-dive documentation, consult the files in `/docs`:
 
 ---
 
-## ⚠️ Known Constraints & Edge Cases
+## 🛡️ Security & Architecture Notes
 
-1. **Seizing via Permanent Delegate on Tier 2:** Token-2022 constraints prevent forwarding additional auxiliary accounts during a `TransferChecked` CPI. When using `seize` on an `SSS-2` mint, the transaction requires hook validation accounts that bypass the permanent delegate CPI. The established workaround is to freeze the account and execute an admin-authorized bypass flow. Tier 1 and Tier 3 seize functions normally.
-2. **Admin Revocation:** Built-in safeguards prevent the last active admin from removing themselves from the contract (which would brick the token). However, any active Administrator can revoke any other Administrator. We strongly recommend assigning the Admin role to a multisig (e.g., Squads) rather than individual keypairs.
+1. **Tier 2 Seizure Operations:** SSS-2 stablecoins utilize Token-2022 transfer hooks for compliance. The `seize` instruction is fully compatible with these hooks; callers simply need to provide the required auxiliary accounts (blacklist PDAs and hook program) as `remaining_accounts`. This enables the `sss-core` program to correctly pass validation through the hook during the CPI.
+2. **Admin Role Redundancy:** Built-in safeguards prevent the final active administrator from revoking their own role, ensuring the contract can always be managed. For production deployments, we strongly recommend assigning the `Admin` role to a multisig (e.g., Squads) to manage multi-party revocations and eliminate single-point-of-failure risks.
+3. **Emergency Role Flexibility:** Role grants and revocations for the `Admin` role remain active even when the stablecoin is globally paused. This ensures that in a security incident, the treasury can still rotate administrator keys or revoke compromised identities without needing to unpause token operations first.
 
 ---
 
