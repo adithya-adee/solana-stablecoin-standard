@@ -10,9 +10,10 @@ import type { SssCore } from './idl/sss_core';
 import type { SssTransferHook } from './idl/sss_transfer_hook';
 import { SssCoreIdl, SssTransferHookIdl } from './idl';
 import {
-  resolveConfigAccount,
-  resolveRoleAccount,
-  resolveDenyListAccount,
+  deriveConfigPda,
+  deriveRolePda,
+  deriveBlacklistPda,
+  deriveExtraAccountMetasPda,
   STBL_CORE_PROGRAM_ID,
   STBL_HOOK_PROGRAM_ID,
 } from './pda';
@@ -29,9 +30,9 @@ import { TIER_ORDINAL_MAP, ORDINAL_TO_TIER_MAP, ROLE_ID_MAP, asTier, asRole } fr
 import { translateAnchorError } from './errors';
 import * as coreix from './instructions/core';
 import * as hookix from './instructions/hook';
-import { assembleTier1MintTx } from './presets/sss1';
-import { assembleTier2MintTx } from './presets/sss2';
-import { assembleTier3MintTx } from './presets/sss3';
+import { createSss1MintTx } from './presets/sss1';
+import { createSss2MintTx } from './presets/sss2';
+import { createSss3MintTx } from './presets/sss3';
 import { PrivacyOpsBuilder } from './confidential';
 
 export class StablecoinClient {
@@ -62,7 +63,7 @@ export class StablecoinClient {
    * Resolves the PDA for a specific role account.
    */
   resolveRoleAccount(owner: PublicKey, role: AccessRole): [PublicKey, number] {
-    return resolveRoleAccount(this.configPda, owner, role);
+    return deriveRolePda(this.configPda, owner, role);
   }
 
   private async dispatchInstruction(
@@ -116,7 +117,7 @@ export class StablecoinClient {
     let mintTx: Transaction;
     switch (opts.preset) {
       case 'sss-1':
-        mintTx = await assembleTier1MintTx(
+        mintTx = await createSss1MintTx(
           provider.connection,
           payer,
           mint,
@@ -130,7 +131,7 @@ export class StablecoinClient {
         );
         break;
       case 'sss-2':
-        mintTx = await assembleTier2MintTx(
+        mintTx = await createSss2MintTx(
           provider.connection,
           payer,
           mint,
@@ -144,7 +145,7 @@ export class StablecoinClient {
         );
         break;
       case 'sss-3':
-        mintTx = await assembleTier3MintTx(
+        mintTx = await createSss3MintTx(
           provider.connection,
           payer,
           mint,
@@ -161,7 +162,7 @@ export class StablecoinClient {
         throw new Error(`Unknown preset: ${opts.preset}`);
     }
 
-    const initIx = await coreix.compileInitInstruction(
+    const initIx = await coreix.createInitInstruction(
       ledgerProgram,
       mint.publicKey as TokenMintKey,
       payer,
@@ -178,7 +179,7 @@ export class StablecoinClient {
     mintTx.add(initIx);
 
     if (opts.preset === 'sss-2') {
-      const hookInitIx = await hookix.compileHookMetaInitInstruction(
+      const hookInitIx = await hookix.createHookMetaInitInstruction(
         guardProgram,
         mint.publicKey as TokenMintKey,
         payer,
@@ -192,7 +193,7 @@ export class StablecoinClient {
       throw translateAnchorError(err);
     }
 
-    const [configPda, configBump] = resolveConfigAccount(
+    const [configPda, configBump] = deriveConfigPda(
       mint.publicKey as TokenMintKey,
       ledgerProgram.programId,
     );
@@ -234,7 +235,7 @@ export class StablecoinClient {
 
   static async load(provider: AnchorProvider, mint: TokenMintKey): Promise<StablecoinClient> {
     const { ledgerProgram, guardProgram } = StablecoinClient.buildProgramPair(provider);
-    const [configPda, configBump] = resolveConfigAccount(mint, ledgerProgram.programId);
+    const [configPda, configBump] = deriveConfigPda(mint, ledgerProgram.programId);
 
     const configAccount = await ledgerProgram.account.stablecoinConfig.fetchNullable(configPda);
     if (!configAccount) {
@@ -254,7 +255,7 @@ export class StablecoinClient {
    */
   async issueTokens(to: PublicKey, amount: bigint): Promise<string> {
     const minter = this.anchorProvider.publicKey;
-    const ix = await coreix.compileIssuanceInstruction(
+    const ix = await coreix.createIssuanceInstruction(
       this.ledgerProgram,
       this.mintAddress,
       minter,
@@ -304,10 +305,10 @@ export class StablecoinClient {
         priceUpdate = new PublicKey('J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix'); // Default Devnet SOL
       }
     } catch (e) {
-      console.warn('Failed to fetch config for oracle resolution, proceeding without it');
+      // ignore oracle resolution errors in SDK client
     }
 
-    const mintIx = await coreix.compileIssuanceInstruction(
+    const mintIx = await coreix.createIssuanceInstruction(
       this.ledgerProgram,
       this.mintAddress,
       minter,
@@ -333,7 +334,7 @@ export class StablecoinClient {
    */
   async burnTokens(from: PublicKey, amount: bigint): Promise<string> {
     const burner = this.anchorProvider.publicKey;
-    const ix = await coreix.compileRedemptionInstruction(
+    const ix = await coreix.createRedemptionInstruction(
       this.ledgerProgram,
       this.mintAddress,
       burner,
@@ -353,7 +354,7 @@ export class StablecoinClient {
       ASSOCIATED_TOKEN_PROGRAM_ID,
     );
 
-    const ix = await coreix.compileRedemptionInstruction(
+    const ix = await coreix.createRedemptionInstruction(
       this.ledgerProgram,
       this.mintAddress,
       burner,
@@ -373,7 +374,7 @@ export class StablecoinClient {
    */
   async freezeAccount(address: PublicKey): Promise<string> {
     const freezer = this.anchorProvider.publicKey;
-    const ix = await coreix.compileFreezeInstruction(
+    const ix = await coreix.createFreezeInstruction(
       this.ledgerProgram,
       this.mintAddress,
       freezer,
@@ -391,7 +392,7 @@ export class StablecoinClient {
       TOKEN_2022_PROGRAM_ID,
       ASSOCIATED_TOKEN_PROGRAM_ID,
     );
-    const ix = await coreix.compileFreezeInstruction(
+    const ix = await coreix.createFreezeInstruction(
       this.ledgerProgram,
       this.mintAddress,
       freezer,
@@ -410,7 +411,7 @@ export class StablecoinClient {
    */
   async thawAccount(address: PublicKey): Promise<string> {
     const freezer = this.anchorProvider.publicKey;
-    const ix = await coreix.compileThawInstruction(
+    const ix = await coreix.createThawInstruction(
       this.ledgerProgram,
       this.mintAddress,
       freezer,
@@ -428,7 +429,7 @@ export class StablecoinClient {
       TOKEN_2022_PROGRAM_ID,
       ASSOCIATED_TOKEN_PROGRAM_ID,
     );
-    const ix = await coreix.compileThawInstruction(
+    const ix = await coreix.createThawInstruction(
       this.ledgerProgram,
       this.mintAddress,
       freezer,
@@ -444,7 +445,7 @@ export class StablecoinClient {
 
   async composePause(): Promise<Transaction> {
     const pauser = this.anchorProvider.publicKey;
-    const ix = await coreix.compilePauseInstruction(this.ledgerProgram, this.configPda, pauser);
+    const ix = await coreix.createPauseInstruction(this.ledgerProgram, this.configPda, pauser);
     return new Transaction().add(ix);
   }
 
@@ -455,7 +456,7 @@ export class StablecoinClient {
 
   async composeResume(): Promise<Transaction> {
     const pauser = this.anchorProvider.publicKey;
-    const ix = await coreix.compileResumeInstruction(this.ledgerProgram, this.configPda, pauser);
+    const ix = await coreix.createResumeInstruction(this.ledgerProgram, this.configPda, pauser);
     return new Transaction().add(ix);
   }
 
@@ -499,7 +500,7 @@ export class StablecoinClient {
       ASSOCIATED_TOKEN_PROGRAM_ID,
     );
 
-    const seizeIx = await coreix.compileSeizeInstruction(
+    const seizeIx = await coreix.createSeizeInstruction(
       this.ledgerProgram,
       this.mintAddress,
       seizer,
@@ -520,7 +521,7 @@ export class StablecoinClient {
   async composeUpdateSupplyCap(newSupplyCap: bigint | null): Promise<Transaction> {
     const admin = this.anchorProvider.publicKey;
     const capBN = newSupplyCap !== null ? new BN(newSupplyCap.toString()) : null;
-    const ix = await coreix.compileCapUpdateInstruction(
+    const ix = await coreix.createCapUpdateInstruction(
       this.ledgerProgram,
       this.configPda,
       admin,
@@ -536,7 +537,7 @@ export class StablecoinClient {
 
   async composeTransferAuthority(newAuthority: PublicKey): Promise<Transaction> {
     const admin = this.anchorProvider.publicKey;
-    const ix = await coreix.compileAuthorityTransferInstruction(
+    const ix = await coreix.createAuthorityTransferInstruction(
       this.ledgerProgram,
       this.configPda,
       admin,
@@ -576,14 +577,14 @@ export class StablecoinClient {
 
   async composeUpdateMinter(minter: PublicKey, newQuota: bigint | null): Promise<Transaction> {
     const admin = this.anchorProvider.publicKey;
-    const [rolePda] = resolveRoleAccount(
+    const [rolePda] = deriveRolePda(
       this.configPda,
       minter,
       asRole('minter'),
       this.ledgerProgram.programId,
     );
     const quotaBN = newQuota !== null ? new BN(newQuota.toString()) : null;
-    const ix = await coreix.compileMinterUpdateInstruction(
+    const ix = await coreix.createMinterUpdateInstruction(
       this.ledgerProgram,
       this.configPda,
       admin,
@@ -606,7 +607,7 @@ export class StablecoinClient {
       },
 
       check: async (address: PublicKey, role: AccessRole): Promise<boolean> => {
-        const [rolePda] = resolveRoleAccount(
+        const [rolePda] = deriveRolePda(
           this.configPda,
           address,
           role,
@@ -620,7 +621,7 @@ export class StablecoinClient {
 
   async composeGrantRole(address: PublicKey, role: AccessRole): Promise<Transaction> {
     const admin = this.anchorProvider.publicKey;
-    const ix = await coreix.compileGrantInstruction(
+    const ix = await coreix.createGrantInstruction(
       this.ledgerProgram,
       this.configPda,
       admin,
@@ -632,13 +633,13 @@ export class StablecoinClient {
 
   async composeRevokeRole(address: PublicKey, role: AccessRole): Promise<Transaction> {
     const admin = this.anchorProvider.publicKey;
-    const [roleAccountPda] = resolveRoleAccount(
+    const [roleAccountPda] = deriveRolePda(
       this.configPda,
       address,
       role,
       this.ledgerProgram.programId,
     );
-    const ix = await coreix.compileRevokeInstruction(
+    const ix = await coreix.createRevokeInstruction(
       this.ledgerProgram,
       this.configPda,
       admin,
@@ -660,7 +661,7 @@ export class StablecoinClient {
       },
 
       check: async (address: PublicKey): Promise<boolean> => {
-        const [blacklistPda] = resolveDenyListAccount(
+        const [blacklistPda] = deriveBlacklistPda(
           this.mintAddress,
           address,
           this.guardProgram.programId,
@@ -673,7 +674,7 @@ export class StablecoinClient {
 
   async composeBlacklistAdd(address: PublicKey, reason: string): Promise<Transaction> {
     const blacklister = this.anchorProvider.publicKey;
-    const ix = await hookix.compileDenyListAddInstruction(
+    const ix = await hookix.createDenyListAddInstruction(
       this.guardProgram,
       this.mintAddress,
       blacklister,
@@ -686,7 +687,7 @@ export class StablecoinClient {
 
   async composeBlacklistRemove(address: PublicKey): Promise<Transaction> {
     const blacklister = this.anchorProvider.publicKey;
-    const ix = await hookix.compileDenyListRemoveInstruction(
+    const ix = await hookix.createDenyListRemoveInstruction(
       this.guardProgram,
       this.mintAddress,
       blacklister,
@@ -717,7 +718,7 @@ export class StablecoinClient {
           this.mintAddress,
           this.anchorProvider.publicKey,
         );
-        const ix = ops.compileDepositInstruction(tokenAccount, amount, decimals);
+        const ix = ops.createDepositInstruction(tokenAccount, amount, decimals);
         return this.dispatchInstruction(ix);
       },
 
@@ -727,7 +728,7 @@ export class StablecoinClient {
           this.mintAddress,
           this.anchorProvider.publicKey,
         );
-        const ix = ops.compileSettlePendingInstruction(tokenAccount);
+        const ix = ops.createSettlePendingInstruction(tokenAccount);
         return this.dispatchInstruction(ix);
       },
 

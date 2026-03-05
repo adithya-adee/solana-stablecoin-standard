@@ -20,7 +20,8 @@ import {
 } from '@solana/spl-token';
 import { createInitializeInstruction, pack, type TokenMetadata } from '@solana/spl-token-metadata';
 import type { TokenMintKey } from '../types';
-import { resolveConfigAccount } from '../pda';
+import { deriveConfigPda } from '../pda';
+import { Buffer } from 'buffer';
 
 export interface Tier3MintParams {
   name: string;
@@ -31,7 +32,7 @@ export interface Tier3MintParams {
   autoApproveNewAccounts?: boolean;
 }
 
-export function compileConfidentialMintInstruction(
+export function createConfidentialMintInstruction(
   mint: PublicKey,
   authority: PublicKey | null,
   autoApproveNewAccounts: boolean,
@@ -66,14 +67,14 @@ export function compileConfidentialMintInstruction(
   });
 }
 
-export async function assembleTier3MintTx(
+export async function createSss3MintTx(
   connection: Connection,
   payer: PublicKey,
   mintKeypair: Keypair,
   options: Tier3MintParams,
   coreProgramId: PublicKey,
 ): Promise<Transaction> {
-  const [configPda] = resolveConfigAccount(mintKeypair.publicKey as TokenMintKey, coreProgramId);
+  const [configPda] = deriveConfigPda(mintKeypair.publicKey as TokenMintKey, coreProgramId);
   const decimals = options.decimals ?? 6;
   const autoApprove = options.autoApproveNewAccounts ?? true;
   const auditorKey = options.auditorElGamalPubkey ?? new Uint8Array(32);
@@ -117,7 +118,7 @@ export async function assembleTier3MintTx(
       configPda,
       TOKEN_2022_PROGRAM_ID,
     ),
-    compileConfidentialMintInstruction(mintKeypair.publicKey, configPda, autoApprove, auditorKey),
+    createConfidentialMintInstruction(mintKeypair.publicKey, configPda, autoApprove, auditorKey),
     createInitializeMint2Instruction(
       mintKeypair.publicKey,
       decimals,

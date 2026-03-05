@@ -4,7 +4,7 @@ import { Spinner, Card, Table, Err } from '../components/ui.js';
 import { loadProvider, formatAmount } from '../utils/config.js';
 import { PublicKey } from '@solana/web3.js';
 import { BorshCoder, EventParser } from '@coral-xyz/anchor';
-import { SssCoreIdl, SSS_CORE_PROGRAM_ID } from '@stbr/sss-token';
+import { SssCoreIdl, STBL_CORE_PROGRAM_ID } from '@stbr/sss-token';
 import { usePolling } from '../hooks/usePolling.js';
 
 interface AuditLogPanelProps {
@@ -29,7 +29,7 @@ export function AuditLogPanel({ mint, setRefreshRate }: AuditLogPanelProps) {
     const mintPub = new PublicKey(mint);
 
     const sssCoder = new BorshCoder(SssCoreIdl as any);
-    const eventParser = new EventParser(SSS_CORE_PROGRAM_ID, sssCoder);
+    const eventParser = new EventParser(STBL_CORE_PROGRAM_ID, sssCoder);
 
     const signatures = await provider.connection.getSignaturesForAddress(mintPub, { limit: 20 });
 

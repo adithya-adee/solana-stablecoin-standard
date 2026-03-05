@@ -2,14 +2,14 @@ import { Program, BN } from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import type { SssCore } from '../idl/sss_core';
-import { resolveConfigAccount, resolveRoleAccount } from '../pda';
+import { deriveConfigPda, deriveRolePda } from '../pda';
 import type { AccessRole, TokenMintKey, ConfigAccountKey, RoleAccountKey } from '../types';
 import { ROLE_ID_MAP, asRole } from '../types';
 
 /**
  * Build the `initialize` instruction.
  */
-export function compileInitInstruction(
+export function createInitInstruction(
   program: Program<SssCore>,
   mint: TokenMintKey,
   authority: PublicKey,
@@ -25,13 +25,8 @@ export function compileInitInstruction(
     defaultAccountFrozen?: boolean | null;
   },
 ) {
-  const [configPda] = resolveConfigAccount(mint, program.programId);
-  const [adminRolePda] = resolveRoleAccount(
-    configPda,
-    authority,
-    asRole('admin'),
-    program.programId,
-  );
+  const [configPda] = deriveConfigPda(mint, program.programId);
+  const [adminRolePda] = deriveRolePda(configPda, authority, asRole('admin'), program.programId);
 
   return program.methods
     .initialize({
@@ -57,7 +52,7 @@ export function compileInitInstruction(
 /**
  * Build the `mintTokens` instruction.
  */
-export function compileIssuanceInstruction(
+export function createIssuanceInstruction(
   program: Program<SssCore>,
   mint: TokenMintKey,
   minter: PublicKey,
@@ -65,13 +60,8 @@ export function compileIssuanceInstruction(
   amount: BN,
   priceUpdate: PublicKey | null = null,
 ) {
-  const [configPda] = resolveConfigAccount(mint, program.programId);
-  const [minterRolePda] = resolveRoleAccount(
-    configPda,
-    minter,
-    asRole('minter'),
-    program.programId,
-  );
+  const [configPda] = deriveConfigPda(mint, program.programId);
+  const [minterRolePda] = deriveRolePda(configPda, minter, asRole('minter'), program.programId);
 
   return program.methods
     .mintTokens(amount)
@@ -89,20 +79,15 @@ export function compileIssuanceInstruction(
 /**
  * Build the `burnTokens` instruction.
  */
-export function compileRedemptionInstruction(
+export function createRedemptionInstruction(
   program: Program<SssCore>,
   mint: TokenMintKey,
   burner: PublicKey,
   from: PublicKey,
   amount: BN,
 ) {
-  const [configPda] = resolveConfigAccount(mint, program.programId);
-  const [burnerRolePda] = resolveRoleAccount(
-    configPda,
-    burner,
-    asRole('burner'),
-    program.programId,
-  );
+  const [configPda] = deriveConfigPda(mint, program.programId);
+  const [burnerRolePda] = deriveRolePda(configPda, burner, asRole('burner'), program.programId);
 
   return program.methods
     .burnTokens(amount)
@@ -119,19 +104,14 @@ export function compileRedemptionInstruction(
 /**
  * Build the `freezeAccount` instruction.
  */
-export function compileFreezeInstruction(
+export function createFreezeInstruction(
   program: Program<SssCore>,
   mint: TokenMintKey,
   freezer: PublicKey,
   tokenAccount: PublicKey,
 ) {
-  const [configPda] = resolveConfigAccount(mint, program.programId);
-  const [freezerRolePda] = resolveRoleAccount(
-    configPda,
-    freezer,
-    asRole('freezer'),
-    program.programId,
-  );
+  const [configPda] = deriveConfigPda(mint, program.programId);
+  const [freezerRolePda] = deriveRolePda(configPda, freezer, asRole('freezer'), program.programId);
 
   return program.methods
     .freezeAccount()
@@ -148,19 +128,14 @@ export function compileFreezeInstruction(
 /**
  * Build the `thawAccount` instruction.
  */
-export function compileThawInstruction(
+export function createThawInstruction(
   program: Program<SssCore>,
   mint: TokenMintKey,
   freezer: PublicKey,
   tokenAccount: PublicKey,
 ) {
-  const [configPda] = resolveConfigAccount(mint, program.programId);
-  const [freezerRolePda] = resolveRoleAccount(
-    configPda,
-    freezer,
-    asRole('freezer'),
-    program.programId,
-  );
+  const [configPda] = deriveConfigPda(mint, program.programId);
+  const [freezerRolePda] = deriveRolePda(configPda, freezer, asRole('freezer'), program.programId);
 
   return program.methods
     .thawAccount()
@@ -177,17 +152,12 @@ export function compileThawInstruction(
 /**
  * Build the `pause` instruction.
  */
-export function compilePauseInstruction(
+export function createPauseInstruction(
   program: Program<SssCore>,
   configPda: ConfigAccountKey,
   pauser: PublicKey,
 ) {
-  const [pauserRolePda] = resolveRoleAccount(
-    configPda,
-    pauser,
-    asRole('pauser'),
-    program.programId,
-  );
+  const [pauserRolePda] = deriveRolePda(configPda, pauser, asRole('pauser'), program.programId);
 
   return program.methods
     .pause()
@@ -202,17 +172,12 @@ export function compilePauseInstruction(
 /**
  * Build the `unpause` instruction.
  */
-export function compileResumeInstruction(
+export function createResumeInstruction(
   program: Program<SssCore>,
   configPda: ConfigAccountKey,
   pauser: PublicKey,
 ) {
-  const [pauserRolePda] = resolveRoleAccount(
-    configPda,
-    pauser,
-    asRole('pauser'),
-    program.programId,
-  );
+  const [pauserRolePda] = deriveRolePda(configPda, pauser, asRole('pauser'), program.programId);
 
   return program.methods
     .unpause()
@@ -227,7 +192,7 @@ export function compileResumeInstruction(
 /**
  * Build the `seize` instruction.
  */
-export function compileSeizeInstruction(
+export function createSeizeInstruction(
   program: Program<SssCore>,
   mint: TokenMintKey,
   seizer: PublicKey,
@@ -235,13 +200,8 @@ export function compileSeizeInstruction(
   to: PublicKey,
   amount: BN,
 ) {
-  const [configPda] = resolveConfigAccount(mint, program.programId);
-  const [seizerRolePda] = resolveRoleAccount(
-    configPda,
-    seizer,
-    asRole('seizer'),
-    program.programId,
-  );
+  const [configPda] = deriveConfigPda(mint, program.programId);
+  const [seizerRolePda] = deriveRolePda(configPda, seizer, asRole('seizer'), program.programId);
 
   return program.methods
     .seize(amount)
@@ -259,15 +219,15 @@ export function compileSeizeInstruction(
 /**
  * Build the `grantRole` instruction.
  */
-export function compileGrantInstruction(
+export function createGrantInstruction(
   program: Program<SssCore>,
   configPda: ConfigAccountKey,
   admin: PublicKey,
   grantee: PublicKey,
   role: AccessRole,
 ) {
-  const [adminRolePda] = resolveRoleAccount(configPda, admin, asRole('admin'), program.programId);
-  const [roleAccountPda] = resolveRoleAccount(configPda, grantee, role, program.programId);
+  const [adminRolePda] = deriveRolePda(configPda, admin, asRole('admin'), program.programId);
+  const [roleAccountPda] = deriveRolePda(configPda, grantee, role, program.programId);
 
   return program.methods
     .grantRole((ROLE_ID_MAP as any)[role] as number)
@@ -284,13 +244,13 @@ export function compileGrantInstruction(
 /**
  * Build the `revokeRole` instruction.
  */
-export function compileRevokeInstruction(
+export function createRevokeInstruction(
   program: Program<SssCore>,
   configPda: ConfigAccountKey,
   admin: PublicKey,
   roleAccountPda: RoleAccountKey,
 ) {
-  const [adminRolePda] = resolveRoleAccount(configPda, admin, asRole('admin'), program.programId);
+  const [adminRolePda] = deriveRolePda(configPda, admin, asRole('admin'), program.programId);
 
   return program.methods
     .revokeRole()
@@ -306,20 +266,20 @@ export function compileRevokeInstruction(
 /**
  * Build the `transferAuthority` instruction.
  */
-export function compileAuthorityTransferInstruction(
+export function createAuthorityTransferInstruction(
   program: Program<SssCore>,
   configPda: ConfigAccountKey,
   admin: PublicKey,
   newAuthority: PublicKey,
 ) {
-  const [adminRolePda] = resolveRoleAccount(configPda, admin, asRole('admin'), program.programId);
-  const [newAdminRolePda] = resolveRoleAccount(
+  const [adminRolePda] = deriveRolePda(configPda, admin, asRole('admin'), program.programId);
+  // derive new admin role PDA
+  const [newAdminRolePda] = deriveRolePda(
     configPda,
     newAuthority,
     asRole('admin'),
     program.programId,
   );
-
   return program.methods
     .transferAuthority()
     .accountsPartial({
@@ -335,14 +295,14 @@ export function compileAuthorityTransferInstruction(
 /**
  * Build the `updateMinter` instruction.
  */
-export function compileMinterUpdateInstruction(
+export function createMinterUpdateInstruction(
   program: Program<SssCore>,
   configPda: ConfigAccountKey,
   admin: PublicKey,
   minterRoleAccountPda: RoleAccountKey,
   newQuota: BN | null,
 ) {
-  const [adminRolePda] = resolveRoleAccount(configPda, admin, asRole('admin'), program.programId);
+  const [adminRolePda] = deriveRolePda(configPda, admin, asRole('admin'), program.programId);
 
   return program.methods
     .updateMinter(newQuota)
@@ -358,13 +318,13 @@ export function compileMinterUpdateInstruction(
 /**
  * Build the `updateSupplyCap` instruction.
  */
-export function compileCapUpdateInstruction(
+export function createCapUpdateInstruction(
   program: Program<SssCore>,
   configPda: ConfigAccountKey,
   admin: PublicKey,
   newSupplyCap: BN | null,
 ) {
-  const [adminRolePda] = resolveRoleAccount(configPda, admin, asRole('admin'), program.programId);
+  const [adminRolePda] = deriveRolePda(configPda, admin, asRole('admin'), program.programId);
 
   return program.methods
     .updateSupplyCap(newSupplyCap)

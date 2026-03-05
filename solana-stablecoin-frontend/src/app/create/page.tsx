@@ -5,19 +5,18 @@ import { Keypair } from '@solana/web3.js';
 import { BN, Program, AnchorProvider } from '@coral-xyz/anchor';
 import { useConnection, useWallet, useAnchorWallet } from '@solana/wallet-adapter-react';
 import {
-  createSss1MintTransaction,
-  createSss2MintTransaction,
-  createSss3MintTransaction,
+  createSss1MintTx,
+  createSss2MintTx,
+  createSss3MintTx,
   buildInitializeIx,
   buildInitializeExtraAccountMetasIx,
-  SSS_CORE_PROGRAM_ID,
-  PRESET_MAP,
-  type MintAddress,
+  type TokenMintKey,
   SssCoreIdl,
   SssTransferHookIdl,
   type SssCore,
   type SssTransferHook,
 } from '@stbr/sss-token';
+import { SSS_CORE_PROGRAM_ID } from '@/lib/constants';
 import { PageHeader } from '@/components/page-header';
 import { TxFeedback } from '@/components/tx-feedback';
 import { useTransaction } from '@/hooks/use-transaction';
@@ -25,6 +24,12 @@ import { useMintHistory } from '@/hooks/use-mint-history';
 import { useActiveMint } from '@/hooks/use-active-mint';
 
 type PresetChoice = 'sss-1' | 'sss-2' | 'sss-3';
+
+const PRESET_ORDINAL: Record<PresetChoice, number> = {
+  'sss-1': 1,
+  'sss-2': 2,
+  'sss-3': 3,
+};
 
 function FormInput({
   label,
@@ -109,7 +114,7 @@ export default function CreateStablecoinPage() {
   const canCreate = !!publicKey && name.trim() !== '' && symbol.trim() !== '' && decimals !== '';
 
   const handleCreate = useCallback(async () => {
-    if (!canCreate || !anchorWallet) return;
+    if (!canCreate || !anchorWallet || !publicKey) return;
     reset();
     setCreatedMint(null);
 
@@ -117,19 +122,19 @@ export default function CreateStablecoinPage() {
       const provider = new AnchorProvider(connection, anchorWallet, { commitment: 'confirmed' });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const coreProgram = new Program<SssCore>(SssCoreIdl as any, provider);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const hookProgram = new Program<SssTransferHook>(SssTransferHookIdl as any, provider);
 
       const mintKeypair = Keypair.generate();
       const payer = publicKey;
       const parsedDecimals = parseInt(decimals, 10);
       const capBN = supplyCap ? new BN(supplyCap) : null;
 
+      if (!Number.isInteger(parsedDecimals) || parsedDecimals < 0 || parsedDecimals > 9) return;
+
       let mintTx;
       const options = { name, symbol, uri, decimals: parsedDecimals };
 
       if (preset === 'sss-1') {
-        mintTx = await createSss1MintTransaction(
+        mintTx = await createSss1MintTx(
           connection,
           payer,
           mintKeypair,
@@ -137,7 +142,7 @@ export default function CreateStablecoinPage() {
           SSS_CORE_PROGRAM_ID,
         );
       } else if (preset === 'sss-2') {
-        mintTx = await createSss2MintTransaction(
+        mintTx = await createSss2MintTx(
           connection,
           payer,
           mintKeypair,
@@ -145,7 +150,7 @@ export default function CreateStablecoinPage() {
           SSS_CORE_PROGRAM_ID,
         );
       } else {
-        mintTx = await createSss3MintTransaction(
+        mintTx = await createSss3MintTx(
           connection,
           payer,
           mintKeypair,
@@ -157,11 +162,10 @@ export default function CreateStablecoinPage() {
       // Build sss-core initialize ix
       const initIx = await buildInitializeIx(
         coreProgram,
-        mintKeypair.publicKey as MintAddress,
+        mintKeypair.publicKey as TokenMintKey,
         payer,
         {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          preset: (PRESET_MAP as any)[preset],
+          preset: PRESET_ORDINAL[preset],
           name,
           symbol,
           uri,
@@ -174,9 +178,11 @@ export default function CreateStablecoinPage() {
 
       // Handle extra account metas for SSS-2
       if (preset === 'sss-2') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const hookProgram = new Program<SssTransferHook>(SssTransferHookIdl as any, provider);
         const hookInitIx = await buildInitializeExtraAccountMetasIx(
           hookProgram,
-          mintKeypair.publicKey as MintAddress,
+          mintKeypair.publicKey as TokenMintKey,
           payer,
         );
         mintTx.add(hookInitIx);
@@ -205,6 +211,8 @@ export default function CreateStablecoinPage() {
     symbol,
     uri,
     execute,
+    addMint,
+    setActiveMint,
   ]);
 
   return (

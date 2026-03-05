@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Text, useApp, useInput } from 'ink';
 import fs from 'fs';
+import { Box, Text, useApp, useInput } from 'ink';
 import { Layout } from './components/Layout.js';
 import { TabName } from './components/TabBar.js';
-import { HelpModal } from './components/HelpModal.js';
 import { NotificationProvider } from './hooks/useNotifications.js';
 
 import { DashboardPanel } from './panels/DashboardPanel.js';

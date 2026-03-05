@@ -9,12 +9,13 @@ export function useActiveMint() {
 
   // Load from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    if (typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem(STORAGE_KEY);
     if (stored && stored !== 'null' && stored !== 'undefined') {
       setActiveMintState(stored);
     } else {
       // Smart default: check sss-mint-history
-      const history = localStorage.getItem('sss-mint-history');
+      const history = window.localStorage.getItem('sss-mint-history');
       if (history) {
         try {
           const parsed = JSON.parse(history);
@@ -30,10 +31,12 @@ export function useActiveMint() {
 
   const setActiveMint = useCallback((address: string | null) => {
     setActiveMintState(address);
-    if (address) {
-      localStorage.setItem(STORAGE_KEY, address);
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
+    if (typeof window !== 'undefined') {
+      if (address) {
+        window.localStorage.setItem(STORAGE_KEY, address);
+      } else {
+        window.localStorage.removeItem(STORAGE_KEY);
+      }
     }
   }, []);
 
