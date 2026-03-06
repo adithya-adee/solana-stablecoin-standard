@@ -10,6 +10,7 @@ import { OperationsPanel } from './panels/OperationsPanel.js';
 import { CompliancePanel } from './panels/CompliancePanel.js';
 import { HoldersPanel } from './panels/HoldersPanel.js';
 import { AuditLogPanel } from './panels/AuditLogPanel.js';
+import { MyTokensPanel } from './panels/MyTokensPanel.js';
 import { ConfigPanel } from './panels/ConfigPanel.js';
 
 function TuiApp() {
@@ -97,6 +98,15 @@ function TuiApp() {
       )}
       {activeTab === 'Holders' && <HoldersPanel mint={mint} setRefreshRate={setRefreshRateMs} />}
       {activeTab === 'Audit Log' && <AuditLogPanel mint={mint} setRefreshRate={setRefreshRateMs} />}
+      {activeTab === 'My Tokens' && (
+        <MyTokensPanel
+          onMintChange={(newMint) => {
+            setMint(newMint);
+            setActiveTab('Dashboard');
+          }}
+          setRefreshRate={setRefreshRateMs}
+        />
+      )}
       {activeTab === 'Config' && (
         <ConfigPanel
           currentMint={mint}

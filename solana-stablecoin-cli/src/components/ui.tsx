@@ -106,13 +106,14 @@ interface CardProps {
 }
 export function Card({ title, children }: CardProps) {
   return (
-    <Box flexDirection="column" marginTop={1}>
-      <Box marginBottom={0}>
-        <Text color={Theme.primary as any} bold>
-          {Icons.dot} {title}
+    <Box flexDirection="column" marginTop={1} borderStyle="round" borderColor="gray" paddingX={1}>
+      <Box marginBottom={0} marginTop={-1} marginLeft={2}>
+        <Text color={Theme.primary as any} bold backgroundColor="black">
+          {' '}
+          {Icons.dot} {title}{' '}
         </Text>
       </Box>
-      <Box flexDirection="column" paddingLeft={2} marginBottom={1}>
+      <Box flexDirection="column" paddingLeft={1} marginBottom={0}>
         {children}
       </Box>
     </Box>
@@ -159,5 +160,41 @@ export function Badge({ label, variant }: { label: string; variant: BadgeVariant
       {' '}
       [{label}]{' '}
     </Text>
+  );
+}
+
+// ─── Divider ─────────────────────────────────────────────────────────────────
+
+export function Divider() {
+  return (
+    <Box marginY={1}>
+      <Text color={Theme.dim as any}>{'─'.repeat(40)}</Text>
+    </Box>
+  );
+}
+
+// ─── Pagination Info ─────────────────────────────────────────────────────────
+
+interface PageInfoProps {
+  page: number;
+  total?: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
+export function PageInfo({ page, total, pageSize, hasMore }: PageInfoProps) {
+  return (
+    <Box flexDirection="row" justifyContent="space-between" marginTop={1}>
+      <Box>
+        <Text color={Theme.dim as any}>
+          Page <Text color="white">{page}</Text>
+          {total ? ` of ${Math.ceil(total / pageSize)}` : ''}
+        </Text>
+      </Box>
+      <Box>
+        {page > 1 && <Text color="cyanBright">« [p]rev </Text>}
+        {hasMore && <Text color="cyanBright"> [n]ext »</Text>}
+      </Box>
+    </Box>
   );
 }

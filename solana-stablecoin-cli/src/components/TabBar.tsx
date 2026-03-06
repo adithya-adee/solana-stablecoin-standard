@@ -8,6 +8,7 @@ export const TABS = [
   'Compliance',
   'Holders',
   'Audit Log',
+  'My Tokens',
   'Config',
 ] as const;
 

@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
-import { Box, Text } from 'ink';
-import { Spinner, Card, Table, Err } from '../components/ui.js';
+import React, { useEffect, useState } from 'react';
+import { Box, Text, useInput } from 'ink';
+import { Spinner, Card, Table, Err, PageInfo } from '../components/ui.js';
 import { loadProvider, formatAmount } from '../utils/config.js';
 import { PublicKey } from '@solana/web3.js';
 import { BorshCoder, EventParser } from '@coral-xyz/anchor';
@@ -18,10 +18,15 @@ interface LogInfo {
 }
 
 export function AuditLogPanel({ mint, setRefreshRate }: AuditLogPanelProps) {
+  const [page, setPage] = useState(1);
+  const [cursors, setCursors] = useState<(string | undefined)[]>([undefined]);
+  const PAGE_SIZE = 25;
+
   useEffect(() => {
-    setRefreshRate(10000);
+    // Only auto-refresh if we are on the first page
+    setRefreshRate(page === 1 ? 10000 : undefined);
     return () => setRefreshRate(undefined);
-  }, [setRefreshRate]);
+  }, [setRefreshRate, page]);
 
   const fetcher = React.useCallback(async () => {
     if (!mint) throw new Error('No mint defined');
@@ -31,7 +36,19 @@ export function AuditLogPanel({ mint, setRefreshRate }: AuditLogPanelProps) {
     const sssCoder = new BorshCoder(SssCoreIdl as any);
     const eventParser = new EventParser(STBL_CORE_PROGRAM_ID, sssCoder);
 
-    const signatures = await provider.connection.getSignaturesForAddress(mintPub, { limit: 20 });
+    const beforeCursor = cursors[page - 1];
+    const signatures = await provider.connection.getSignaturesForAddress(mintPub, {
+      limit: PAGE_SIZE,
+      before: beforeCursor,
+    });
+
+    if (signatures.length === PAGE_SIZE) {
+      setCursors((prev) => {
+        const next = [...prev];
+        next[page] = signatures[signatures.length - 1]!.signature;
+        return next;
+      });
+    }
 
     const txs = await Promise.all(
       signatures.map((sig) =>
@@ -73,9 +90,17 @@ export function AuditLogPanel({ mint, setRefreshRate }: AuditLogPanelProps) {
     }
 
     return parsedLogs;
-  }, [mint]);
+  }, [mint, page, cursors]);
 
-  const { data, loading, error } = usePolling(fetcher, mint ? 10000 : null);
+  const { data, loading, error } = usePolling(fetcher, mint && page === 1 ? 10000 : null);
+
+  useInput((input) => {
+    if (input === 'n' && data && data.length === PAGE_SIZE) {
+      setPage((p) => p + 1);
+    } else if (input === 'p' && page > 1) {
+      setPage((p) => p - 1);
+    }
+  });
 
   if (!mint) return <Err message="No mint configured." />;
   if (loading && !data) return <Spinner label="Fetching audit log..." />;
@@ -91,9 +116,14 @@ export function AuditLogPanel({ mint, setRefreshRate }: AuditLogPanelProps) {
             value: l.event,
           }))}
         />
+        <PageInfo page={page} pageSize={PAGE_SIZE} hasMore={data.length === PAGE_SIZE} />
       </Card>
       <Box>
-        <Text color="gray">Log automatically refreshes every 10 seconds.</Text>
+        <Text color="gray">
+          {page === 1
+            ? 'Log automatically refreshes every 10 seconds.'
+            : 'Auto-refresh paused while viewing older pages.'}
+        </Text>
       </Box>
     </Box>
   );
