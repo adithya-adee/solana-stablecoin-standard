@@ -6,6 +6,9 @@ const STORAGE_KEY = 'sss-mint-history';
 
 export interface HistoryItem {
   address: string;
+  name?: string;
+  symbol?: string;
+  presetName?: string;
   timestamp: number;
 }
 
@@ -24,16 +27,24 @@ export function useMintHistory() {
     }
   }, []);
 
-  const addMint = useCallback((address: string) => {
-    setHistory((prev) => {
-      // Remove if already exists to move it to the top
-      const filtered = prev.filter((item) => item.address !== address);
-      const updated = [{ address, timestamp: Date.now() }, ...filtered].slice(0, 10);
+  const addMint = useCallback(
+    (address: string, metadata?: { name?: string; symbol?: string; presetName?: string }) => {
+      setHistory((prev) => {
+        // Remove if already exists to move it to the top
+        const filtered = prev.filter((item) => item.address !== address);
+        const newItem: HistoryItem = {
+          address,
+          timestamp: Date.now(),
+          ...metadata,
+        };
+        const updated = [newItem, ...filtered].slice(0, 10);
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
-  }, []);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        return updated;
+      });
+    },
+    [],
+  );
 
   const removeMint = useCallback((address: string) => {
     setHistory((prev) => {

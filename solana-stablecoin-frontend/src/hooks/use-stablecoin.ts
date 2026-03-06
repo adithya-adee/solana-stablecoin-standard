@@ -1,15 +1,15 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
-import { useConnection, useAnchorWallet } from '@solana/wallet-adapter-react';
-import { AnchorProvider } from '@coral-xyz/anchor';
+import { useState, useEffect } from 'react';
+import { useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { StablecoinClient, type TokenMintKey } from '@stbr/sss-token';
 import { useActiveMint } from './use-active-mint';
+import { useAnchorProvider } from './use-anchor-provider';
 
 export function useStablecoin() {
   const { connection } = useConnection();
-  const wallet = useAnchorWallet();
+  const provider = useAnchorProvider();
   const { activeMint } = useActiveMint();
   const [client, setClient] = useState<StablecoinClient | null>(null);
   const [loading, setLoading] = useState(false);
@@ -19,7 +19,7 @@ export function useStablecoin() {
     let cancelled = false;
 
     async function loadClient() {
-      if (!wallet || !activeMint) {
+      if (!provider || !activeMint) {
         setClient(null);
         return;
       }
@@ -28,9 +28,6 @@ export function useStablecoin() {
       setError(null);
 
       try {
-        const provider = new AnchorProvider(connection, wallet, {
-          commitment: 'confirmed',
-        });
         const stablecoin = await StablecoinClient.load(
           provider,
           new PublicKey(activeMint) as TokenMintKey,
@@ -57,7 +54,7 @@ export function useStablecoin() {
     return () => {
       cancelled = true;
     };
-  }, [connection, wallet, activeMint]);
+  }, [provider, activeMint]);
 
   return { client, loading, error };
 }
