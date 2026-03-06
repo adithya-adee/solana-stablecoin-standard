@@ -36,6 +36,7 @@ export interface TokenDeployOptions {
   supplyCap?: bigint;
   mint?: Keypair;
   oracleFeedId?: Uint8Array | number[];
+  initialRoles?: string[];
 }
 
 export interface TokenStateSnapshot {
@@ -109,4 +110,5 @@ export interface TokenExtensionOptions {
   supplyCap?: bigint;
   extensions: ExtensionFlags;
   oracleFeedId?: Uint8Array | number[];
+  initialRoles?: string[];
 }

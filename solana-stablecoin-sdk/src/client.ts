@@ -179,19 +179,40 @@ export class StablecoinClient {
 
     mintTx.add(initIx);
 
-    // Auto-grant Minter role to the creator
     const [configPda, configBump] = deriveConfigPda(
       mint.publicKey as TokenMintKey,
       ledgerProgram.programId,
     );
-    const grantMinterIx = await coreix.createGrantInstruction(
-      ledgerProgram,
-      configPda,
-      payer,
-      payer,
-      asRole('minter'),
-    );
-    mintTx.add(grantMinterIx);
+
+    if (opts.initialRoles && Array.isArray(opts.initialRoles)) {
+      for (const roleStr of opts.initialRoles) {
+        let validRole: AccessRole | null = null;
+        switch (roleStr.toLowerCase()) {
+          case 'admin':
+          case 'minter':
+          case 'freezer':
+          case 'pauser':
+          case 'burner':
+          case 'blacklister':
+          case 'seizer':
+            validRole = asRole(roleStr.toLowerCase() as any);
+            break;
+        }
+        if (validRole) {
+          // If the user requests 'admin', skip since it's already granted by the smart contract
+          if (validRole === asRole('admin')) continue;
+
+          const grantIx = await coreix.createGrantInstruction(
+            ledgerProgram,
+            configPda,
+            payer,
+            payer,
+            validRole,
+          );
+          mintTx.add(grantIx);
+        }
+      }
+    }
 
     if (opts.preset === 'sss-2') {
       const hookInitIx = await hookix.createHookMetaInitInstruction(
@@ -239,6 +260,7 @@ export class StablecoinClient {
         decimals: options.decimals,
         supplyCap: options.supplyCap,
         oracleFeedId: options.oracleFeedId,
+        initialRoles: options.initialRoles,
       },
       mintKeypair,
     );
