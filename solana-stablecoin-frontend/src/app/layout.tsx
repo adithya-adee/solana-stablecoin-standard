@@ -4,6 +4,7 @@ import './globals.css';
 import { Providers } from '@/components/providers';
 import { AppSidebar } from '@/components/app-sidebar';
 import { ThemeProvider } from '@/components/theme-provider';
+import { StablecoinProvider } from '@/components/stablecoin-provider';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -36,10 +37,12 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Providers>
-            <div className="flex min-h-screen">
-              <AppSidebar />
-              <main className="ml-64 flex-1">{children}</main>
-            </div>
+            <StablecoinProvider>
+              <div className="flex min-h-screen">
+                <AppSidebar />
+                <main className="ml-64 flex-1">{children}</main>
+              </div>
+            </StablecoinProvider>
           </Providers>
         </ThemeProvider>
       </body>

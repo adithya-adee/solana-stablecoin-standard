@@ -2,44 +2,27 @@
 
 import { useState, useCallback } from 'react';
 import { Keypair } from '@solana/web3.js';
-import { BN, Program, AnchorProvider } from '@coral-xyz/anchor';
-import { useConnection, useWallet, useAnchorWallet } from '@solana/wallet-adapter-react';
-import {
-  createSss1MintTx,
-  createSss2MintTx,
-  createSss3MintTx,
-  createInitInstruction,
-  createHookMetaInitInstruction,
-  type TokenMintKey,
-  SssCoreIdl,
-  SssTransferHookIdl,
-  type SssCore,
-  type SssTransferHook,
-} from '@stbr/sss-token';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SSS_CORE_PROGRAM_ID } from '@/lib/constants';
 import { PageHeader } from '@/components/page-header';
 import { TxFeedback } from '@/components/tx-feedback';
 import { useTransaction } from '@/hooks/use-transaction';
 import { useMintHistory } from '@/hooks/use-mint-history';
 import { useActiveMint } from '@/hooks/use-active-mint';
+import { useAnchorProvider } from '@/hooks/use-anchor-provider';
+import { TransactionService } from '@/lib/services/transaction-service';
 import { cn } from '@/lib/utils';
 
 type PresetChoice = 'sss-1' | 'sss-2' | 'sss-3';
 
-const PRESET_ORDINAL: Record<PresetChoice, number> = {
-  'sss-1': 1,
-  'sss-2': 2,
-  'sss-3': 3,
-};
-
 export default function CreateStablecoinPage() {
   const { connection } = useConnection();
   const { publicKey } = useWallet();
-  const anchorWallet = useAnchorWallet();
+  const provider = useAnchorProvider();
   const { loading, error, signature, execute, reset } = useTransaction();
   const { addMint } = useMintHistory();
   const { setActiveMint } = useActiveMint();
@@ -50,88 +33,45 @@ export default function CreateStablecoinPage() {
   const [uri, setUri] = useState('');
   const [decimals, setDecimals] = useState('6');
   const [supplyCap, setSupplyCap] = useState('');
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [createdMint, setCreatedMint] = useState<string | null>(null);
 
   const canCreate = !!publicKey && name.trim() !== '' && symbol.trim() !== '' && decimals !== '';
 
   const handleCreate = useCallback(async () => {
-    if (!canCreate || !anchorWallet || !publicKey) return;
+    if (!canCreate || !provider || !publicKey) return;
     reset();
     setCreatedMint(null);
 
     try {
-      const provider = new AnchorProvider(connection, anchorWallet, { commitment: 'confirmed' });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const coreProgram = new Program<SssCore>(SssCoreIdl as any, provider);
-
       const mintKeypair = Keypair.generate();
-      const payer = publicKey;
       const parsedDecimals = parseInt(decimals, 10);
-      const capBN = supplyCap ? new BN(supplyCap) : null;
 
       if (!Number.isInteger(parsedDecimals) || parsedDecimals < 0 || parsedDecimals > 9) return;
 
-      let mintTx;
-      const options = { name, symbol, uri, decimals: parsedDecimals };
-
-      if (preset === 'sss-1') {
-        mintTx = await createSss1MintTx(
-          connection,
-          payer,
+      const deployFn = async () => {
+        return await TransactionService.deployStablecoin(
+          provider,
+          {
+            preset,
+            name,
+            symbol,
+            uri,
+            decimals: parsedDecimals,
+            supplyCap: supplyCap || undefined,
+            initialRoles: selectedRoles,
+          },
           mintKeypair,
-          options,
-          SSS_CORE_PROGRAM_ID,
         );
-      } else if (preset === 'sss-2') {
-        mintTx = await createSss2MintTx(
-          connection,
-          payer,
-          mintKeypair,
-          options,
-          SSS_CORE_PROGRAM_ID,
-        );
-      } else {
-        mintTx = await createSss3MintTx(
-          connection,
-          payer,
-          mintKeypair,
-          options,
-          SSS_CORE_PROGRAM_ID,
-        );
-      }
+      };
 
-      // Build sss-core initialize ix
-      const initIx = await createInitInstruction(
-        coreProgram,
-        mintKeypair.publicKey as TokenMintKey,
-        payer,
-        {
-          preset: PRESET_ORDINAL[preset],
-          name,
-          symbol,
-          uri,
-          decimals: parsedDecimals,
-          supplyCap: capBN,
-        },
-      );
+      /**
+       * Execute the deployment via the transaction service.
+       * The service handles the underlying SDK calls and confirmation.
+       */
+      const addr = await deployFn();
 
-      mintTx.add(initIx);
-
-      // Handle extra account metas for SSS-2
-      if (preset === 'sss-2') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const hookProgram = new Program<SssTransferHook>(SssTransferHookIdl as any, provider);
-        const hookInitIx = await createHookMetaInitInstruction(
-          hookProgram,
-          mintKeypair.publicKey as TokenMintKey,
-          payer,
-        );
-        mintTx.add(hookInitIx);
-      }
-
-      const sig = await execute(mintTx, [mintKeypair]);
-      if (sig) {
-        const addr = mintKeypair.publicKey.toBase58();
+      if (addr) {
         setCreatedMint(addr);
         addMint(addr);
         setActiveMint(addr);
@@ -141,9 +81,8 @@ export default function CreateStablecoinPage() {
     }
   }, [
     canCreate,
-    anchorWallet,
+    provider,
     reset,
-    connection,
     publicKey,
     decimals,
     supplyCap,
@@ -151,7 +90,7 @@ export default function CreateStablecoinPage() {
     name,
     symbol,
     uri,
-    execute,
+    selectedRoles,
     addMint,
     setActiveMint,
   ]);
@@ -226,6 +165,38 @@ export default function CreateStablecoinPage() {
                 onChange={(e) => setUri(e.target.value)}
                 className="bg-background/50 h-11"
               />
+            </div>
+
+            <div className="space-y-4">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">
+                Initial Admin Roles (Optional)
+              </Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {['minter', 'freezer', 'pauser', 'burner', 'blacklister', 'seizer'].map((role) => (
+                  <div
+                    key={role}
+                    className="flex items-center space-x-3 border border-border/50 p-3 rounded-lg bg-background/30 hover:bg-background/50 transition-colors"
+                  >
+                    <Checkbox
+                      id={`role-${role}`}
+                      checked={selectedRoles.includes(role)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedRoles([...selectedRoles, role]);
+                        } else {
+                          setSelectedRoles(selectedRoles.filter((r) => r !== role));
+                        }
+                      }}
+                    />
+                    <Label
+                      htmlFor={`role-${role}`}
+                      className="capitalize cursor-pointer flex-1 font-medium text-sm"
+                    >
+                      {role}
+                    </Label>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="space-y-4">
