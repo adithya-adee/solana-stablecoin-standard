@@ -237,7 +237,7 @@ export default function ConfidentialPage() {
           </Card>
         )}
 
-        {activeMint && !tokenLoading && tokenState && tokenState.preset !== 3 && (
+        {activeMint && !tokenLoading && tokenState && tokenState.preset !== 'sss-3' && (
           <Card className="border-destructive/30 bg-destructive/5 p-6 shadow-sm">
             <div className="flex items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-destructive/10 border border-destructive/20 shadow-inner">
@@ -262,7 +262,7 @@ export default function ConfidentialPage() {
           </Card>
         )}
 
-        {activeMint && !tokenLoading && tokenState && tokenState.preset === 3 && (
+        {activeMint && !tokenLoading && tokenState && tokenState.preset === 'sss-3' && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
