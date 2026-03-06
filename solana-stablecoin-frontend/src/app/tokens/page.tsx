@@ -67,8 +67,8 @@ export default function TokensPage() {
 
       const mapped: TokenAccount[] = accounts.map((acc: any) => ({
         mint: acc.account.mint.toBase58(),
-        name: acc.account.name,
-        symbol: acc.account.symbol,
+        name: acc.account.name.replace(/\0/g, '').trim(),
+        symbol: acc.account.symbol.replace(/\0/g, '').trim(),
         preset: acc.account.preset,
         authority: acc.account.authority.toBase58(),
         paused: acc.account.paused,

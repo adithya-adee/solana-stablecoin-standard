@@ -60,8 +60,8 @@ export class TokenService {
       ...config,
       presetName: PRESET_NAMES[rawConfig.preset] ?? `Preset ${rawConfig.preset}`,
       decimals: rawConfig.decimals,
-      name: rawConfig.name,
-      symbol: rawConfig.symbol,
+      name: rawConfig.name.replace(/\0/g, '').trim(),
+      symbol: rawConfig.symbol.replace(/\0/g, '').trim(),
       uri: rawConfig.uri,
     };
   }

@@ -6,6 +6,11 @@ import { useTokenState } from '@/hooks/use-token-state';
 import { useActiveMint } from '@/hooks/use-active-mint';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Copy, Check } from 'lucide-react';
+import { toast } from 'sonner';
+import { useState, useEffect } from 'react';
+import { useMintHistory } from '@/hooks/use-mint-history';
 
 function StatCard({
   label,
@@ -94,7 +99,27 @@ function formatSupply(raw: bigint, decimals: number): string {
 export default function DashboardPage() {
   const { connected } = useWallet();
   const { activeMint } = useActiveMint();
+  const { addMint } = useMintHistory();
   const { data, loading, error } = useTokenState(activeMint);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (activeMint && data && !loading && !error) {
+      addMint(activeMint, {
+        name: data.name,
+        symbol: data.symbol,
+        presetName: data.presetName,
+      });
+    }
+  }, [activeMint, data, loading, error, addMint]);
+
+  const handleCopy = () => {
+    if (!activeMint) return;
+    navigator.clipboard.writeText(activeMint);
+    setCopied(true);
+    toast.success('Mint address copied to clipboard');
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div>
@@ -165,6 +190,24 @@ export default function DashboardPage() {
                     <span className="h-1 w-1 rounded-full bg-border" />
                     <span>{data.decimals} decimals</span>
                   </p>
+                  <div className="flex items-center justify-center sm:justify-start gap-2 pt-2">
+                    <code className="text-xs bg-muted/50 text-muted-foreground px-2 py-1 rounded border border-border/50 font-mono">
+                      {activeMint}
+                    </code>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
+                      onClick={handleCopy}
+                      title="Copy Mint Address"
+                    >
+                      {copied ? (
+                        <Check className="w-3.5 h-3.5 text-success" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
