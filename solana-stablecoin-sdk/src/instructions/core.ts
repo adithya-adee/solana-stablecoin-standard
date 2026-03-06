@@ -23,6 +23,7 @@ export function createInitInstruction(
     enablePermanentDelegate?: boolean | null;
     enableTransferHook?: boolean | null;
     defaultAccountFrozen?: boolean | null;
+    oracleFeedId?: Uint8Array | number[] | null;
   },
 ) {
   const [configPda] = deriveConfigPda(mint, program.programId);
@@ -39,6 +40,7 @@ export function createInitInstruction(
       enablePermanentDelegate: args.enablePermanentDelegate ?? null,
       enableTransferHook: args.enableTransferHook ?? null,
       defaultAccountFrozen: args.defaultAccountFrozen ?? null,
+      oracleFeedId: args.oracleFeedId ?? null,
     })
     .accounts({
       authority,

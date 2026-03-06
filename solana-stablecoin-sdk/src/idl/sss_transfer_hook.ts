@@ -218,6 +218,16 @@ export type SssTransferHook = {
       discriminator: [218, 179, 231, 40, 141, 25, 168, 189];
     },
   ];
+  events: [
+    {
+      name: 'blacklistAdded';
+      discriminator: [214, 13, 214, 145, 233, 250, 4, 236];
+    },
+    {
+      name: 'blacklistRemoved';
+      discriminator: [56, 84, 216, 61, 23, 245, 29, 236];
+    },
+  ];
   errors: [
     {
       code: 6000;
@@ -241,6 +251,47 @@ export type SssTransferHook = {
     },
   ];
   types: [
+    {
+      name: 'blacklistAdded';
+      docs: [
+        'Emitted when an address is added to the blacklist.',
+        '',
+        'Compliance systems MUST monitor this event to maintain up-to-date',
+        'denylist state off-chain. The `reason` field should contain only',
+        'compliance reference codes — never include PII (name, SSN, etc.)',
+        'as this data is stored permanently on-chain.',
+      ];
+      type: {
+        kind: 'struct';
+        fields: [
+          {
+            name: 'mint';
+            docs: ['The stablecoin mint this entry applies to.'];
+            type: 'pubkey';
+          },
+          {
+            name: 'address';
+            docs: ['The wallet address that was blacklisted.'];
+            type: 'pubkey';
+          },
+          {
+            name: 'addedBy';
+            docs: ['The blacklister who added this entry.'];
+            type: 'pubkey';
+          },
+          {
+            name: 'addedAt';
+            docs: ['Unix timestamp when the entry was created.'];
+            type: 'i64';
+          },
+          {
+            name: 'reason';
+            docs: ['Compliance reason (reference code, not PII).'];
+            type: 'string';
+          },
+        ];
+      };
+    },
     {
       name: 'blacklistEntry';
       type: {
@@ -275,6 +326,30 @@ export type SssTransferHook = {
             name: 'bump';
             docs: ['PDA bump seed.'];
             type: 'u8';
+          },
+        ];
+      };
+    },
+    {
+      name: 'blacklistRemoved';
+      docs: ['Emitted when an address is removed from the blacklist.'];
+      type: {
+        kind: 'struct';
+        fields: [
+          {
+            name: 'mint';
+            docs: ['The stablecoin mint this entry applied to.'];
+            type: 'pubkey';
+          },
+          {
+            name: 'address';
+            docs: ['The wallet address that was removed from the blacklist.'];
+            type: 'pubkey';
+          },
+          {
+            name: 'removedBy';
+            docs: ['The blacklister who removed this entry.'];
+            type: 'pubkey';
           },
         ];
       };

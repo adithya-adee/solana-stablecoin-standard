@@ -1,27 +1,22 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useConnection, useAnchorWallet } from '@solana/wallet-adapter-react';
-import { AnchorProvider, Program } from '@coral-xyz/anchor';
+import { Program } from '@coral-xyz/anchor';
 import { SSS_CORE_PROGRAM_ID } from '@/lib/constants';
+import { useAnchorProvider } from './use-anchor-provider';
 
 // Import IDL JSON directly
 import SssCoreIdl from '../idl/sss_core.json';
 
 export function useLedgerProgram() {
-  const { connection } = useConnection();
-  const wallet = useAnchorWallet();
+  const provider = useAnchorProvider();
 
   return useMemo(() => {
-    if (!wallet) return null;
-
-    const provider = new AnchorProvider(connection, wallet, {
-      commitment: 'confirmed',
-    });
+    if (!provider) return null;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return new Program(SssCoreIdl as any, provider);
-  }, [connection, wallet]);
+  }, [provider]);
 }
 
 export function useProgramId() {

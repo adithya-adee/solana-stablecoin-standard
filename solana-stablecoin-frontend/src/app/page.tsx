@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { useWallet, useConnection } from '@solana/wallet-adapter-react';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { PageHeader } from '@/components/page-header';
-import { MintSelector } from '@/components/mint-selector';
 import { useTokenState } from '@/hooks/use-token-state';
-import { useMintHistory } from '@/hooks/use-mint-history';
 import { useActiveMint } from '@/hooks/use-active-mint';
-import { SSS_CORE_PROGRAM_ID } from '@/lib/constants';
-import bs58 from 'bs58';
+import { Progress } from '@/components/ui/progress';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Copy, Check } from 'lucide-react';
+import { toast } from 'sonner';
+import { useState, useEffect } from 'react';
+import { useMintHistory } from '@/hooks/use-mint-history';
 
 function StatCard({
   label,
@@ -84,72 +86,45 @@ function formatSupply(raw: bigint, decimals: number): string {
   const divisor = 10n ** BigInt(decimals);
   const whole = raw / divisor;
   const frac = raw % divisor;
-  const fracStr = frac.toString().padStart(decimals, '0').slice(0, 2);
-  const wholeNum = Number(whole);
-  const formatted = wholeNum.toLocaleString();
-  return Number(fracStr) > 0 ? `${formatted}.${fracStr}` : formatted;
+
+  const wholeStr = Number(whole).toLocaleString();
+  if (frac === 0n) return wholeStr;
+
+  // Pad the fraction with leading zeros to match decimal places, then remove trailing zeros
+  const fracStr = frac.toString().padStart(decimals, '0').replace(/0+$/, '');
+
+  return fracStr.length > 0 ? `${wholeStr}.${fracStr}` : wholeStr;
 }
 
 export default function DashboardPage() {
-  const { connected, publicKey } = useWallet();
-  const { connection } = useConnection();
-  const { activeMint, setActiveMint } = useActiveMint();
-  const { data, loading, error } = useTokenState(activeMint);
+  const { connected } = useWallet();
+  const { activeMint } = useActiveMint();
   const { addMint } = useMintHistory();
-  const [isDiscovering, setIsDiscovering] = useState(false);
-  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
+  const { data, loading, error } = useTokenState(activeMint);
+  const [copied, setCopied] = useState(false);
 
-  const handleDiscover = async () => {
-    if (!publicKey) return;
-    setIsDiscovering(true);
-    setDiscoveryError(null);
-
-    try {
-      const accounts = await connection.getProgramAccounts(SSS_CORE_PROGRAM_ID, {
-        filters: [{ memcmp: { offset: 8, bytes: publicKey.toBase58() } }],
+  useEffect(() => {
+    if (activeMint && data && !loading && !error) {
+      addMint(activeMint, {
+        name: data.name,
+        symbol: data.symbol,
+        presetName: data.presetName,
       });
-
-      if (accounts.length === 0) {
-        setDiscoveryError('No mints found for this authority.');
-      } else {
-        // Collect all mints found
-        accounts.forEach((acc) => {
-          // StablecoinConfig layout: discriminator (8) + authority (32) + mint (32)
-          const mintAddrBytes = acc.account.data.slice(40, 72);
-          const encoded = bs58.encode(mintAddrBytes);
-          addMint(encoded);
-        });
-
-        // Select the first one discovered
-        const firstMintBytes = accounts[0].account.data.slice(40, 72);
-        const firstEncoded = bs58.encode(firstMintBytes);
-        setActiveMint(firstEncoded);
-      }
-    } catch (e) {
-      console.error(e);
-      setDiscoveryError('Failed to discover mints. Please check your connection.');
-    } finally {
-      setIsDiscovering(false);
     }
+  }, [activeMint, data, loading, error, addMint]);
+
+  const handleCopy = () => {
+    if (!activeMint) return;
+    navigator.clipboard.writeText(activeMint);
+    setCopied(true);
+    toast.success('Mint address copied to clipboard');
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
     <div>
       <PageHeader title="Dashboard" />
       <div className="p-6 space-y-6">
-        <MintSelector
-          onSelect={setActiveMint}
-          currentMint={activeMint}
-          onDiscover={handleDiscover}
-          isDiscovering={isDiscovering}
-        />
-
-        {discoveryError && (
-          <div className="rounded-xl border border-warning/20 bg-warning/5 p-4">
-            <p className="text-xs text-warning">{discoveryError}</p>
-          </div>
-        )}
-
         {!connected && (
           <div className="rounded-xl border border-warning/20 bg-warning/5 p-5 text-center">
             <p className="text-sm text-warning">
@@ -193,22 +168,47 @@ export default function DashboardPage() {
         {data && !loading && (
           <>
             {/* Token identity */}
-            <div className="rounded-xl border border-border bg-card p-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
-                    <span className="text-lg font-bold">{data.symbol[0]}</span>
+            <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row items-center gap-6">
+                <Avatar className="h-20 w-20 border border-border bg-muted/30 shadow-sm transition-all duration-300 hover:scale-105">
+                  <AvatarImage src={data.uri} alt={data.name} className="object-cover" />
+                  <AvatarFallback className="bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 text-4xl font-semibold">
+                    {data.symbol[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="text-center sm:text-left flex-1 space-y-2">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4">
+                    <h3 className="text-3xl font-bold tracking-tight text-foreground">
+                      {data.name}
+                    </h3>
+                    <span className="inline-flex items-center rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700 ring-1 ring-inset ring-purple-700/10 dark:bg-purple-400/10 dark:text-purple-400 dark:ring-purple-400/20">
+                      {data.presetName}
+                    </span>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground">{data.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {data.symbol} &middot; {data.decimals} decimals
-                    </p>
+                  <p className="text-lg text-muted-foreground flex items-center justify-center sm:justify-start gap-3">
+                    <span className="font-semibold text-foreground/80">{data.symbol}</span>
+                    <span className="h-1 w-1 rounded-full bg-border" />
+                    <span>{data.decimals} decimals</span>
+                  </p>
+                  <div className="flex items-center justify-center sm:justify-start gap-2 pt-2">
+                    <code className="text-xs bg-muted/50 text-muted-foreground px-2 py-1 rounded border border-border/50 font-mono">
+                      {activeMint}
+                    </code>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
+                      onClick={handleCopy}
+                      title="Copy Mint Address"
+                    >
+                      {copied ? (
+                        <Check className="w-3.5 h-3.5 text-success" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </Button>
                   </div>
                 </div>
-                <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
-                  {data.presetName}
-                </span>
               </div>
             </div>
 
@@ -219,7 +219,7 @@ export default function DashboardPage() {
                 value={formatSupply(data.currentSupply, data.decimals)}
                 subtext={
                   data.supplyCap
-                    ? `${Number((data.totalMinted * 1000n) / data.supplyCap) / 10}% of supply cap`
+                    ? `${Number((data.currentSupply * 1000n) / data.supplyCap) / 10}% of supply cap`
                     : 'No supply cap'
                 }
                 variant="success"
@@ -250,18 +250,14 @@ export default function DashboardPage() {
                     Supply Cap Utilization
                   </p>
                   <p className="text-sm font-medium text-foreground">
-                    {formatSupply(data.totalMinted, data.decimals)} /{' '}
+                    {formatSupply(data.currentSupply, data.decimals)} /{' '}
                     {formatSupply(data.supplyCap, data.decimals)}
                   </p>
                 </div>
-                <div className="h-2 w-full rounded-full bg-muted">
-                  <div
-                    className="h-2 rounded-full bg-accent transition-all"
-                    style={{
-                      width: `${Math.min(Number((data.totalMinted * 100n) / data.supplyCap), 100)}%`,
-                    }}
-                  />
-                </div>
+                <Progress
+                  value={Math.min(Number((data.currentSupply * 100n) / data.supplyCap), 100)}
+                  className="h-2"
+                />
               </div>
             )}
 
@@ -271,7 +267,9 @@ export default function DashboardPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Authority</span>
-                  <code className="text-xs text-foreground font-mono">{data.authority}</code>
+                  <code className="text-xs text-foreground font-mono">
+                    {data.authority.toBase58()}
+                  </code>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Preset</span>
@@ -308,7 +306,7 @@ export default function DashboardPage() {
                   description="Freeze or unfreeze token accounts"
                   href="/operations"
                 />
-                {data.preset === 3 && (
+                {data.preset === 'sss-3' && (
                   <QuickAction
                     label="Confidential Transfers"
                     description="Manage private transfer operations"

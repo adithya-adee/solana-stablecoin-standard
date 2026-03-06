@@ -5,10 +5,19 @@ import { PublicKey } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ShieldPlus, ShieldMinus, ScrollText } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { PageHeader } from '@/components/page-header';
-import { MintSelector } from '@/components/mint-selector';
 import { TxFeedback } from '@/components/tx-feedback';
 import { useStablecoin } from '@/hooks/use-stablecoin';
 import { useTransaction } from '@/hooks/use-transaction';
@@ -16,10 +25,7 @@ import { useActiveMint } from '@/hooks/use-active-mint';
 import { isValidPubkey } from '@/lib/validation';
 import { type AccessRole, asRole, SssCore } from '@stbr/sss-token';
 import { AccountNamespace } from '@coral-xyz/anchor';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from '@/lib/utils';
 
 type RoleName = 'Admin' | 'Minter' | 'Freezer' | 'Pauser' | 'Burner' | 'Blacklister' | 'Seizer';
 
@@ -102,7 +108,7 @@ export default function RolesPage() {
   const { client, loading: clientLoading } = useStablecoin();
   const { loading: txLoading, error, signature, execute, reset } = useTransaction();
 
-  const { activeMint, setActiveMint } = useActiveMint();
+  const { activeMint } = useActiveMint();
   const [operation, setOperation] = useState<OperationType>('grant');
   const [isOpen, setIsOpen] = useState(false);
 
@@ -181,273 +187,256 @@ export default function RolesPage() {
   const ActiveIcon = activeOp.icon;
 
   return (
-    <div>
+    <div className="flex flex-col gap-6">
       <PageHeader title="Role Management" />
-      <div className="p-6 space-y-6 max-w-4xl mx-auto">
-        <MintSelector onSelect={setActiveMint} currentMint={activeMint} />
-
+      <div className="p-6 space-y-6 max-w-4xl mx-auto w-full">
         {!activeMint && (
-          <div className="rounded-xl border border-border bg-card p-12 text-center shadow-sm">
-            <p className="text-sm text-muted-foreground">
+          <Card className="p-12 text-center border-dashed">
+            <CardDescription>
               Connect wallet and select a mint to view and manage roles.
-            </p>
-          </div>
+            </CardDescription>
+          </Card>
         )}
 
         {!publicKey && activeMint && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl border border-warning/20 bg-warning/5 p-5 text-center shadow-sm"
-          >
+          <Card className="border-warning/50 bg-warning/5 p-4 text-center">
             <p className="text-sm text-warning font-medium">Connect your wallet to manage roles.</p>
-          </motion.div>
+          </Card>
         )}
 
         <TxFeedback loading={loading} error={error} signature={signature} />
 
         {activeMint && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="rounded-2xl border border-border/50 bg-card/60 backdrop-blur-xl p-8 shadow-xl relative z-10"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full"
           >
-            {/* Custom Dropdown */}
-            <div className="relative mb-8">
-              <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                Select Operation
-              </label>
-              <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-between rounded-xl border border-border bg-background/50 px-4 py-4 text-left shadow-sm hover:border-accent/50 transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={cn('p-2 rounded-lg border', activeOp.color)}>
-                    <ActiveIcon size={20} />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-foreground">{activeOp.title}</h4>
-                  </div>
-                </div>
-                <ChevronDown
-                  className={cn(
-                    'text-muted-foreground transition-transform duration-200',
-                    isOpen && 'rotate-180',
-                  )}
-                  size={20}
-                />
-              </button>
-
-              <AnimatePresence>
-                {isOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute top-full left-0 right-0 mt-2 rounded-xl border border-border bg-card shadow-2xl overflow-hidden z-50"
-                  >
-                    {Object.values(OPERATIONS).map((op) => (
-                      <button
-                        key={op.id}
-                        onClick={() => {
-                          setOperation(op.id);
-                          setIsOpen(false);
-                          setAddressInput('');
-                        }}
-                        className={cn(
-                          'w-full flex items-center gap-4 px-4 py-3 text-left transition-colors hover:bg-muted/50 border-b border-border/50 last:border-0',
-                          operation === op.id && 'bg-accent/5',
-                        )}
-                      >
-                        <div className={cn('p-2 rounded-lg border', op.color)}>
-                          <op.icon size={18} />
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden">
+              <CardHeader className="pb-4">
+                <div className="flex flex-col gap-4">
+                  <div className="relative">
+                    <Label className="mb-2 block text-xs uppercase tracking-wider text-muted-foreground font-bold">
+                      Select Operation
+                    </Label>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between h-14 px-4 bg-background/50 hover:bg-background/80"
+                      onClick={() => setIsOpen(!isOpen)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn('p-2 rounded-md border', activeOp.color)}>
+                          <ActiveIcon size={18} />
                         </div>
-                        <div>
-                          <div className="text-sm font-semibold text-foreground">{op.title}</div>
-                          <div className="text-xs text-muted-foreground mt-0.5">
-                            {op.description}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Dynamic Form Area */}
-            <div className="bg-background/30 rounded-xl p-6 border border-border/30 overflow-hidden">
-              <div className="mb-6 flex items-start gap-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-foreground mb-1">{activeOp.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {activeOp.description}
-                  </p>
-                </div>
-              </div>
-
-              <AnimatePresence mode="popLayout">
-                <motion.div
-                  key={operation}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {operation !== 'info' ? (
-                    <div className="space-y-5">
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                          Target Wallet Address
-                        </label>
-                        <input
-                          type="text"
-                          value={addressInput}
-                          onChange={(e) => setAddressInput(e.target.value)}
-                          placeholder="Enter Solana wallet address..."
-                          className="w-full rounded-xl border border-border bg-background/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all"
-                        />
+                        <span className="font-semibold">{activeOp.title}</span>
                       </div>
+                      <ChevronDown
+                        className={cn(
+                          'ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-200',
+                          isOpen && 'rotate-180',
+                        )}
+                      />
+                    </Button>
 
-                      {operation !== 'check' && (
-                        <div>
-                          <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                            Role Type
-                          </label>
-                          <div className="relative">
-                            <select
-                              value={selectedRole}
-                              onChange={(e) => setSelectedRole(e.target.value as RoleName)}
-                              className="w-full appearance-none rounded-xl border border-border bg-background/50 px-4 py-3 text-sm text-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all cursor-pointer"
-                            >
-                              {Object.keys(ROLE_DISPLAY_MAP).map((r) => (
-                                <option key={r} value={r}>
-                                  {r}
-                                </option>
-                              ))}
-                            </select>
-                            <ChevronDown
-                              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-                              size={16}
-                            />
-                          </div>
-                          <p className="mt-2 text-xs text-muted-foreground">
-                            {ROLE_DESCRIPTIONS[selectedRole]}
-                          </p>
-                        </div>
-                      )}
-
-                      {operation === 'check' && (
-                        <div className="pt-2">
-                          {isChecking && (
-                            <div className="flex flex-col items-center py-8 gap-3">
-                              <div className="h-6 w-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                              <p className="text-xs text-muted-foreground italic">
-                                Scanning all role levels...
-                              </p>
-                            </div>
-                          )}
-
-                          {!isChecking && lastCheckedAddress && (
-                            <div className="space-y-3">
-                              {foundRoles.length > 0 ? (
-                                <>
-                                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                    Active Permissions Found
-                                  </p>
-                                  <div className="grid grid-cols-1 gap-3">
-                                    {foundRoles.map((role) => (
-                                      <div
-                                        key={role.name}
-                                        className="rounded-xl border border-success/20 bg-success/5 p-4 space-y-3"
-                                      >
-                                        <div className="flex items-center justify-between">
-                                          <div className="flex items-center gap-2">
-                                            <div className="h-2 w-2 rounded-full bg-success ring-4 ring-success/20 animate-pulse" />
-                                            <p className="text-sm font-bold text-success capitalize">
-                                              {role.name}
-                                            </p>
-                                          </div>
-                                          <span className="text-[10px] text-muted-foreground font-mono bg-muted px-2 py-0.5 rounded">
-                                            Active
-                                          </span>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
-                                          <div>
-                                            <span className="text-muted-foreground block mb-0.5">
-                                              Granted By
-                                            </span>
-                                            <code className="text-foreground font-mono truncate block bg-background/50 px-1.5 py-0.5 rounded border border-border/50">
-                                              {role.grantedBy.toBase58()}
-                                            </code>
-                                          </div>
-                                          <div>
-                                            <span className="text-muted-foreground block mb-0.5">
-                                              Granted At
-                                            </span>
-                                            <span className="text-foreground block px-1.5 py-0.5">
-                                              {new Date(
-                                                role.grantedAt.toNumber() * 1000,
-                                              ).toLocaleDateString()}
-                                            </span>
-                                          </div>
-                                          {role.name === 'Minter' && (
-                                            <div className="col-span-2 pt-2 border-t border-success/10 mt-1">
-                                              <div className="flex justify-between items-center">
-                                                <span className="text-muted-foreground">
-                                                  Tokens Minted
-                                                </span>
-                                                <span className="text-foreground font-mono font-bold bg-success/10 px-2 py-0.5 rounded">
-                                                  {role.amountMinted?.toString() ?? '0'}
-                                                </span>
-                                              </div>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </>
-                              ) : (
-                                <div className="rounded-xl border border-dashed border-border bg-muted/10 p-10 text-center">
-                                  <div className="inline-flex items-center justify-center p-3 rounded-full bg-muted mb-4">
-                                    <ShieldMinus className="text-muted-foreground" size={24} />
-                                  </div>
-                                  <h4 className="text-sm font-semibold text-foreground">
-                                    No Permissions Found
-                                  </h4>
-                                  <p className="text-xs text-muted-foreground mt-1 max-w-50 mx-auto">
-                                    This address does not hold any roles for the selected
-                                    stablecoin.
-                                  </p>
+                    <AnimatePresence>
+                      {isOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="absolute top-full left-0 right-0 mt-2 rounded-md border border-border bg-popover shadow-xl z-50 overflow-hidden"
+                        >
+                          <div className="p-1">
+                            {Object.values(OPERATIONS).map((op) => (
+                              <button
+                                key={op.id}
+                                onClick={() => {
+                                  setOperation(op.id);
+                                  setIsOpen(false);
+                                  setAddressInput('');
+                                }}
+                                className={cn(
+                                  'w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-sm transition-colors hover:bg-accent hover:text-accent-foreground',
+                                  operation === op.id && 'bg-accent/50',
+                                )}
+                              >
+                                <div className={cn('p-1.5 rounded border', op.color)}>
+                                  <op.icon size={16} />
                                 </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium">{op.title}</span>
+                                  <span className="text-[10px] text-muted-foreground line-clamp-1">
+                                    {op.description}
+                                  </span>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
                       )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </CardHeader>
 
-                      <div className="pt-4 mt-2 border-t border-border/30">
-                        <button
+              <Separator className="bg-border/50" />
+
+              <CardContent className="pt-6">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={operation}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.15 }}
+                    className="space-y-6"
+                  >
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-semibold tracking-tight">{activeOp.title}</h3>
+                      <p className="text-sm text-muted-foreground">{activeOp.description}</p>
+                    </div>
+
+                    {operation !== 'info' ? (
+                      <div className="space-y-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="address">Target Wallet Address</Label>
+                          <Input
+                            id="address"
+                            placeholder="Enter Solana wallet address..."
+                            value={addressInput}
+                            onChange={(e) => setAddressInput(e.target.value)}
+                            className="bg-background/50 h-11"
+                          />
+                        </div>
+
+                        {operation !== 'check' && (
+                          <div className="space-y-2">
+                            <Label>Role Type</Label>
+                            <Select
+                              value={selectedRole}
+                              onValueChange={(v) => setSelectedRole(v as RoleName)}
+                            >
+                              <SelectTrigger className="bg-background/50 h-11">
+                                <SelectValue placeholder="Select a role" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Object.keys(ROLE_DISPLAY_MAP).map((r) => (
+                                  <SelectItem key={r} value={r}>
+                                    {r}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                              {ROLE_DESCRIPTIONS[selectedRole]}
+                            </p>
+                          </div>
+                        )}
+
+                        {operation === 'check' && (
+                          <div className="pt-2">
+                            {isChecking && (
+                              <div className="flex flex-col items-center py-8 gap-3">
+                                <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                                <p className="text-xs text-muted-foreground italic">
+                                  Scanning all role levels...
+                                </p>
+                              </div>
+                            )}
+
+                            {!isChecking && lastCheckedAddress && (
+                              <div className="space-y-3">
+                                {foundRoles.length > 0 ? (
+                                  <>
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                      Active Permissions Found
+                                    </p>
+                                    <div className="space-y-3">
+                                      {foundRoles.map((role) => (
+                                        <Card
+                                          key={role.name}
+                                          className="border-success/20 bg-success/5 p-4 space-y-3"
+                                        >
+                                          <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                              <div className="h-2 w-2 rounded-full bg-success ring-4 ring-success/20 animate-pulse" />
+                                              <p className="text-sm font-bold text-success capitalize">
+                                                {role.name}
+                                              </p>
+                                            </div>
+                                            <span className="text-[10px] text-muted-foreground font-mono bg-muted/50 px-2 py-0.5 rounded">
+                                              Active
+                                            </span>
+                                          </div>
+
+                                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                                            <div>
+                                              <span className="text-muted-foreground block mb-1">
+                                                Granted By
+                                              </span>
+                                              <code className="text-foreground font-mono truncate block bg-background/50 px-2 py-1.5 rounded border border-border/50">
+                                                {role.grantedBy.toBase58()}
+                                              </code>
+                                            </div>
+                                            <div>
+                                              <span className="text-muted-foreground block mb-1">
+                                                Granted At
+                                              </span>
+                                              <span className="text-foreground block px-2 py-1.5">
+                                                {new Date(
+                                                  role.grantedAt.toNumber() * 1000,
+                                                ).toLocaleDateString()}
+                                              </span>
+                                            </div>
+                                            {role.name === 'Minter' && (
+                                              <div className="col-span-1 sm:col-span-2 pt-2 border-t border-success/10">
+                                                <div className="flex justify-between items-center">
+                                                  <span className="text-muted-foreground">
+                                                    Tokens Minted
+                                                  </span>
+                                                  <span className="text-foreground font-mono font-bold bg-success/10 px-2 py-1 rounded">
+                                                    {role.amountMinted?.toString() ?? '0'}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </Card>
+                                      ))}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <Card className="p-10 text-center border-dashed">
+                                    <div className="inline-flex items-center justify-center p-3 rounded-full bg-muted mb-4 text-muted-foreground">
+                                      <ShieldMinus size={24} />
+                                    </div>
+                                    <h4 className="text-sm font-semibold">No Permissions Found</h4>
+                                    <CardDescription className="mt-1">
+                                      This address does not hold any roles for the selected
+                                      stablecoin.
+                                    </CardDescription>
+                                  </Card>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <Button
+                          className="w-full h-12 text-base font-semibold"
+                          variant={
+                            operation === 'revoke'
+                              ? 'destructive'
+                              : operation === 'check'
+                                ? 'secondary'
+                                : 'default'
+                          }
                           onClick={handleSubmit}
                           disabled={
                             !canOperate ||
                             (operation !== 'check' && loading) ||
                             (operation === 'check' && isChecking)
                           }
-                          className={cn(
-                            'w-full rounded-xl px-4 py-3.5 text-sm font-semibold transition-all shadow-lg active:scale-[0.98]',
-                            operation === 'grant'
-                              ? 'bg-accent hover:bg-accent/80 text-white shadow-accent/20'
-                              : operation === 'revoke'
-                                ? 'bg-destructive hover:bg-destructive/80 text-white shadow-destructive/20'
-                                : 'bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20',
-                            (!canOperate || loading) &&
-                              operation !== 'check' &&
-                              'opacity-50 cursor-not-allowed shadow-none active:scale-100',
-                          )}
                         >
                           {loading || isChecking
                             ? 'Processing...'
@@ -456,25 +445,25 @@ export default function RolesPage() {
                               : operation === 'revoke'
                                 ? 'Revoke Role'
                                 : 'Check Status'}
-                        </button>
+                        </Button>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-3">
-                      {Object.entries(ROLE_DESCRIPTIONS).map(([role, desc]) => (
-                        <div
-                          key={role}
-                          className="flex flex-col gap-1 rounded-xl bg-background/50 p-4 border border-border/30 hover:border-accent/40 transition-colors"
-                        >
-                          <span className="text-sm font-bold text-foreground">{role}</span>
-                          <p className="text-sm text-muted-foreground">{desc}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            </div>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-3">
+                        {Object.entries(ROLE_DESCRIPTIONS).map(([role, desc]) => (
+                          <Card
+                            key={role}
+                            className="p-4 border-border/30 hover:border-primary/30 transition-colors bg-background/30"
+                          >
+                            <span className="text-sm font-bold block mb-1">{role}</span>
+                            <CardDescription className="text-xs">{desc}</CardDescription>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              </CardContent>
+            </Card>
           </motion.div>
         )}
       </div>

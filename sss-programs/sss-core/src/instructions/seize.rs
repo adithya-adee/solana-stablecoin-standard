@@ -76,9 +76,8 @@ pub fn handler_seize<'info>(
     //
     // SSS-1 / SSS-3: no hook — remaining_accounts will be empty.
     let remaining: Vec<AccountInfo<'info>> = ctx.remaining_accounts.to_vec();
-    let mut cpi_ctx =
-        CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts)
-            .with_signer(signer_seeds);
+    let mut cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts)
+        .with_signer(signer_seeds);
 
     if !remaining.is_empty() {
         cpi_ctx = cpi_ctx.with_remaining_accounts(remaining);

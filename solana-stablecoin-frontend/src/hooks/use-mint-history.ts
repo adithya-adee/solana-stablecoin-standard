@@ -1,47 +1,55 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 const STORAGE_KEY = 'sss-mint-history';
 
 export interface HistoryItem {
   address: string;
+  name?: string;
+  symbol?: string;
+  presetName?: string;
   timestamp: number;
 }
 
 export function useMintHistory() {
-  const [history, setHistory] = useState<HistoryItem[]>(() => {
-    if (typeof window === 'undefined') return [];
-    const stored = window.localStorage.getItem(STORAGE_KEY);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
-        return JSON.parse(stored);
+        setHistory(JSON.parse(stored));
       } catch (e) {
         console.error('Failed to parse mint history', e);
-        return [];
       }
     }
-    return [];
-  });
-
-  const addMint = useCallback((address: string) => {
-    setHistory((prev) => {
-      // Remove if already exists to move it to the top
-      const filtered = prev.filter((item) => item.address !== address);
-      const updated = [{ address, timestamp: Date.now() }, ...filtered].slice(0, 10);
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      }
-      return updated;
-    });
   }, []);
+
+  const addMint = useCallback(
+    (address: string, metadata?: { name?: string; symbol?: string; presetName?: string }) => {
+      setHistory((prev) => {
+        // Remove if already exists to move it to the top
+        const filtered = prev.filter((item) => item.address !== address);
+        const newItem: HistoryItem = {
+          address,
+          timestamp: Date.now(),
+          ...metadata,
+        };
+        const updated = [newItem, ...filtered].slice(0, 10);
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        return updated;
+      });
+    },
+    [],
+  );
 
   const removeMint = useCallback((address: string) => {
     setHistory((prev) => {
       const updated = prev.filter((item) => item.address !== address);
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       return updated;
     });
   }, []);

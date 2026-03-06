@@ -66,10 +66,7 @@ pub fn handler_grant(ctx: Context<GrantRole>, role: u8) -> Result<()> {
     // perform incident-response actions (revoke compromised keys, add new admins)
     // even while operations are paused. All other role changes are blocked.
     if role_enum != Role::Admin {
-        require!(
-            !ctx.accounts.config.paused,
-            crate::error::SssError::Paused
-        );
+        require!(!ctx.accounts.config.paused, crate::error::SssError::Paused);
     }
 
     if role_enum == Role::Admin {
@@ -141,10 +138,7 @@ pub fn handler_revoke(ctx: Context<RevokeRole>) -> Result<()> {
     // Admin role revocations are exempt from pause for incident response.
     // All other role revocations are blocked while paused.
     if role_account.role != Role::Admin {
-        require!(
-            !ctx.accounts.config.paused,
-            crate::error::SssError::Paused
-        );
+        require!(!ctx.accounts.config.paused, crate::error::SssError::Paused);
     }
 
     // Prevent revoking the last admin — would brick the config permanently.

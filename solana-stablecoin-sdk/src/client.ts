@@ -173,10 +173,46 @@ export class StablecoinClient {
         uri: opts.uri ?? '',
         decimals,
         supplyCap,
+        oracleFeedId: opts.oracleFeedId ?? null,
       },
     );
 
     mintTx.add(initIx);
+
+    const [configPda, configBump] = deriveConfigPda(
+      mint.publicKey as TokenMintKey,
+      ledgerProgram.programId,
+    );
+
+    if (opts.initialRoles && Array.isArray(opts.initialRoles)) {
+      for (const roleStr of opts.initialRoles) {
+        let validRole: AccessRole | null = null;
+        switch (roleStr.toLowerCase()) {
+          case 'admin':
+          case 'minter':
+          case 'freezer':
+          case 'pauser':
+          case 'burner':
+          case 'blacklister':
+          case 'seizer':
+            validRole = asRole(roleStr.toLowerCase() as any);
+            break;
+        }
+        if (validRole) {
+          // If the user requests 'admin', skip since it's already granted by the smart contract
+          if (validRole === asRole('admin')) continue;
+
+          const grantIx = await coreix.createGrantInstruction(
+            ledgerProgram,
+            configPda,
+            payer,
+            payer,
+            validRole,
+          );
+          mintTx.add(grantIx);
+        }
+      }
+    }
 
     if (opts.preset === 'sss-2') {
       const hookInitIx = await hookix.createHookMetaInitInstruction(
@@ -192,11 +228,6 @@ export class StablecoinClient {
     } catch (err) {
       throw translateAnchorError(err);
     }
-
-    const [configPda, configBump] = deriveConfigPda(
-      mint.publicKey as TokenMintKey,
-      ledgerProgram.programId,
-    );
 
     return new StablecoinClient(
       mint.publicKey as TokenMintKey,
@@ -228,6 +259,8 @@ export class StablecoinClient {
         uri: options.uri,
         decimals: options.decimals,
         supplyCap: options.supplyCap,
+        oracleFeedId: options.oracleFeedId,
+        initialRoles: options.initialRoles,
       },
       mintKeypair,
     );
@@ -267,6 +300,8 @@ export class StablecoinClient {
 
   /**
    * Compose a transaction for minting tokens, including ATA creation if needed.
+   * For SSS-2 mints with DefaultAccountState::Frozen, automatically thaws
+   * newly created accounts before minting.
    */
   async composeMintTokens(to: PublicKey, amount: bigint): Promise<Transaction> {
     const minter = this.anchorProvider.publicKey;
@@ -281,7 +316,8 @@ export class StablecoinClient {
     );
 
     const accountInfo = await this.anchorProvider.connection.getAccountInfo(ata);
-    if (!accountInfo) {
+    const isNewAccount = !accountInfo;
+    if (isNewAccount) {
       tx.add(
         createAssociatedTokenAccountInstruction(
           this.anchorProvider.publicKey,
@@ -294,18 +330,37 @@ export class StablecoinClient {
       );
     }
 
-    // Auto-resolve oracle if needed (Tier 1/2 systems with USD caps)
+    // Fetch config to check preset and oracle settings
     let priceUpdate: PublicKey | null = null;
+    let preset = 1;
     try {
       const config = await this.ledgerProgram.account.stablecoinConfig.fetch(this.configPda);
-      // If we have an oracle feed ID and it's sss-1/2, we might need a price update
-      // For now, we use a simple heuristic: if it's Tier 1, we try to use the default Devnet SOL feed
-      // In a real app, this would be more sophisticated
-      if (config.preset === 1 || config.preset === 2) {
-        priceUpdate = new PublicKey('J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix'); // Default Devnet SOL
+      preset = (config as any).preset ?? 1;
+      // oracleFeedId is a [32]u8 array; all-zeros means "no oracle configured"
+      const oracleFeedId: number[] | Uint8Array | null | undefined =
+        (config as any).oracleFeedId ?? (config as any).oracle_feed_id;
+      const hasOracle =
+        oracleFeedId != null && (oracleFeedId as number[]).some((b: number) => b !== 0);
+      if (hasOracle) {
+        // When an oracle IS configured, the caller should provide the correct price update
+        // account via a higher-level API. For now we leave it null so the instruction
+        // falls back to raw-unit cap enforcement.
+        priceUpdate = null;
       }
     } catch (e) {
-      // ignore oracle resolution errors in SDK client
+      // ignore — fall back to defaults
+    }
+
+    // SSS-2 has DefaultAccountState::Frozen — newly created ATAs are frozen.
+    // We must thaw the account before minting to it.
+    if (preset === 2 && isNewAccount) {
+      const thawIx = await coreix.createThawInstruction(
+        this.ledgerProgram,
+        this.mintAddress,
+        minter,
+        ata,
+      );
+      tx.add(thawIx);
     }
 
     const mintIx = await coreix.createIssuanceInstruction(

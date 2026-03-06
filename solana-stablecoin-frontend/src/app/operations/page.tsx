@@ -9,17 +9,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Coins, Zap, Flame, ShieldAlert, Play, ShieldBan } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { PageHeader } from '@/components/page-header';
-import { MintSelector } from '@/components/mint-selector';
 import { TxFeedback } from '@/components/tx-feedback';
 import { useStablecoin } from '@/hooks/use-stablecoin';
 import { useTransaction } from '@/hooks/use-transaction';
 import { useActiveMint } from '@/hooks/use-active-mint';
+import { useTokenState } from '@/hooks/use-token-state';
 import { isValidPubkey } from '@/lib/validation';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from '@/lib/utils';
 
 type OperationType = 'mint' | 'burn' | 'freeze' | 'thaw' | 'pause' | 'unpause';
 
@@ -87,71 +89,13 @@ const OPERATIONS: Record<
   },
 };
 
-function FormInput({
-  label,
-  placeholder,
-  value,
-  onChange,
-  type = 'text',
-}: {
-  label: string;
-  placeholder: string;
-  value: string;
-  onChange: (v: string) => void;
-  type?: string;
-}) {
-  return (
-    <div>
-      <label className="mb-2 block text-sm font-medium text-muted-foreground">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-xl border border-border bg-background/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all"
-      />
-    </div>
-  );
-}
-
-function ActionButton({
-  children,
-  onClick,
-  variant = 'primary',
-  disabled = false,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  variant?: 'primary' | 'destructive' | 'warning';
-  disabled?: boolean;
-}) {
-  const styles = {
-    primary: 'bg-accent hover:bg-accent/80 text-white shadow-accent/20',
-    destructive: 'bg-destructive hover:bg-destructive/80 text-white shadow-destructive/20',
-    warning: 'bg-warning hover:bg-warning/80 text-black shadow-warning/20',
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        'w-full rounded-xl px-4 py-3.5 text-sm font-semibold transition-all shadow-lg active:scale-[0.98]',
-        styles[variant],
-        disabled && 'opacity-50 cursor-not-allowed shadow-none active:scale-100',
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
 export default function OperationsPage() {
   const { publicKey } = useWallet();
   const { client, loading: clientLoading } = useStablecoin();
   const { loading: txLoading, error, signature, execute, reset } = useTransaction();
 
-  const { activeMint, setActiveMint } = useActiveMint();
+  const { activeMint } = useActiveMint();
+  const { data: tokenState } = useTokenState(activeMint);
   const [operation, setOperation] = useState<OperationType>('mint');
   const [isOpen, setIsOpen] = useState(false);
 
@@ -219,7 +163,14 @@ export default function OperationsPage() {
     try {
       let tx;
       const targetPubkey = requiresAddress ? new PublicKey(addressInput) : null;
-      const amountBigInt = requiresAmount ? BigInt(amountInput) : 0n;
+      let amountBigInt = 0n;
+      if (requiresAmount && amountInput) {
+        const decimals = tokenState?.decimals ?? 6;
+        const parts = amountInput.split('.');
+        const whole = parts[0] || '0';
+        const frac = (parts[1] || '').slice(0, decimals).padEnd(decimals, '0');
+        amountBigInt = BigInt(whole + frac);
+      }
 
       if (operation === 'mint') {
         tx = await client.composeMintTokens(targetPubkey!, amountBigInt);
@@ -252,163 +203,178 @@ export default function OperationsPage() {
   const ActiveIcon = activeOp.icon;
 
   return (
-    <div>
+    <div className="flex flex-col gap-6">
       <PageHeader title="Token Operations" />
-      <div className="p-6 space-y-6 max-w-4xl mx-auto">
-        <MintSelector onSelect={setActiveMint} currentMint={activeMint} />
-
+      <div className="p-6 space-y-6 max-w-4xl mx-auto w-full">
         {!activeMint && (
-          <div className="rounded-xl border border-border bg-card p-12 text-center shadow-sm">
-            <p className="text-sm text-muted-foreground">
+          <Card className="p-12 text-center border-dashed">
+            <CardDescription>
               Select a mint address above to perform token operations.
-            </p>
-          </div>
+            </CardDescription>
+          </Card>
         )}
 
         {!publicKey && activeMint && (
-          <div className="rounded-xl border border-warning/20 bg-warning/5 p-5 text-center shadow-sm">
+          <Card className="border-warning/50 bg-warning/5 p-4 text-center">
             <p className="text-sm text-warning font-medium">
               Connect your wallet to execute transactions.
             </p>
-          </div>
+          </Card>
         )}
 
         {publicKey && activeMint && hasPermission === false && !checkingPermission && (
-          <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-5 flex items-center gap-3 shadow-sm">
+          <Card className="border-destructive/50 bg-destructive/5 p-4 flex items-center gap-3">
             <ShieldBan className="text-destructive shrink-0" size={20} />
             <p className="text-sm text-destructive font-medium">
               Unauthorized: Your wallet lacks the required role to perform this operation.
             </p>
-          </div>
+          </Card>
         )}
 
         <TxFeedback loading={loading} error={error} signature={signature} />
 
         {activeMint && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="rounded-2xl border border-border/50 bg-card/60 backdrop-blur-xl p-8 shadow-xl relative z-10"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full"
           >
-            {/* Custom Dropdown */}
-            <div className="relative mb-8">
-              <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                Select Operation
-              </label>
-              <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-between rounded-xl border border-border bg-background/50 px-4 py-4 text-left shadow-sm hover:border-accent/50 transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={cn('p-2 rounded-lg border', activeOp.color)}>
-                    <ActiveIcon size={20} />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-foreground">{activeOp.title}</h4>
-                  </div>
-                </div>
-                <ChevronDown
-                  className={cn(
-                    'text-muted-foreground transition-transform duration-200',
-                    isOpen && 'rotate-180',
-                  )}
-                  size={20}
-                />
-              </button>
-
-              <AnimatePresence>
-                {isOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute top-full left-0 right-0 mt-2 rounded-xl border border-border bg-card shadow-2xl overflow-hidden z-50"
-                  >
-                    {Object.values(OPERATIONS).map((op) => (
-                      <button
-                        key={op.id}
-                        onClick={() => {
-                          setOperation(op.id);
-                          setIsOpen(false);
-                          setAddressInput('');
-                          setAmountInput('');
-                        }}
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden">
+              <CardHeader className="pb-4">
+                <div className="flex flex-col gap-4">
+                  <div className="relative">
+                    <Label className="mb-2 block text-xs uppercase tracking-wider text-muted-foreground font-bold">
+                      Select Operation
+                    </Label>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between h-14 px-4 bg-background/50 hover:bg-background/80"
+                      onClick={() => setIsOpen(!isOpen)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn('p-2 rounded-md border', activeOp.color)}>
+                          <ActiveIcon size={18} />
+                        </div>
+                        <span className="font-semibold">{activeOp.title}</span>
+                      </div>
+                      <ChevronDown
                         className={cn(
-                          'w-full flex items-center gap-4 px-4 py-3 text-left transition-colors hover:bg-muted/50 border-b border-border/50 last:border-0',
-                          operation === op.id && 'bg-accent/5',
+                          'ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-200',
+                          isOpen && 'rotate-180',
                         )}
-                      >
-                        <div className={cn('p-2 rounded-lg border', op.color)}>
-                          <op.icon size={18} />
-                        </div>
-                        <div>
-                          <div className="text-sm font-semibold text-foreground">{op.title}</div>
-                          <div className="text-xs text-muted-foreground mt-0.5">
-                            {op.description}
+                      />
+                    </Button>
+
+                    <AnimatePresence>
+                      {isOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="absolute top-full left-0 right-0 mt-2 rounded-md border border-border bg-popover shadow-xl z-50 overflow-hidden"
+                        >
+                          <div className="p-1">
+                            {Object.values(OPERATIONS).map((op) => (
+                              <button
+                                key={op.id}
+                                onClick={() => {
+                                  setOperation(op.id);
+                                  setIsOpen(false);
+                                  setAddressInput('');
+                                  setAmountInput('');
+                                }}
+                                className={cn(
+                                  'w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-sm transition-colors hover:bg-accent hover:text-accent-foreground',
+                                  operation === op.id && 'bg-accent/50',
+                                )}
+                              >
+                                <div className={cn('p-1.5 rounded border', op.color)}>
+                                  <op.icon size={16} />
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium">{op.title}</span>
+                                  <span className="text-[10px] text-muted-foreground line-clamp-1">
+                                    {op.description}
+                                  </span>
+                                </div>
+                              </button>
+                            ))}
                           </div>
-                        </div>
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Dynamic Form Area */}
-            <div className="bg-background/30 rounded-xl p-6 border border-border/30">
-              <div className="mb-6 flex items-start gap-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-foreground mb-1">{activeOp.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {activeOp.description}
-                  </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
-              </div>
+              </CardHeader>
 
-              <AnimatePresence mode="popLayout">
-                <motion.div
-                  key={operation}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-5"
-                >
-                  {requiresAddress && (
-                    <FormInput
-                      label={
-                        operation === 'freeze' || operation === 'thaw'
-                          ? 'Target Token Account'
-                          : 'Recipient Token Account'
+              <Separator className="bg-border/50" />
+
+              <CardContent className="pt-6">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={operation}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.15 }}
+                    className="space-y-6"
+                  >
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-semibold tracking-tight">{activeOp.title}</h3>
+                      <p className="text-sm text-muted-foreground">{activeOp.description}</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      {requiresAddress && (
+                        <div className="space-y-2">
+                          <Label htmlFor="address">
+                            {operation === 'freeze' || operation === 'thaw'
+                              ? 'Target Token Account'
+                              : 'Recipient Token Account'}
+                          </Label>
+                          <Input
+                            id="address"
+                            placeholder="Enter SPL token account address..."
+                            value={addressInput}
+                            onChange={(e) => setAddressInput(e.target.value)}
+                            className="bg-background/50 h-11"
+                          />
+                        </div>
+                      )}
+
+                      {requiresAmount && (
+                        <div className="space-y-2">
+                          <Label htmlFor="amount">Amount (in raw units)</Label>
+                          <Input
+                            id="amount"
+                            type="number"
+                            placeholder="e.g. 1000000"
+                            value={amountInput}
+                            onChange={(e) => setAmountInput(e.target.value)}
+                            className="bg-background/50 h-11"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <Button
+                      className="w-full h-12 text-base font-semibold"
+                      variant={
+                        activeOp.buttonVariant === 'destructive'
+                          ? 'destructive'
+                          : activeOp.buttonVariant === 'warning'
+                            ? 'secondary'
+                            : 'default'
                       }
-                      placeholder="Enter SPL token account address..."
-                      value={addressInput}
-                      onChange={setAddressInput}
-                    />
-                  )}
-                  {requiresAmount && (
-                    <FormInput
-                      label="Amount (in raw units)"
-                      placeholder="e.g. 1000000"
-                      value={amountInput}
-                      onChange={setAmountInput}
-                      type="number"
-                    />
-                  )}
-
-                  <div className="pt-4 mt-2 border-t border-border/30">
-                    <ActionButton
                       onClick={handleSubmit}
-                      variant={activeOp.buttonVariant}
                       disabled={!canOperate || loading}
                     >
                       {loading ? 'Processing...' : `Execute ${activeOp.title}`}
-                    </ActionButton>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-            </div>
+                    </Button>
+                  </motion.div>
+                </AnimatePresence>
+              </CardContent>
+            </Card>
           </motion.div>
         )}
       </div>

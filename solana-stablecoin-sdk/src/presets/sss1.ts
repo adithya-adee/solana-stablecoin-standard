@@ -44,7 +44,10 @@ export async function createSss1MintTx(
     updateAuthority: configPda,
   };
   const metadataLen = pack(metadata).length;
-  const totalLen = mintLen + TYPE_SIZE + LENGTH_SIZE + metadataLen;
+
+  const metadataStart = mintLen;
+  const rawLen = metadataStart + TYPE_SIZE + LENGTH_SIZE + metadataLen;
+  const totalLen = rawLen % 4 === 0 ? rawLen : rawLen + 4 - (rawLen % 4);
 
   const lamports = await connection.getMinimumBalanceForRentExemption(totalLen);
 

@@ -42,7 +42,13 @@ struct TokensBurnedEvent {
 impl TokensBurnedEvent {
     /// Mirrors the event construction in `burn_tokens::handler`.
     fn new(mint: Pubkey, from: Pubkey, from_owner: Pubkey, burner: Pubkey, amount: u64) -> Self {
-        Self { mint, from, from_owner, burner, amount }
+        Self {
+            mint,
+            from,
+            from_owner,
+            burner,
+            amount,
+        }
     }
 
     /// Returns true when the burn was self-initiated (owner === burner).
@@ -65,8 +71,7 @@ fn arb_pubkey() -> impl Strategy<Value = Pubkey> {
 }
 
 fn arb_two_distinct_pubkeys() -> impl Strategy<Value = (Pubkey, Pubkey)> {
-    (arb_pubkey(), arb_pubkey())
-        .prop_filter("pubkeys must differ", |(a, b)| a != b)
+    (arb_pubkey(), arb_pubkey()).prop_filter("pubkeys must differ", |(a, b)| a != b)
 }
 
 // ---------------------------------------------------------------------------

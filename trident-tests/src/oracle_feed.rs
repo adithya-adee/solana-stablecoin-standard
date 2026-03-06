@@ -40,12 +40,8 @@ fn config_with_feed(feed_id: Option<[u8; 32]>, cap: Option<u64>) -> StablecoinCo
 ///
 /// Returns `Ok(feed_id)` when the oracle path is available, or an error
 /// string that matches the `OracleFeedNotConfigured` program error.
-fn require_oracle_feed(
-    config: &StablecoinConfig,
-) -> Result<[u8; 32], &'static str> {
-    config
-        .oracle_feed_id
-        .ok_or("OracleFeedNotConfigured")
+fn require_oracle_feed(config: &StablecoinConfig) -> Result<[u8; 32], &'static str> {
+    config.oracle_feed_id.ok_or("OracleFeedNotConfigured")
 }
 
 /// Simulates validating a caller-supplied feed ID against the pinned value.

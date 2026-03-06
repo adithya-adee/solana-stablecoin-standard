@@ -1,107 +1,88 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { useMintHistory } from '@/hooks/use-mint-history';
+import { useActiveMint } from '@/hooks/use-active-mint';
+import { Compass, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-interface MintSelectorProps {
-  onSelect: (mintAddress: string) => void;
-  currentMint: string | null;
-  onDiscover?: () => void;
-  isDiscovering?: boolean;
-}
-
-export function MintSelector({
-  onSelect,
-  currentMint,
-  onDiscover,
-  isDiscovering,
-}: MintSelectorProps) {
-  const [address, setAddress] = useState('');
+/** Compact sidebar token picker — shows recently used tokens and links to the
+ *  full discovery page. */
+export function MintSelector() {
+  const { connected } = useWallet();
+  const { activeMint, setActiveMint } = useActiveMint();
   const { history, removeMint } = useMintHistory();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (address.trim()) {
-      onSelect(address.trim());
-      setAddress('');
-    }
-  };
+  if (!connected) return null;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <h3 className="mb-3 text-sm font-medium text-muted-foreground">Active Mint</h3>
-      {currentMint ? (
-        <div className="mb-3 flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-success" />
-          <code className="text-xs text-foreground font-mono truncate">{currentMint}</code>
-        </div>
-      ) : (
-        <p className="mb-3 text-xs text-muted-foreground">
-          No mint selected. Enter a mint address below.
-        </p>
-      )}
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <input
-          type="text"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder="Enter mint address..."
-          className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-        />
-        <button
-          type="submit"
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/80"
-        >
-          Load
-        </button>
-        {onDiscover && (
-          <button
-            type="button"
-            onClick={onDiscover}
-            disabled={isDiscovering}
-            className="rounded-lg border border-accent/30 bg-accent/5 px-4 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/10 disabled:opacity-50"
-          >
-            {isDiscovering ? 'Searching...' : 'Discover My Mints'}
-          </button>
-        )}
-      </form>
-
-      {history.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-border">
-          <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Recent Mints
-          </p>
-          <div className="space-y-1">
-            {history.map((item) => (
-              <div
-                key={item.address}
-                className="group flex items-center justify-between rounded-md p-2 hover:bg-accent/5 transition-colors"
-                onClick={() => onSelect(item.address)}
-              >
-                <code className="cursor-pointer text-xs text-foreground font-mono truncate flex-1">
-                  {item.address}
-                </code>
+    <div className="px-3 py-3 space-y-2">
+      {/* Recent mints list */}
+      <div className="space-y-1 max-h-[240px] overflow-y-auto scrollbar-none">
+        {history.length > 0 ? (
+          history.map((item) => (
+            <div
+              key={item.address}
+              className={cn(
+                'group flex flex-col gap-0.5 rounded-md px-2.5 py-2 cursor-pointer transition-all border border-transparent',
+                activeMint === item.address
+                  ? 'bg-primary/5 border-primary/20 text-primary ring-1 ring-primary/10'
+                  : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground',
+              )}
+              onClick={() => setActiveMint(item.address)}
+            >
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div
+                    className={cn(
+                      'h-1.5 w-1.5 rounded-full shrink-0',
+                      activeMint === item.address
+                        ? 'bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.4)]'
+                        : 'bg-muted-foreground/20',
+                    )}
+                  />
+                  <span className="text-xs font-semibold truncate leading-none">
+                    {item.name || 'Unknown Token'}
+                  </span>
+                </div>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     removeMint(item.address);
+                    if (activeMint === item.address) setActiveMint(null);
                   }}
-                  className="hidden group-hover:block text-muted-foreground hover:text-destructive transition-colors"
+                  className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-destructive transition-all shrink-0"
                 >
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  <X className="w-3 h-3" />
                 </button>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+
+              <div className="flex items-center justify-between px-3.5">
+                <span className="text-[10px] text-muted-foreground/70 font-medium">
+                  {item.presetName || 'SSS'}
+                </span>
+                <code className="text-[9px] font-mono text-muted-foreground/50 group-hover:text-muted-foreground/80 transition-colors">
+                  {item.address.slice(0, 4)}...{item.address.slice(-4)}
+                </code>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-[10px] text-muted-foreground/40 italic px-1 py-1">
+            No mints selected yet
+          </p>
+        )}
+      </div>
+
+      {/* Discover link */}
+      <Link
+        href="/tokens"
+        className="flex items-center justify-center gap-2 h-8 w-full rounded-md border border-primary/20 bg-primary/5 text-primary text-[11px] font-semibold hover:bg-primary/10 transition-colors"
+      >
+        <Compass className="w-3.5 h-3.5 shrink-0" />
+        Discover Tokens
+      </Link>
     </div>
   );
 }

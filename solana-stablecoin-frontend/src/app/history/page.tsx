@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { PageHeader } from '@/components/page-header';
-import { MintSelector } from '@/components/mint-selector';
 import { useActiveMint } from '@/hooks/use-active-mint';
 import { deriveConfigPda } from '@/lib/pda';
 
@@ -38,7 +37,7 @@ function formatDate(ts: number): string {
 
 export default function HistoryPage() {
   const { connection } = useConnection();
-  const { activeMint, setActiveMint } = useActiveMint();
+  const { activeMint } = useActiveMint();
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,8 +98,6 @@ export default function HistoryPage() {
     <div>
       <PageHeader title="Transaction History" />
       <div className="p-6 space-y-6">
-        <MintSelector onSelect={setActiveMint} currentMint={activeMint} />
-
         {!activeMint && (
           <div className="rounded-xl border border-border bg-card p-8 text-center">
             <p className="text-sm text-muted-foreground">
@@ -209,9 +206,14 @@ export default function HistoryPage() {
 
                     {/* Details */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground font-mono truncate">
+                      <a
+                        href={`https://explorer.solana.com/tx/${entry.signature}?cluster=devnet`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-foreground font-mono truncate block hover:underline"
+                      >
                         {entry.signature.slice(0, 32)}...
-                      </p>
+                      </a>
                       <div className="flex items-center gap-3 mt-0.5">
                         <span className="text-xs text-muted-foreground">
                           {formatDate(entry.timestamp)} {formatTime(entry.timestamp)}
@@ -228,10 +230,15 @@ export default function HistoryPage() {
                     </div>
 
                     {/* Signature link */}
-                    <div className="shrink-0">
-                      <code className="text-xs text-muted-foreground font-mono">
+                    <div className="shrink-0 flex flex-col items-end">
+                      <a
+                        href={`https://explorer.solana.com/tx/${entry.signature}?cluster=devnet`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-muted-foreground font-mono hover:text-foreground hover:underline transition-colors"
+                      >
                         {entry.signature.slice(0, 8)}...{entry.signature.slice(-4)}
-                      </code>
+                      </a>
                     </div>
                   </div>
                 ))}
