@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ModeToggle } from '@/components/mode-toggle';
+import { MintSelector } from '@/components/mint-selector';
 import { cn } from '@/lib/utils';
 
 const navigation = [
@@ -151,6 +152,11 @@ export function AppSidebar() {
           <h1 className="text-sm font-semibold text-foreground truncate">SSS Admin</h1>
           <p className="text-xs text-muted-foreground truncate">Stablecoin Standard</p>
         </div>
+      </div>
+
+      {/* Global Mint Selector */}
+      <div className="border-b border-border bg-muted/20">
+        <MintSelector />
       </div>
 
       {/* Navigation */}

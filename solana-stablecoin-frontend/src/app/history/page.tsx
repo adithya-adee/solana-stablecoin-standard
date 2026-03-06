@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { PageHeader } from '@/components/page-header';
-import { MintSelector } from '@/components/mint-selector';
 import { useActiveMint } from '@/hooks/use-active-mint';
 import { deriveConfigPda } from '@/lib/pda';
 
@@ -38,7 +37,7 @@ function formatDate(ts: number): string {
 
 export default function HistoryPage() {
   const { connection } = useConnection();
-  const { activeMint, setActiveMint } = useActiveMint();
+  const { activeMint } = useActiveMint();
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,8 +98,6 @@ export default function HistoryPage() {
     <div>
       <PageHeader title="Transaction History" />
       <div className="p-6 space-y-6">
-        <MintSelector onSelect={setActiveMint} currentMint={activeMint} />
-
         {!activeMint && (
           <div className="rounded-xl border border-border bg-card p-8 text-center">
             <p className="text-sm text-muted-foreground">

@@ -1,14 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { useWallet, useConnection } from '@solana/wallet-adapter-react';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { PageHeader } from '@/components/page-header';
-import { MintSelector } from '@/components/mint-selector';
 import { useTokenState } from '@/hooks/use-token-state';
-import { useMintHistory } from '@/hooks/use-mint-history';
 import { useActiveMint } from '@/hooks/use-active-mint';
-import { SSS_CORE_PROGRAM_ID } from '@/lib/constants';
-import bs58 from 'bs58';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -97,65 +92,14 @@ function formatSupply(raw: bigint, decimals: number): string {
 }
 
 export default function DashboardPage() {
-  const { connected, publicKey } = useWallet();
-  const { connection } = useConnection();
-  const { activeMint, setActiveMint } = useActiveMint();
+  const { connected } = useWallet();
+  const { activeMint } = useActiveMint();
   const { data, loading, error } = useTokenState(activeMint);
-  const { addMint } = useMintHistory();
-  const [isDiscovering, setIsDiscovering] = useState(false);
-  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
-
-  const handleDiscover = async () => {
-    if (!publicKey) return;
-    setIsDiscovering(true);
-    setDiscoveryError(null);
-
-    try {
-      const accounts = await connection.getProgramAccounts(SSS_CORE_PROGRAM_ID, {
-        filters: [{ memcmp: { offset: 8, bytes: publicKey.toBase58() } }],
-      });
-
-      if (accounts.length === 0) {
-        setDiscoveryError('No mints found for this authority.');
-      } else {
-        // Collect all mints found
-        accounts.forEach((acc) => {
-          // StablecoinConfig layout: discriminator (8) + authority (32) + mint (32)
-          const mintAddrBytes = acc.account.data.slice(40, 72);
-          const encoded = bs58.encode(mintAddrBytes);
-          addMint(encoded);
-        });
-
-        // Select the first one discovered
-        const firstMintBytes = accounts[0].account.data.slice(40, 72);
-        const firstEncoded = bs58.encode(firstMintBytes);
-        setActiveMint(firstEncoded);
-      }
-    } catch (e) {
-      console.error(e);
-      setDiscoveryError('Failed to discover mints. Please check your connection.');
-    } finally {
-      setIsDiscovering(false);
-    }
-  };
 
   return (
     <div>
       <PageHeader title="Dashboard" />
       <div className="p-6 space-y-6">
-        <MintSelector
-          onSelect={setActiveMint}
-          currentMint={activeMint}
-          onDiscover={handleDiscover}
-          isDiscovering={isDiscovering}
-        />
-
-        {discoveryError && (
-          <div className="rounded-xl border border-warning/20 bg-warning/5 p-4">
-            <p className="text-xs text-warning">{discoveryError}</p>
-          </div>
-        )}
-
         {!connected && (
           <div className="rounded-xl border border-warning/20 bg-warning/5 p-5 text-center">
             <p className="text-sm text-warning">
@@ -280,7 +224,9 @@ export default function DashboardPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Authority</span>
-                  <code className="text-xs text-foreground font-mono">{data.authority}</code>
+                  <code className="text-xs text-foreground font-mono">
+                    {data.authority.toBase58()}
+                  </code>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Preset</span>
@@ -317,7 +263,7 @@ export default function DashboardPage() {
                   description="Freeze or unfreeze token accounts"
                   href="/operations"
                 />
-                {data.preset === 3 && (
+                {data.preset === 'sss-3' && (
                   <QuickAction
                     label="Confidential Transfers"
                     description="Manage private transfer operations"

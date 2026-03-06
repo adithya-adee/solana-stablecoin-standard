@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { PageHeader } from '@/components/page-header';
-import { MintSelector } from '@/components/mint-selector';
 import { useActiveMint } from '@/hooks/use-active-mint';
 import { useTokenState } from '@/hooks/use-token-state';
 import { cn } from '@/lib/utils';
@@ -106,7 +105,7 @@ const OPERATIONS: Record<
 };
 
 export default function ConfidentialPage() {
-  const { activeMint, setActiveMint } = useActiveMint();
+  const { activeMint } = useActiveMint();
   const { data: tokenState, loading: tokenLoading } = useTokenState(activeMint);
   const [operation, setOperation] = useState<OperationType>('config');
   const [isOpen, setIsOpen] = useState(false);
@@ -121,8 +120,6 @@ export default function ConfidentialPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title="Confidential Transfers" />
       <div className="p-6 space-y-6 max-w-4xl mx-auto w-full">
-        <MintSelector onSelect={setActiveMint} currentMint={activeMint} />
-
         {/* SSS-3 Info Banner */}
         <Card className="border-accent/30 bg-accent/5 p-5 shadow-sm">
           <div className="flex items-start gap-4">

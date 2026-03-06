@@ -11,7 +11,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { PageHeader } from '@/components/page-header';
-import { MintSelector } from '@/components/mint-selector';
 import { TxFeedback } from '@/components/tx-feedback';
 import { useStablecoin } from '@/hooks/use-stablecoin';
 import { useTransaction } from '@/hooks/use-transaction';
@@ -62,7 +61,7 @@ export default function BlacklistPage() {
   const { publicKey } = useWallet();
   const { client, loading: clientLoading } = useStablecoin();
   const { loading: txLoading, error: txError, signature, execute, reset } = useTransaction();
-  const { activeMint, setActiveMint } = useActiveMint();
+  const { activeMint } = useActiveMint();
 
   const [operation, setOperation] = useState<OperationType>('check');
   const [isOpen, setIsOpen] = useState(false);
@@ -123,8 +122,6 @@ export default function BlacklistPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title="Blacklist Management" />
       <div className="p-6 space-y-6 max-w-4xl mx-auto w-full">
-        <MintSelector onSelect={setActiveMint} currentMint={activeMint} />
-
         {/* SSS-2 notice */}
         <Card className="border-accent/30 bg-accent/5 p-4 shadow-sm flex items-center gap-3">
           <Info className="h-5 w-5 text-accent shrink-0" />

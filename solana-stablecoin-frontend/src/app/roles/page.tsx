@@ -18,7 +18,6 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { PageHeader } from '@/components/page-header';
-import { MintSelector } from '@/components/mint-selector';
 import { TxFeedback } from '@/components/tx-feedback';
 import { useStablecoin } from '@/hooks/use-stablecoin';
 import { useTransaction } from '@/hooks/use-transaction';
@@ -109,7 +108,7 @@ export default function RolesPage() {
   const { client, loading: clientLoading } = useStablecoin();
   const { loading: txLoading, error, signature, execute, reset } = useTransaction();
 
-  const { activeMint, setActiveMint } = useActiveMint();
+  const { activeMint } = useActiveMint();
   const [operation, setOperation] = useState<OperationType>('grant');
   const [isOpen, setIsOpen] = useState(false);
 
@@ -191,8 +190,6 @@ export default function RolesPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title="Role Management" />
       <div className="p-6 space-y-6 max-w-4xl mx-auto w-full">
-        <MintSelector onSelect={setActiveMint} currentMint={activeMint} />
-
         {!activeMint && (
           <Card className="p-12 text-center border-dashed">
             <CardDescription>
