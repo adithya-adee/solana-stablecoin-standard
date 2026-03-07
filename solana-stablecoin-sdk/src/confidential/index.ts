@@ -2,6 +2,7 @@ import { PublicKey, TransactionInstruction, SYSVAR_INSTRUCTIONS_PUBKEY } from '@
 import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import { Buffer } from 'buffer';
 import { encryptDecryptableZero } from './keys';
+import { encryptDecryptableBalance } from './zk-keys';
 
 export {
   generateDummyElgamalKeys,
@@ -42,9 +43,7 @@ const APPLY_PENDING_BALANCE = 8;
 /**
  * Build the Token-2022 `ConfidentialTransferExtension::ConfigureAccount` instruction.
  *
- * > **WARNING:** This instruction **ALWAYS requires a `VerifyPubkeyValidity` ZK proof**
- * > in the same transaction (via `zk_elgamal_proof` program). It CANNOT succeed from
- * > pure TypeScript. Use this builder only when combined with a Rust proof service.
+ * > **WARNING:** This instruction **ALWAYS requires a `VerifyPubkeyValidity` ZK proof**.
  *
  * Instruction data layout (47 bytes):
  *   [0]     Extension discriminator: 27 (ConfidentialTransferExtension)
@@ -56,17 +55,16 @@ const APPLY_PENDING_BALANCE = 8;
  * Accounts (single-owner):
  *   1. [writable] token account
  *   2. []         mint
- *   3. []         Instructions sysvar (or ZK context state account)
+ *   3. []         Instructions sysvar OR ZK context state account
  *   4. [signer]   owner
- *
- * Source: ConfigureAccountInstructionData in spl_token_2022
  *
  * @param tokenAccount - The ATA to configure for confidential transfers
  * @param mint - The SSS-3 mint address
  * @param owner - The token account owner (must sign)
  * @param decryptableZeroBalance - 36-byte PodAeCiphertext (AES-128-CTR encrypted zero)
  * @param maxPendingBalanceCredits - Max deposits before ApplyPending is forced (default 65536)
- * @param proofInstructionOffset - Relative offset to VerifyPubkeyValidity instruction (default 0 = context state)
+ * @param proofInstructionOffset - Relative offset to VerifyPubkeyValidity ix. Default 0.
+ * @param contextStateAccount - ZK context state account public key (Required if proofInstructionOffset uses 0).
  */
 export function createConfigureAccountInstruction(
   tokenAccount: PublicKey,
@@ -75,6 +73,7 @@ export function createConfigureAccountInstruction(
   decryptableZeroBalance: Uint8Array,
   maxPendingBalanceCredits: bigint = 65536n,
   proofInstructionOffset: number = 0,
+  contextStateAccount?: PublicKey,
 ): TransactionInstruction {
   if (decryptableZeroBalance.length !== 36) {
     throw new Error(
@@ -97,13 +96,24 @@ export function createConfigureAccountInstruction(
   // proof_instruction_offset: i8
   data.writeInt8(proofInstructionOffset, offset);
 
+  // If proof offset is 0, we must supply the pre-verified context state account.
+  // Otherwise, we supply the Instructions sysvar.
+  let sysvarOrContextAccount: PublicKey;
+  if (proofInstructionOffset === 0) {
+    if (!contextStateAccount) {
+      throw new Error('contextStateAccount is required when proofInstructionOffset is 0');
+    }
+    sysvarOrContextAccount = contextStateAccount;
+  } else {
+    sysvarOrContextAccount = SYSVAR_INSTRUCTIONS_PUBKEY;
+  }
+
   return new TransactionInstruction({
     programId: TOKEN_2022_PROGRAM_ID,
     keys: [
       { pubkey: tokenAccount, isSigner: false, isWritable: true },
       { pubkey: mint, isSigner: false, isWritable: false },
-      // Instructions sysvar is required for the ZK proof offset to work
-      { pubkey: SYSVAR_INSTRUCTIONS_PUBKEY, isSigner: false, isWritable: false },
+      { pubkey: sysvarOrContextAccount, isSigner: false, isWritable: false },
       { pubkey: owner, isSigner: true, isWritable: false },
     ],
     data,
@@ -258,15 +268,27 @@ export class PrivacyOpsBuilder {
    *
    * @param tokenAccount - The ATA to configure
    * @param _elGamalPubkey - 32-byte ElGamal public key (part of ZK proof, NOT in instruction data)
-   * @param aesKey - Optional 16-byte AES key for decryptable balance encryption
+   * @param aeKey - Optional opaque AeKey handle from deriveConfidentialKeysFromSignatures
+   * @param proofInstructionOffset - Relative offset for inline ZK proof, or 0 if using context state account
+   * @param contextStateAccount - Required context state account if proofInstructionOffset is 0
    */
   configureAccount(
     tokenAccount: PublicKey,
     _elGamalPubkey: Uint8Array,
-    aesKey?: Uint8Array,
+    aeKey?: { encrypt(amount: bigint): { toBytes(): Uint8Array } },
+    proofInstructionOffset: number = 0,
+    contextStateAccount?: PublicKey,
   ): TransactionInstruction {
-    const decryptableZero = aesKey ? encryptDecryptableZero(aesKey) : new Uint8Array(36);
-    return createConfigureAccountInstruction(tokenAccount, this.mint, this.owner, decryptableZero);
+    const decryptableZero = aeKey ? encryptDecryptableBalance(0n, aeKey) : new Uint8Array(36);
+    return createConfigureAccountInstruction(
+      tokenAccount,
+      this.mint,
+      this.owner,
+      decryptableZero,
+      65536n,
+      proofInstructionOffset,
+      contextStateAccount,
+    );
   }
 
   /**

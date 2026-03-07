@@ -37,15 +37,18 @@ import {
   asRole,
   createInitInstruction,
   createHookMetaInitInstruction,
-  createConfidentialMintInstruction,
-  generateTestElGamalKeypair,
-  generateDummyAesKey,
+  deriveConfidentialKeysFromSignatures,
+  CONFIDENTIAL_TRANSFER_ELGAMAL_SEED_MESSAGE,
+  CONFIDENTIAL_TRANSFER_AE_KEY_SEED_MESSAGE,
+  CONFIDENTIAL_TRANSFER_EMPTY_PUBLIC_SEED,
   type TokenMintKey,
   type SssCore,
   type SssTransferHook,
   SssCoreIdl,
   SssTransferHookIdl,
+  createConfidentialMintInstruction,
 } from '@stbr/sss-token';
+import nacl from 'tweetnacl';
 import {
   logHeader,
   logSection,
@@ -297,15 +300,15 @@ async function main() {
     logEntry('Init tx', `${sig1.slice(0, 20)}...`, icons.link);
 
     // Load SSS instance for remaining operations
-    const sss = await SSS.load(provider, mintKp.publicKey as TokenMintKey);
+    const sss1 = await SSS.load(provider, mintKp.publicKey as TokenMintKey);
 
     // Grant minter
-    const grantSig = await sss.roles.grant(payer.publicKey, asRole('minter'));
+    const grantSig = await sss1.roles.grant(payer.publicKey, asRole('minter'));
     logEntry('Grant minter', `${grantSig.slice(0, 20)}...`, icons.key);
 
     // Create ATA
     const ata = getAssociatedTokenAddressSync(
-      sss.mintAddress,
+      sss1.mintAddress,
       payer.publicKey,
       false,
       TOKEN_2022_PROGRAM_ID,
@@ -317,7 +320,7 @@ async function main() {
           payer.publicKey,
           ata,
           payer.publicKey,
-          sss.mintAddress,
+          sss1.mintAddress,
           TOKEN_2022_PROGRAM_ID,
         ),
       ),
@@ -325,34 +328,34 @@ async function main() {
     );
 
     // Mint
-    const mintSig = await sss.mintTokens(ata, BigInt(500_000_000));
+    const mintSig = await sss1.mintTokens(ata, BigInt(500_000_000));
     logEntry('Mint 500', `${mintSig.slice(0, 20)}...`, icons.rocket);
 
     // Burn
-    const _ = await sss.roles.grant(payer.publicKey, asRole('burner'));
-    const burnSig = await sss.burn(ata, BigInt(100_000_000));
+    const _ = await sss1.roles.grant(payer.publicKey, asRole('burner'));
+    const burnSig = await sss1.burn(ata, BigInt(100_000_000));
     logEntry('Burn 100', `${burnSig.slice(0, 20)}...`, icons.skull);
 
     // Freeze/thaw
-    await sss.roles.grant(payer.publicKey, asRole('freezer'));
-    const freezeSig = await sss.freeze(ata);
+    await sss1.roles.grant(payer.publicKey, asRole('freezer'));
+    const freezeSig = await sss1.freeze(ata);
     logEntry('Freeze', `${freezeSig.slice(0, 20)}...`, icons.skull);
-    const thawSig = await sss.thaw(ata);
+    const thawSig = await sss1.thaw(ata);
     logEntry('Thaw', `${thawSig.slice(0, 20)}...`, icons.rocket);
 
     // Pause/unpause
-    await sss.roles.grant(payer.publicKey, asRole('pauser'));
-    const pauseSig = await sss.pause();
+    await sss1.roles.grant(payer.publicKey, asRole('pauser'));
+    const pauseSig = await sss1.pause();
     logEntry('Pause', `${pauseSig.slice(0, 20)}...`, icons.info);
-    const unpauseSig = await sss.unpause();
+    const unpauseSig = await sss1.unpause();
     logEntry('Unpause', `${unpauseSig.slice(0, 20)}...`, icons.info);
 
-    const info = await sss.info();
+    const info = await sss1.info();
     logEntry('Supply', `${info.currentSupply} (cap: ${info.supplyCap})`, icons.info);
 
     (proof.presets as Record<string, unknown>)['sss-1'] = {
-      mint: sss.mintAddress.toBase58(),
-      config: sss.configPda.toBase58(),
+      mint: sss1.mintAddress.toBase58(),
+      config: sss1.configPda.toBase58(),
       transactions: { sig1, grantSig, mintSig, burnSig, freezeSig, thawSig, pauseSig, unpauseSig },
       finalSupply: info.currentSupply.toString(),
     };
@@ -456,8 +459,6 @@ async function main() {
     logEntry('Mint 1K', `${mintSig2.slice(0, 20)}...`, icons.rocket);
 
     // 8. Burn tokens
-    const _ = await sss1.roles.grant(payer.publicKey, asRole('burner'));
-    const _2 = await sss2.roles.grant(payer.publicKey, asRole('burner'));
     const burnSig2 = await sss2.burn(payerAta2, BigInt(100_000_000));
     logEntry('Burn 100', `${burnSig2.slice(0, 20)}...`, icons.skull);
 
@@ -592,9 +593,31 @@ async function main() {
     let depositSig3 = 'skipped';
     let applySig3 = 'skipped';
     try {
-      const { publicKey: elGamalPubkey } = generateTestElGamalKeypair();
-      const aesKey = generateDummyAesKey();
-      configSig3 = await sss3.confidential.configureAccount(ata3, elGamalPubkey, aesKey);
+      // 1. Ask wallet to sign the two seed messages
+      const msg1 = new Uint8Array([
+        ...Buffer.from(CONFIDENTIAL_TRANSFER_ELGAMAL_SEED_MESSAGE),
+        ...CONFIDENTIAL_TRANSFER_EMPTY_PUBLIC_SEED,
+      ]);
+      const msg2 = new Uint8Array([
+        ...Buffer.from(CONFIDENTIAL_TRANSFER_AE_KEY_SEED_MESSAGE),
+        ...CONFIDENTIAL_TRANSFER_EMPTY_PUBLIC_SEED,
+      ]);
+      const sig1 = nacl.sign.detached(msg1, payer.secretKey);
+      const sig2 = nacl.sign.detached(msg2, payer.secretKey);
+
+      // 2. Derive authentic keys
+      const keys = await deriveConfidentialKeysFromSignatures(sig1, sig2);
+
+      // 3. To configure account properly, we actually need the ProofInstruction.
+      // For the demo, since we test locally matching `confidential.test.ts`,
+      // we'll pass an offset of -1 but we won't actually attach the ZK Proof ix because
+      // the rust zk-sdk is required for the VerifyPubkeyValidity ix.
+      // Note: This will still fail simulation without the ZKP program.
+      configSig3 = await sss3.confidential.configureAccount(
+        ata3,
+        keys.elGamalPublicKey,
+        keys.aesKey as Uint8Array,
+      );
       logEntry('Config account', `${configSig3.slice(0, 20)}...`, icons.link);
 
       depositSig3 = await sss3.confidential.deposit(ata3, BigInt(100_000_000), 6);
@@ -606,9 +629,8 @@ async function main() {
       logEntry('Confidential ops', 'Skipped (missing Rust ZKP)', icons.warning);
     }
 
-    const _ = await sss.roles.grant(payer.publicKey, asRole('burner'));
     const _3 = await sss3.roles.grant(payer.publicKey, asRole('burner'));
-    const burnSig3 = await sss3.burn(payer.publicKey, BigInt(50_000_000));
+    const burnSig3 = await sss3.burn(ata3, BigInt(50_000_000));
     logEntry('Burn 50', `${burnSig3.slice(0, 20)}...`, icons.skull);
 
     const info3 = await sss3.info();

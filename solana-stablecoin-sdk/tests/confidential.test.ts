@@ -103,6 +103,9 @@ describe('Confidential Transfer – createConfigureAccountInstruction', () => {
       DUMMY_PUBKEY_2, // mint
       DUMMY_PUBKEY, // owner
       decryptableZero,
+      65536n,
+      0,
+      DUMMY_PUBKEY, // contextStateAccount
     );
   };
 
@@ -110,12 +113,12 @@ describe('Confidential Transfer – createConfigureAccountInstruction', () => {
     expect(makeIx().programId.toBase58()).toBe(TOKEN_2022_PROGRAM_ID.toBase58());
   });
 
-  it('has exactly 4 account metas [tokenAccount, mint, instructions_sysvar, owner]', () => {
+  it('has exactly 4 account metas [tokenAccount, mint, context_state, owner]', () => {
     const ix = makeIx();
     expect(ix.keys.length).toBe(4);
     expect(ix.keys[0].isWritable).toBe(true); // tokenAccount writable
     expect(ix.keys[1].isWritable).toBe(false); // mint read-only
-    expect(ix.keys[2].pubkey.toBase58()).toBe(SYSVAR_INSTRUCTIONS_PUBKEY.toBase58()); // instructions sysvar
+    expect(ix.keys[2].pubkey.toBase58()).toBe(DUMMY_PUBKEY.toBase58()); // contextStateAccount
     expect(ix.keys[2].isSigner).toBe(false);
     expect(ix.keys[3].isSigner).toBe(true); // owner must sign
   });
@@ -151,6 +154,9 @@ describe('Confidential Transfer – createConfigureAccountInstruction', () => {
         DUMMY_PUBKEY,
         DUMMY_PUBKEY,
         new Uint8Array(16), // wrong size
+        65536n,
+        0,
+        DUMMY_PUBKEY,
       ),
     ).toThrow('36 bytes');
   });
@@ -164,6 +170,7 @@ describe('Confidential Transfer – createConfigureAccountInstruction', () => {
       decryptableZero,
       1000n, // custom counter
       -1, // inline ZK proof at offset -1
+      // No contextStateAccount needed here since offset is -1
     );
     // PodU64 at offset 38
     const low = (ix.data as Buffer).readUInt32LE(38);
@@ -171,6 +178,8 @@ describe('Confidential Transfer – createConfigureAccountInstruction', () => {
     expect(BigInt(low) + BigInt(high) * 0x100000000n).toBe(1000n);
     // i8 at offset 46
     expect((ix.data as Buffer).readInt8(46)).toBe(-1);
+    // Account 2 should be SYSVAR_INSTRUCTIONS_PUBKEY
+    expect(ix.keys[2].pubkey.toBase58()).toBe(SYSVAR_INSTRUCTIONS_PUBKEY.toBase58());
   });
 });
 

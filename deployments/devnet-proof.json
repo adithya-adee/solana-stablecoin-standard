@@ -1,20 +1,20 @@
 {
   "payer": "9AVaR6JcQaX6CJwg5fNivx2qEAQ2nKAn86DRi7vL5kK2",
   "cluster": "devnet",
-  "timestamp": "2026-03-07T04:39:01.790Z",
+  "timestamp": "2026-03-07T05:59:59.675Z",
   "programs": {
     "sss_core": "SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP",
     "sss_transfer_hook": "HookFvKFaoF9KL8TUXUnQK5r2mJoMYdBENu549seRyXW"
   },
   "presets": {
     "sss-1": {
-      "error": "Simulation failed. \nMessage: Transaction simulation failed: Error processing Instruction 0: custom program error: 0xbc4. \nLogs: \n[\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP invoke [1]\",\n  \"Program log: Instruction: BurnTokens\",\n  \"Program log: AnchorError caused by account: burner_role. Error Code: AccountNotInitialized. Error Number: 3012. Error Message: The program expected this account to be already initialized.\",\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP consumed 4781 of 200000 compute units\",\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP failed: custom program error: 0xbc4\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+      "error": "Simulation failed. \nMessage: Transaction simulation failed: Error processing Instruction 0: custom program error: 0xbc4. \nLogs: \n[\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP invoke [1]\",\n  \"Program log: Instruction: BurnTokens\",\n  \"Program log: AnchorError caused by account: from. Error Code: AccountNotInitialized. Error Number: 3012. Error Message: The program expected this account to be already initialized.\",\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP consumed 5579 of 200000 compute units\",\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP failed: custom program error: 0xbc4\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
     },
     "sss-2": {
       "error": "Simulation failed. \nMessage: Transaction simulation failed: Error processing Instruction 0: custom program error: 0xbc4. \nLogs: \n[\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP invoke [1]\",\n  \"Program log: Instruction: ThawAccount\",\n  \"Program log: AnchorError caused by account: token_account. Error Code: AccountNotInitialized. Error Number: 3012. Error Message: The program expected this account to be already initialized.\",\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP consumed 5597 of 200000 compute units\",\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP failed: custom program error: 0xbc4\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
     },
     "sss-3": {
-      "error": "Simulation failed. \nMessage: Transaction simulation failed: Error processing Instruction 0: custom program error: 0xbc4. \nLogs: \n[\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP invoke [1]\",\n  \"Program log: Instruction: BurnTokens\",\n  \"Program log: AnchorError caused by account: burner_role. Error Code: AccountNotInitialized. Error Number: 3012. Error Message: The program expected this account to be already initialized.\",\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP consumed 4781 of 200000 compute units\",\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP failed: custom program error: 0xbc4\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+      "error": "Simulation failed. \nMessage: Transaction simulation failed: Error processing Instruction 0: custom program error: 0xbc4. \nLogs: \n[\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP invoke [1]\",\n  \"Program log: Instruction: BurnTokens\",\n  \"Program log: AnchorError caused by account: from. Error Code: AccountNotInitialized. Error Number: 3012. Error Message: The program expected this account to be already initialized.\",\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP consumed 5579 of 200000 compute units\",\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP failed: custom program error: 0xbc4\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
     }
   }
 }

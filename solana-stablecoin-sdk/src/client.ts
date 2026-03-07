@@ -766,27 +766,43 @@ export class StablecoinClient {
       configureAccount: async (
         tokenAccount: PublicKey,
         elGamalPubkey: Uint8Array,
-        aesKey?: Uint8Array,
+        aeKey?: { encrypt(amount: bigint): { toBytes(): Uint8Array } },
+        proofInstructionOffset: number = 0,
+        contextStateAccount?: PublicKey,
       ): Promise<string> => {
         const ops = new PrivacyOpsBuilder(
           this.anchorProvider.connection,
           this.mintAddress,
           this.anchorProvider.publicKey,
         );
-        const ix = ops.configureAccount(tokenAccount, elGamalPubkey, aesKey);
+        const ix = ops.configureAccount(
+          tokenAccount,
+          elGamalPubkey,
+          aeKey,
+          proofInstructionOffset,
+          contextStateAccount,
+        );
         return this.dispatchInstruction(ix);
       },
       configureAccountIx: (
         tokenAccount: PublicKey,
         elGamalPubkey: Uint8Array,
-        aesKey?: Uint8Array,
+        aeKey?: { encrypt(amount: bigint): { toBytes(): Uint8Array } },
+        proofInstructionOffset: number = 0,
+        contextStateAccount?: PublicKey,
       ): TransactionInstruction => {
         const ops = new PrivacyOpsBuilder(
           this.anchorProvider.connection,
           this.mintAddress,
           this.anchorProvider.publicKey,
         );
-        return ops.configureAccount(tokenAccount, elGamalPubkey, aesKey);
+        return ops.configureAccount(
+          tokenAccount,
+          elGamalPubkey,
+          aeKey,
+          proofInstructionOffset,
+          contextStateAccount,
+        );
       },
 
       deposit: async (
