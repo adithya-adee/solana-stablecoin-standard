@@ -6,7 +6,12 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "prettier --write \"**/*.ts\"",
-    "format:check": "prettier --check \"**/*.ts\""
+    "format:check": "prettier --check \"**/*.ts\"",
+    "demo:lifecycle": "ts-node demo-lifecycle.ts",
+    "demo:sss1": "ts-node demo-sss1.ts",
+    "demo:sss2": "ts-node demo-sss2.ts",
+    "demo:sss3": "ts-node demo-sss3.ts",
+    "demo:all": "pnpm run demo:lifecycle && pnpm run demo:sss1 && pnpm run demo:sss2 && pnpm run demo:sss3"
   },
   "keywords": [],
   "author": "",

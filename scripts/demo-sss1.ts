@@ -25,13 +25,13 @@ import {
   TOKEN_2022_PROGRAM_ID,
 } from '@solana/spl-token';
 import { Transaction } from '@solana/web3.js';
-import { SSS, preset, roleType, type Preset } from '../solana-stablecoin-sdk/src';
+import { SSS, asTier, asRole, TierLabel } from '@stbr/sss-token';
 import { logHeader, logSection, logEntry, logSuccess, logError, icons } from './utils/logging';
 
 const DEVNET_RPC = process.env.DEVNET_RPC || clusterApiUrl('devnet');
 
 interface ProofResult {
-  preset: Preset;
+  preset: TierLabel;
   mint: string;
   config: string;
   transactions: Record<string, string>;
@@ -71,7 +71,7 @@ async function main() {
   logSection('1. Creating SSS-1 stablecoin...');
   const mintKeypair = Keypair.generate();
   const sss = await SSS.create(provider, {
-    preset: preset('sss-1'),
+    preset: asTier('sss-1'),
     mint: mintKeypair,
     name: 'SSS-1 Proof Token',
     symbol: 'S1PT',
@@ -85,7 +85,7 @@ async function main() {
 
   // 2. Grant minter role
   logSection('2. Granting minter role...');
-  txSigs.grantMinter = await sss.roles.grant(payer.publicKey, roleType('minter'));
+  txSigs.grantMinter = await sss.roles.grant(payer.publicKey, asRole('minter'));
   logEntry('Tx', txSigs.grantMinter, icons.link);
 
   // 3. Create ATA and mint tokens
@@ -106,30 +106,30 @@ async function main() {
     ),
   );
   await provider.sendAndConfirm(createAtaTx);
-  txSigs.mint = await sss.mintTokens(ata, BigInt(500_000_000_000)); // 500K
+  txSigs.mint = await sss.issueTokens(ata, BigInt(500_000_000_000)); // 500K
   logSuccess(`Minted 500K tokens. Tx: ${txSigs.mint}`);
 
   // 4. Burn tokens
   logSection('4. Burning tokens...');
-  txSigs.grantBurner = await sss.roles.grant(payer.publicKey, roleType('burner'));
+  txSigs.grantBurner = await sss.roles.grant(payer.publicKey, asRole('burner'));
 
-  txSigs.burn = await sss.burn(ata, BigInt(100_000_000_000)); // 100K
+  txSigs.burn = await sss.burn(payer.publicKey, BigInt(100_000_000_000)); // 100K
   logSuccess(`Burned 100K tokens. Tx: ${txSigs.burn}`);
 
   // 5. Grant freezer and freeze account
   logSection('5. Freezing account...');
-  txSigs.grantFreezer = await sss.roles.grant(payer.publicKey, roleType('freezer'));
-  txSigs.freeze = await sss.freeze(ata);
+  txSigs.grantFreezer = await sss.roles.grant(payer.publicKey, asRole('freezer'));
+  txSigs.freeze = await sss.freeze(payer.publicKey);
   logSuccess(`Frozen. Tx: ${txSigs.freeze}`);
 
   // 6. Thaw account
   logSection('6. Thawing account...');
-  txSigs.thaw = await sss.thaw(ata);
+  txSigs.thaw = await sss.thaw(payer.publicKey);
   logSuccess(`Thawed. Tx: ${txSigs.thaw}`);
 
   // 7. Grant pauser and pause
   logSection('7. Pausing operations...');
-  txSigs.grantPauser = await sss.roles.grant(payer.publicKey, roleType('pauser'));
+  txSigs.grantPauser = await sss.roles.grant(payer.publicKey, asRole('pauser'));
   txSigs.pause = await sss.pause();
   logSuccess(`Paused. Tx: ${txSigs.pause}`);
 
@@ -151,7 +151,7 @@ async function main() {
 
   // Save proof
   const proof: ProofResult = {
-    preset: preset('sss-1'),
+    preset: asTier('sss-1'),
     mint: sss.mintAddress.toBase58(),
     config: sss.configPda.toBase58(),
     transactions: txSigs,

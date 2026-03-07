@@ -31,17 +31,21 @@ import {
 } from '@solana/spl-token';
 import {
   SSS,
-  SSS_CORE_PROGRAM_ID,
-  SSS_HOOK_PROGRAM_ID,
-  buildInitializeIx,
-  buildInitializeExtraAccountMetasIx,
+  STBL_CORE_PROGRAM_ID,
+  STBL_HOOK_PROGRAM_ID,
   deriveConfigPda,
-  createInitializeConfidentialTransferMintInstruction,
-  roleType,
-  type MintAddress,
-} from '../solana-stablecoin-sdk/dist/cjs';
-import type { SssCore, SssTransferHook } from '../solana-stablecoin-sdk/dist/cjs';
-import { SssCoreIdl, SssTransferHookIdl } from '../solana-stablecoin-sdk/dist/cjs/idl';
+  asRole,
+  createInitInstruction,
+  createHookMetaInitInstruction,
+  createConfidentialMintInstruction,
+  generateTestElGamalKeypair,
+  generateDummyAesKey,
+  type TokenMintKey,
+  type SssCore,
+  type SssTransferHook,
+  SssCoreIdl,
+  SssTransferHookIdl,
+} from '@stbr/sss-token';
 import {
   logHeader,
   logSection,
@@ -163,7 +167,7 @@ async function buildSss2MintTx(
     createInitializeTransferHookInstruction(
       mintKp.publicKey,
       configPda,
-      SSS_HOOK_PROGRAM_ID,
+      STBL_HOOK_PROGRAM_ID,
       TOKEN_2022_PROGRAM_ID,
     ),
     createInitializeDefaultAccountStateInstruction(
@@ -218,12 +222,7 @@ async function buildSss3MintTx(
       configPda,
       TOKEN_2022_PROGRAM_ID,
     ),
-    createInitializeConfidentialTransferMintInstruction(
-      mintKp.publicKey,
-      configPda,
-      true,
-      new Uint8Array(32),
-    ),
+    createConfidentialMintInstruction(mintKp.publicKey, configPda, true, new Uint8Array(32)),
     createInitializeMint2Instruction(
       mintKp.publicKey,
       decimals,
@@ -240,7 +239,7 @@ async function main() {
   const keypairPath =
     process.env.ANCHOR_WALLET ||
     process.env.KEYPAIR_PATH ||
-    path.join(process.env.HOME!, 'Documents/secret/sss-devnet-keypair.json');
+    path.join(process.env.HOME!, '.config/solana/id.json');
   const rawKey = JSON.parse(fs.readFileSync(keypairPath, 'utf-8'));
   const payer = Keypair.fromSecretKey(Uint8Array.from(rawKey));
 
@@ -263,8 +262,8 @@ async function main() {
     cluster: 'devnet',
     timestamp: new Date().toISOString(),
     programs: {
-      sss_core: SSS_CORE_PROGRAM_ID.toBase58(),
-      sss_transfer_hook: SSS_HOOK_PROGRAM_ID.toBase58(),
+      sss_core: STBL_CORE_PROGRAM_ID.toBase58(),
+      sss_transfer_hook: STBL_HOOK_PROGRAM_ID.toBase58(),
     },
     presets: {} as Record<string, unknown>,
   };
@@ -273,14 +272,14 @@ async function main() {
   logSection('SSS-1: Minimal Stablecoin');
   try {
     const mintKp = Keypair.generate();
-    const [configPda] = deriveConfigPda(mintKp.publicKey as MintAddress, SSS_CORE_PROGRAM_ID);
+    const [configPda] = deriveConfigPda(mintKp.publicKey as TokenMintKey, STBL_CORE_PROGRAM_ID);
 
     const mintTx = await buildSss1MintTx(connection, payer.publicKey, mintKp, configPda, 6);
 
     // Add sss-core initialize instruction (handles adminRole PDA)
-    const initIx = await buildInitializeIx(
+    const initIx = await createInitInstruction(
       coreProgram,
-      mintKp.publicKey as MintAddress,
+      mintKp.publicKey as TokenMintKey,
       payer.publicKey,
       {
         preset: 1,
@@ -298,10 +297,10 @@ async function main() {
     logEntry('Init tx', `${sig1.slice(0, 20)}...`, icons.link);
 
     // Load SSS instance for remaining operations
-    const sss = await SSS.load(provider, mintKp.publicKey as MintAddress);
+    const sss = await SSS.load(provider, mintKp.publicKey as TokenMintKey);
 
     // Grant minter
-    const grantSig = await sss.roles.grant(payer.publicKey, roleType('minter'));
+    const grantSig = await sss.roles.grant(payer.publicKey, asRole('minter'));
     logEntry('Grant minter', `${grantSig.slice(0, 20)}...`, icons.key);
 
     // Create ATA
@@ -330,18 +329,19 @@ async function main() {
     logEntry('Mint 500', `${mintSig.slice(0, 20)}...`, icons.rocket);
 
     // Burn
+    const _ = await sss.roles.grant(payer.publicKey, asRole('burner'));
     const burnSig = await sss.burn(ata, BigInt(100_000_000));
     logEntry('Burn 100', `${burnSig.slice(0, 20)}...`, icons.skull);
 
     // Freeze/thaw
-    await sss.roles.grant(payer.publicKey, roleType('freezer'));
+    await sss.roles.grant(payer.publicKey, asRole('freezer'));
     const freezeSig = await sss.freeze(ata);
     logEntry('Freeze', `${freezeSig.slice(0, 20)}...`, icons.skull);
     const thawSig = await sss.thaw(ata);
     logEntry('Thaw', `${thawSig.slice(0, 20)}...`, icons.rocket);
 
     // Pause/unpause
-    await sss.roles.grant(payer.publicKey, roleType('pauser'));
+    await sss.roles.grant(payer.publicKey, asRole('pauser'));
     const pauseSig = await sss.pause();
     logEntry('Pause', `${pauseSig.slice(0, 20)}...`, icons.info);
     const unpauseSig = await sss.unpause();
@@ -366,15 +366,15 @@ async function main() {
   logSection('SSS-2: Compliant Stablecoin');
   try {
     const mintKp2 = Keypair.generate();
-    const [configPda2] = deriveConfigPda(mintKp2.publicKey as MintAddress, SSS_CORE_PROGRAM_ID);
+    const [configPda2] = deriveConfigPda(mintKp2.publicKey as TokenMintKey, STBL_CORE_PROGRAM_ID);
 
     // 1. Create mint with SSS-2 extensions (transfer hook + default frozen + permanent delegate + metadata pointer)
     const mintTx2 = await buildSss2MintTx(connection, payer.publicKey, mintKp2, configPda2, 6);
 
     // 2. Add sss-core initialize instruction
-    const initIx2 = await buildInitializeIx(
+    const initIx2 = await createInitInstruction(
       coreProgram,
-      mintKp2.publicKey as MintAddress,
+      mintKp2.publicKey as TokenMintKey,
       payer.publicKey,
       {
         preset: 2,
@@ -388,9 +388,9 @@ async function main() {
     mintTx2.add(initIx2);
 
     // 3. Initialize ExtraAccountMetas for the transfer hook
-    const hookInitIx = await buildInitializeExtraAccountMetasIx(
+    const hookInitIx = await createHookMetaInitInstruction(
       hookProgram,
-      mintKp2.publicKey as MintAddress,
+      mintKp2.publicKey as TokenMintKey,
       payer.publicKey,
     );
     mintTx2.add(hookInitIx);
@@ -400,12 +400,12 @@ async function main() {
     logEntry('Init tx', `${sig2.slice(0, 20)}...`, icons.link);
 
     // Load SSS instance for remaining operations
-    const sss2 = await SSS.load(provider, mintKp2.publicKey as MintAddress);
+    const sss2 = await SSS.load(provider, mintKp2.publicKey as TokenMintKey);
 
     // 4. Grant minter + freezer roles
-    const grantMinterSig2 = await sss2.roles.grant(payer.publicKey, roleType('minter'));
+    const grantMinterSig2 = await sss2.roles.grant(payer.publicKey, asRole('minter'));
     logEntry('Grant minter', `${grantMinterSig2.slice(0, 20)}...`, icons.key);
-    const grantFreezerSig2 = await sss2.roles.grant(payer.publicKey, roleType('freezer'));
+    const grantFreezerSig2 = await sss2.roles.grant(payer.publicKey, asRole('freezer'));
     logEntry('Grant freezer', `${grantFreezerSig2.slice(0, 20)}...`, icons.key);
 
     // 5. Create ATAs (will be default frozen due to DefaultAccountState)
@@ -456,6 +456,8 @@ async function main() {
     logEntry('Mint 1K', `${mintSig2.slice(0, 20)}...`, icons.rocket);
 
     // 8. Burn tokens
+    const _ = await sss1.roles.grant(payer.publicKey, asRole('burner'));
+    const _2 = await sss2.roles.grant(payer.publicKey, asRole('burner'));
     const burnSig2 = await sss2.burn(payerAta2, BigInt(100_000_000));
     logEntry('Burn 100', `${burnSig2.slice(0, 20)}...`, icons.skull);
 
@@ -492,7 +494,7 @@ async function main() {
     }
 
     // 12. Pause/unpause cycle
-    await sss2.roles.grant(payer.publicKey, roleType('pauser'));
+    await sss2.roles.grant(payer.publicKey, asRole('pauser'));
     const pauseSig2 = await sss2.pause();
     logEntry('Pause', `${pauseSig2.slice(0, 20)}...`, icons.info);
     const unpauseSig2 = await sss2.unpause();
@@ -537,13 +539,13 @@ async function main() {
   logSection('SSS-3: Confidential Stablecoin');
   try {
     const mintKp3 = Keypair.generate();
-    const [configPda3] = deriveConfigPda(mintKp3.publicKey as MintAddress, SSS_CORE_PROGRAM_ID);
+    const [configPda3] = deriveConfigPda(mintKp3.publicKey as TokenMintKey, STBL_CORE_PROGRAM_ID);
 
     const mintTx3 = await buildSss3MintTx(connection, payer.publicKey, mintKp3, configPda3, 6);
 
-    const initIx3 = await buildInitializeIx(
+    const initIx3 = await createInitInstruction(
       coreProgram,
-      mintKp3.publicKey as MintAddress,
+      mintKp3.publicKey as TokenMintKey,
       payer.publicKey,
       {
         preset: 3,
@@ -560,8 +562,8 @@ async function main() {
     logEntry('Created mint', mintKp3.publicKey.toBase58(), icons.rocket);
     logEntry('Init tx', `${sig3.slice(0, 20)}...`, icons.link);
 
-    const sss3 = await SSS.load(provider, mintKp3.publicKey as MintAddress);
-    await sss3.roles.grant(payer.publicKey, roleType('minter'));
+    const sss3 = await SSS.load(provider, mintKp3.publicKey as TokenMintKey);
+    await sss3.roles.grant(payer.publicKey, asRole('minter'));
 
     const ata3 = getAssociatedTokenAddressSync(
       sss3.mintAddress,
@@ -586,7 +588,27 @@ async function main() {
     const mintSig3 = await sss3.mintTokens(ata3, BigInt(1_000_000_000));
     logEntry('Mint 1K', `${mintSig3.slice(0, 20)}...`, icons.rocket);
 
-    const burnSig3 = await sss3.burn(ata3, BigInt(50_000_000));
+    let configSig3 = 'skipped';
+    let depositSig3 = 'skipped';
+    let applySig3 = 'skipped';
+    try {
+      const { publicKey: elGamalPubkey } = generateTestElGamalKeypair();
+      const aesKey = generateDummyAesKey();
+      configSig3 = await sss3.confidential.configureAccount(ata3, elGamalPubkey, aesKey);
+      logEntry('Config account', `${configSig3.slice(0, 20)}...`, icons.link);
+
+      depositSig3 = await sss3.confidential.deposit(ata3, BigInt(100_000_000), 6);
+      logEntry('Deposit 100', `${depositSig3.slice(0, 20)}...`, icons.rocket);
+
+      applySig3 = await sss3.confidential.applyPending(ata3);
+      logEntry('Apply pending', `${applySig3.slice(0, 20)}...`, icons.rocket);
+    } catch (e: any) {
+      logEntry('Confidential ops', 'Skipped (missing Rust ZKP)', icons.warning);
+    }
+
+    const _ = await sss.roles.grant(payer.publicKey, asRole('burner'));
+    const _3 = await sss3.roles.grant(payer.publicKey, asRole('burner'));
+    const burnSig3 = await sss3.burn(payer.publicKey, BigInt(50_000_000));
     logEntry('Burn 50', `${burnSig3.slice(0, 20)}...`, icons.skull);
 
     const info3 = await sss3.info();
@@ -596,7 +618,14 @@ async function main() {
     (proof.presets as Record<string, unknown>)['sss-3'] = {
       mint: sss3.mintAddress.toBase58(),
       config: sss3.configPda.toBase58(),
-      transactions: { sig3, mintSig3, burnSig3 },
+      transactions: {
+        init: sig3,
+        mint: mintSig3,
+        configureAccount: configSig3,
+        deposit: depositSig3,
+        applyPending: applySig3,
+        burn: burnSig3,
+      },
       finalSupply: info3.currentSupply.toString(),
       note: 'ConfidentialTransferMint extension enabled',
     };
