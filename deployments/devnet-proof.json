@@ -1,14 +1,26 @@
 {
   "payer": "9AVaR6JcQaX6CJwg5fNivx2qEAQ2nKAn86DRi7vL5kK2",
   "cluster": "devnet",
-  "timestamp": "2026-03-07T05:59:59.675Z",
+  "timestamp": "2026-03-07T06:10:20.557Z",
   "programs": {
     "sss_core": "SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP",
     "sss_transfer_hook": "HookFvKFaoF9KL8TUXUnQK5r2mJoMYdBENu549seRyXW"
   },
   "presets": {
     "sss-1": {
-      "error": "Simulation failed. \nMessage: Transaction simulation failed: Error processing Instruction 0: custom program error: 0xbc4. \nLogs: \n[\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP invoke [1]\",\n  \"Program log: Instruction: BurnTokens\",\n  \"Program log: AnchorError caused by account: from. Error Code: AccountNotInitialized. Error Number: 3012. Error Message: The program expected this account to be already initialized.\",\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP consumed 5579 of 200000 compute units\",\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP failed: custom program error: 0xbc4\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+      "mint": "ASNd2cY3fyXvpoiifFKwLsNbc6ijhfbLJSvCrLcPLT95",
+      "config": "6riBveMPwqgxV7B64hbgqHtxKRfLi314zpWiFUceua7x",
+      "transactions": {
+        "sig1": "4MobG7CaRx5A4vFYoooBvUHndj7Aq4GjfSzgsncfhNuLHXQQdUwYixhywZ3FXtbuePwFnU1pyHtG4ZNBErohzdqs",
+        "grantSig": "3ug1CQHRJsqCa6puaHSKv6Lc6nFgmLBUuUS4BW6nZkcat8aJd4qMekRkLzGEyAPTXxjiNY59GMHtNCqSJZFifJ9G",
+        "mintSig": "4zyUr7QfoGjSVkW23cZ7MhrWduT8jFSXgc6YByUZsqaMn6ziWu4J1cBae3e8tPYPx4cMQ4cgJVNq3PZGMZu9esF6",
+        "burnSig": "3gtUom4vrYbmBYjrqFPrsvym9zFUYCmEKekK57nfiPD9y47vcro2xMc7pwAsz75TDkfH8KqpjvdV2TgwJBG7TjnS",
+        "freezeSig": "2NgbHLr3LsALDbzJ4X9zwpRGwJVeJceHaedWWiRwwbzqAya3SP5NxrjdgEun7tZiosRt73TcgehMYkT5eYLhHGyY",
+        "thawSig": "Ln6XLXYvDLQcZfeL2D7LA4qJsy5w37GiJaMP7wqZ2xH4Ee7GpSC6kSBmN6iPvS6d6MqK6vSfmz3qe21y1RJTmMo",
+        "pauseSig": "4LYGaaVwoNYmUca8VFqE89qUX45oCSwiPavsnXwL5d83CMVMrhQgySds59HFQ6JQqyDuugx7XGP54Ncrtz6Bvi36",
+        "unpauseSig": "5KDefy5iTb9DGZehM1C37MjzhqwTG5EKdX2UfZqsyapQue9oKLdTDfNarqjaXyMs3hwnnbbfDZuTQkLkgWNYPME5"
+      },
+      "finalSupply": "400000000"
     },
     "sss-2": {
       "error": "Simulation failed. \nMessage: Transaction simulation failed: Error processing Instruction 0: custom program error: 0xbc4. \nLogs: \n[\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP invoke [1]\",\n  \"Program log: Instruction: ThawAccount\",\n  \"Program log: AnchorError caused by account: token_account. Error Code: AccountNotInitialized. Error Number: 3012. Error Message: The program expected this account to be already initialized.\",\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP consumed 5597 of 200000 compute units\",\n  \"Program SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP failed: custom program error: 0xbc4\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."

@@ -154,7 +154,7 @@ async function main() {
   // We use createTransferCheckedInstruction with additional accounts
   // For simplicity in the proof, we use the SDK
   txSigs.grantBurner = await sss.roles.grant(payer.publicKey, asRole('burner'));
-  txSigs.burn = await sss.burn(payer.publicKey, BigInt(100_000_000)); // Burn 100 as proof
+  txSigs.burn = await sss.burn(payerAta, BigInt(100_000_000)); // Burn 100 as proof
   logSuccess(`Burned 100 tokens as transfer proof. Tx: ${txSigs.burn}`);
 
   // 7. Blacklist an address

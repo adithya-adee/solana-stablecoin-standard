@@ -188,7 +188,7 @@ async function main() {
   // 7. Burn some tokens
   logSection('7. Burning tokens...');
   txSigs.grantBurner = await sss.roles.grant(payer.publicKey, asRole('burner'));
-  txSigs.burn = await sss.burn(payer.publicKey, BigInt(50_000_000)); // 50 tokens
+  txSigs.burn = await sss.burn(ata, BigInt(50_000_000)); // 50 tokens
   logSuccess(`Burned 50 tokens. Tx: ${txSigs.burn}`);
 
   // 7. Verify state

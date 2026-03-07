@@ -333,14 +333,14 @@ async function main() {
 
     // Burn
     const _ = await sss1.roles.grant(payer.publicKey, asRole('burner'));
-    const burnSig = await sss1.burn(ata, BigInt(100_000_000));
+    const burnSig = await sss1.burn(payer.publicKey, BigInt(100_000_000));
     logEntry('Burn 100', `${burnSig.slice(0, 20)}...`, icons.skull);
 
     // Freeze/thaw
     await sss1.roles.grant(payer.publicKey, asRole('freezer'));
-    const freezeSig = await sss1.freeze(ata);
+    const freezeSig = await sss1.freeze(payer.publicKey);
     logEntry('Freeze', `${freezeSig.slice(0, 20)}...`, icons.skull);
-    const thawSig = await sss1.thaw(ata);
+    const thawSig = await sss1.thaw(payer.publicKey);
     logEntry('Thaw', `${thawSig.slice(0, 20)}...`, icons.rocket);
 
     // Pause/unpause
