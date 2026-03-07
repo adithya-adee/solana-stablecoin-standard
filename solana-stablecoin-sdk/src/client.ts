@@ -376,9 +376,6 @@ export class StablecoinClient {
     return tx;
   }
 
-  /** @deprecated Use mint() */
-  // issueTokens restored above
-
   async burn(from: PublicKey, amount: bigint): Promise<string> {
     const tx = await this.composeBurnTokens(from, amount);
     return this.dispatchInstruction(tx.instructions);
@@ -515,19 +512,32 @@ export class StablecoinClient {
     return new Transaction().add(ix);
   }
 
-  async seize(from: PublicKey, to: PublicKey, amount: bigint): Promise<string> {
-    const tx = await this.composeSeize(from, to, amount);
+  async seize(fromWallet: PublicKey, toWallet: PublicKey, amount: bigint): Promise<string> {
+    const tx = await this.composeSeize(fromWallet, toWallet, amount);
     return this.dispatchInstruction(tx.instructions);
   }
 
-  async composeSeize(from: PublicKey, to: PublicKey, amount: bigint): Promise<Transaction> {
+  async composeSeize(fromWallet: PublicKey, toWallet: PublicKey, amount: bigint): Promise<Transaction> {
     const seizer = this.anchorProvider.publicKey;
     const tx = new Transaction();
+
+    // Check if preset needs a hook
+    let hookProgramId: PublicKey | undefined;
+    try {
+      const config = await this.ledgerProgram.account.stablecoinConfig.fetch(this.configPda);
+      const preset = (config as any).preset ?? 1;
+      const enableTransferHook = (config as any).enableTransferHook;
+      if (enableTransferHook !== false && (preset === 2 || enableTransferHook === true)) {
+        hookProgramId = STBL_HOOK_PROGRAM_ID;
+      }
+    } catch (e) {
+      // Fallback or ignore
+    }
 
     // Destination ATA check/create
     const toAta = getAssociatedTokenAddressSync(
       this.mintAddress,
-      to,
+      toWallet,
       true,
       TOKEN_2022_PROGRAM_ID,
       ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -538,7 +548,7 @@ export class StablecoinClient {
         createAssociatedTokenAccountInstruction(
           this.anchorProvider.publicKey,
           toAta,
-          to,
+          toWallet,
           this.mintAddress,
           TOKEN_2022_PROGRAM_ID,
           ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -549,7 +559,7 @@ export class StablecoinClient {
     // Source ATA (must exist)
     const fromAta = getAssociatedTokenAddressSync(
       this.mintAddress,
-      from,
+      fromWallet,
       true,
       TOKEN_2022_PROGRAM_ID,
       ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -563,6 +573,24 @@ export class StablecoinClient {
       toAta,
       new BN(amount.toString()),
     );
+
+    // Resolve extra hook accounts using canonical spl-token logic if needed
+    if (hookProgramId) {
+      const { addExtraAccountMetasForExecute } = await import('@solana/spl-token');
+      // Authority for the internal transfer is the config PDA
+      await addExtraAccountMetasForExecute(
+        this.anchorProvider.connection,
+        seizeIx,
+        hookProgramId,
+        fromAta,
+        this.mintAddress,
+        toAta,
+        this.configPda,
+        amount,
+        'confirmed',
+      );
+    }
+
     tx.add(seizeIx);
 
     return tx;
@@ -757,7 +785,7 @@ export class StablecoinClient {
       blacklistAdd: (address: PublicKey, reason: string) => this.denyList.add(address, reason),
       blacklistRemove: (address: PublicKey) => this.denyList.remove(address),
       blacklistCheck: (address: PublicKey) => this.denyList.check(address),
-      seize: (from: PublicKey, to: PublicKey, amount: bigint) => this.seize(from, to, amount),
+      seize: (fromWallet: PublicKey, toWallet: PublicKey, amount: bigint) => this.seize(fromWallet, toWallet, amount),
     };
   }
 
@@ -766,7 +794,7 @@ export class StablecoinClient {
       configureAccount: async (
         tokenAccount: PublicKey,
         elGamalPubkey: Uint8Array,
-        aeKey?: { encrypt(amount: bigint): { toBytes(): Uint8Array } },
+        aeKey?: Uint8Array | { encrypt(amount: bigint): { toBytes(): Uint8Array } },
         proofInstructionOffset: number = 0,
         contextStateAccount?: PublicKey,
       ): Promise<string> => {
@@ -787,7 +815,7 @@ export class StablecoinClient {
       configureAccountIx: (
         tokenAccount: PublicKey,
         elGamalPubkey: Uint8Array,
-        aeKey?: { encrypt(amount: bigint): { toBytes(): Uint8Array } },
+        aeKey?: Uint8Array | { encrypt(amount: bigint): { toBytes(): Uint8Array } },
         proofInstructionOffset: number = 0,
         contextStateAccount?: PublicKey,
       ): TransactionInstruction => {

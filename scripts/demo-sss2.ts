@@ -44,6 +44,9 @@ interface ProofResult {
   preset: TierLabel;
   mint: string;
   config: string;
+  recipient: string;
+  payerAta: string;
+  recipientAta: string;
   transactions: Record<string, string>;
   timestamp: string;
   cluster: string;
@@ -154,7 +157,7 @@ async function main() {
   // We use createTransferCheckedInstruction with additional accounts
   // For simplicity in the proof, we use the SDK
   txSigs.grantBurner = await sss.roles.grant(payer.publicKey, asRole('burner'));
-  txSigs.burn = await sss.burn(payerAta, BigInt(100_000_000)); // Burn 100 as proof
+  txSigs.burn = await sss.burnTokens(payerAta, BigInt(100_000_000)); // Burn 100 as proof
   logSuccess(`Burned 100 tokens as transfer proof. Tx: ${txSigs.burn}`);
 
   // 7. Blacklist an address
@@ -168,8 +171,7 @@ async function main() {
   const isBlacklisted = await sss.blacklist.check(recipient.publicKey);
   logEntry('Recipient blacklisted', String(isBlacklisted), icons.warning);
 
-  // 9. Remove from blacklist
-  logSection('9. Removing from blacklist...');
+  // 9. Removing from blacklist...
   txSigs.blacklistRemove = await sss.blacklist.remove(recipient.publicKey);
   logSuccess(`Removed. Tx: ${txSigs.blacklistRemove}`);
 
@@ -192,12 +194,12 @@ async function main() {
   try {
     txSigs.seize = await sss.seize(recipient.publicKey, payer.publicKey, BigInt(25_000_000)); // Seize 25
     logSuccess(`Seized 25 tokens. Tx: ${txSigs.seize}`);
-  } catch (err: unknown) {
-    logWarning('Seize failed as expected for SSS-2.');
-    logInfo(
-      'Note: SSS-2 mints have a transfer hook. The sss-core seize instruction uses a standard TransferChecked CPI which does not forward the extra accounts required by the transfer hook. This is a known program limitation.',
-    );
-    txSigs.seize = 'skipped-known-limitation';
+  } catch (err: any) {
+    logError('Seize failed with error: ' + err.message);
+    if (err.logs) {
+      logError('Logs: ' + JSON.stringify(err.logs, null, 2));
+    }
+    txSigs.seize = 'failed';
   }
 
   // 11. Pause and unpause
@@ -219,6 +221,9 @@ async function main() {
     preset: asTier('sss-2'),
     mint: sss.mintAddress.toBase58(),
     config: sss.configPda.toBase58(),
+    recipient: recipient.publicKey.toBase58(),
+    payerAta: payerAta.toBase58(),
+    recipientAta: recipientAta.toBase58(),
     transactions: txSigs,
     timestamp: new Date().toISOString(),
     cluster: 'devnet',

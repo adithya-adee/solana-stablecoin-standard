@@ -350,13 +350,18 @@ async function main() {
     const unpauseSig = await sss1.unpause();
     logEntry('Unpause', `${unpauseSig.slice(0, 20)}...`, icons.info);
 
+    // Seize
+    await sss1.roles.grant(payer.publicKey, asRole('seizer'));
+    const seizeSig = await sss1.seize(payer.publicKey, payer.publicKey, BigInt(1_000_000));
+    logEntry('Seize (self-test)', `${seizeSig.slice(0, 20)}...`, icons.skull);
+
     const info = await sss1.info();
     logEntry('Supply', `${info.currentSupply} (cap: ${info.supplyCap})`, icons.info);
 
     (proof.presets as Record<string, unknown>)['sss-1'] = {
       mint: sss1.mintAddress.toBase58(),
       config: sss1.configPda.toBase58(),
-      transactions: { sig1, grantSig, mintSig, burnSig, freezeSig, thawSig, pauseSig, unpauseSig },
+      transactions: { sig1, grantSig, mintSig, burnSig, freezeSig, thawSig, pauseSig, unpauseSig, seizeSig },
       finalSupply: info.currentSupply.toString(),
     };
     logSuccess('SSS-1 complete');
@@ -449,17 +454,17 @@ async function main() {
     logInfo('Created ATAs (default frozen)');
 
     // 6. Thaw accounts (KYC approval)
-    const thawPayerSig2 = await sss2.thaw(payerAta2);
+    const thawPayerSig2 = await sss2.thaw(payer.publicKey);
     logEntry('Thaw payer', `${thawPayerSig2.slice(0, 20)}...`, icons.rocket);
-    const thawRecipientSig2 = await sss2.thaw(recipientAta2);
+    const thawRecipientSig2 = await sss2.thaw(recipient2.publicKey);
     logEntry('Thaw recipient', `${thawRecipientSig2.slice(0, 20)}...`, icons.rocket);
 
     // 7. Mint tokens
-    const mintSig2 = await sss2.mintTokens(payerAta2, BigInt(1_000_000_000));
+    const mintSig2 = await sss2.mintTokens(payer.publicKey, BigInt(1_000_000_000));
     logEntry('Mint 1K', `${mintSig2.slice(0, 20)}...`, icons.rocket);
 
     // 8. Burn tokens
-    const burnSig2 = await sss2.burn(payerAta2, BigInt(100_000_000));
+    const burnSig2 = await sss2.burn(payer.publicKey, BigInt(100_000_000));
     logEntry('Burn 100', `${burnSig2.slice(0, 20)}...`, icons.skull);
 
     // 9. Blacklist the recipient address
@@ -478,21 +483,11 @@ async function main() {
     logEntry('Blacklist check after remove', String(isStillBlacklisted), icons.info);
 
     // 11. Seize tokens via permanent delegate
-    const mintToRecipSig2 = await sss2.mintTokens(recipientAta2, BigInt(50_000_000));
+    const mintToRecipSig2 = await sss2.mintTokens(recipient2.publicKey, BigInt(50_000_000));
     logEntry('Mint 50 to recipient', `${mintToRecipSig2.slice(0, 20)}...`, icons.rocket);
-    let seizeSig2 = 'N/A — known limitation';
-    let seizeNote = '';
-    try {
-      seizeSig2 = await sss2.seize(recipientAta2, payerAta2, BigInt(25_000_000));
-      logEntry('Seize 25 from recipient', `${seizeSig2.slice(0, 20)}...`, icons.skull);
-    } catch (seizeErr) {
-      seizeNote = 'Expected failure: seize CPI missing transfer hook extra accounts';
-      logEntry(
-        'Seize',
-        'expected failure (transfer hook accounts not forwarded in CPI)',
-        icons.warning,
-      );
-    }
+    await sss2.roles.grant(payer.publicKey, asRole('seizer'));
+    const seizeSig2 = await sss2.seize(recipient2.publicKey, payer.publicKey, BigInt(25_000_000));
+    logEntry('Seize 25 from recipient', `${seizeSig2.slice(0, 20)}...`, icons.skull);
 
     // 12. Pause/unpause cycle
     await sss2.roles.grant(payer.publicKey, asRole('pauser'));
@@ -528,7 +523,6 @@ async function main() {
       blacklistVerified: { added: isBlacklisted, removed: !isStillBlacklisted },
       finalSupply: info2.currentSupply.toString(),
       note: 'TransferHook + DefaultAccountState(Frozen) + PermanentDelegate extensions',
-      ...(seizeNote ? { seizeLimitation: seizeNote } : {}),
     };
     logSuccess('SSS-2 complete');
   } catch (err) {
@@ -586,7 +580,7 @@ async function main() {
       [payer],
     );
 
-    const mintSig3 = await sss3.mintTokens(ata3, BigInt(1_000_000_000));
+    const mintSig3 = await sss3.mintTokens(payer.publicKey, BigInt(1_000_000_000));
     logEntry('Mint 1K', `${mintSig3.slice(0, 20)}...`, icons.rocket);
 
     let configSig3 = 'skipped';
@@ -616,7 +610,8 @@ async function main() {
       configSig3 = await sss3.confidential.configureAccount(
         ata3,
         keys.elGamalPublicKey,
-        keys.aesKey as Uint8Array,
+        keys.aesKey as any,
+        -1,
       );
       logEntry('Config account', `${configSig3.slice(0, 20)}...`, icons.link);
 
@@ -630,7 +625,7 @@ async function main() {
     }
 
     const _3 = await sss3.roles.grant(payer.publicKey, asRole('burner'));
-    const burnSig3 = await sss3.burn(ata3, BigInt(50_000_000));
+    const burnSig3 = await sss3.burn(payer.publicKey, BigInt(50_000_000));
     logEntry('Burn 50', `${burnSig3.slice(0, 20)}...`, icons.skull);
 
     const info3 = await sss3.info();

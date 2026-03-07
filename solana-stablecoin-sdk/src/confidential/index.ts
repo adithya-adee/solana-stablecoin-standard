@@ -148,11 +148,12 @@ export function createDepositInstruction(
   amount: bigint,
   decimals: number,
 ): TransactionInstruction {
-  const data = Buffer.alloc(11);
+  const data = Buffer.alloc(12);
   data.writeUInt8(CONFIDENTIAL_TRANSFER_EXTENSION_IX, 0);
   data.writeUInt8(DEPOSIT, 1);
   (data as any).writeBigUInt64LE(amount, 2);
   data.writeUInt8(decimals, 10);
+  // Byte 11 remains 0 (padding)
 
   return new TransactionInstruction({
     programId: TOKEN_2022_PROGRAM_ID,
@@ -204,7 +205,7 @@ export function createApplyPendingBalanceInstruction(
     );
   }
 
-  const data = Buffer.alloc(46);
+  const data = Buffer.alloc(48);
   let offset = 0;
 
   data.writeUInt8(CONFIDENTIAL_TRANSFER_EXTENSION_IX, offset++);
@@ -214,6 +215,7 @@ export function createApplyPendingBalanceInstruction(
   offset += 8;
   // new_decryptable_available_balance: PodAeCiphertext (36 bytes)
   Buffer.from(newDecryptableAvailableBalance).copy(data, offset);
+  // Total 46 used + 2 padding = 48.
 
   return new TransactionInstruction({
     programId: TOKEN_2022_PROGRAM_ID,
@@ -275,11 +277,18 @@ export class PrivacyOpsBuilder {
   configureAccount(
     tokenAccount: PublicKey,
     _elGamalPubkey: Uint8Array,
-    aeKey?: { encrypt(amount: bigint): { toBytes(): Uint8Array } },
+    aeKey?: Uint8Array | { encrypt(amount: bigint): { toBytes(): Uint8Array } },
     proofInstructionOffset: number = 0,
     contextStateAccount?: PublicKey,
   ): TransactionInstruction {
-    const decryptableZero = aeKey ? encryptDecryptableBalance(0n, aeKey) : new Uint8Array(36);
+    let decryptableZero: Uint8Array;
+    if (!aeKey) {
+      decryptableZero = new Uint8Array(36);
+    } else if (aeKey instanceof Uint8Array) {
+      decryptableZero = encryptDecryptableZero(aeKey);
+    } else {
+      decryptableZero = encryptDecryptableBalance(0n, aeKey);
+    }
     return createConfigureAccountInstruction(
       tokenAccount,
       this.mint,
