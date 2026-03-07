@@ -140,7 +140,12 @@ async function main() {
   const aesKey = generateDummyAesKey();
 
   try {
-    txSigs.configureAccount = await sss.confidential.configureAccount(ata, elGamalPubkey, aesKey, -1);
+    txSigs.configureAccount = await sss.confidential.configureAccount(
+      ata,
+      elGamalPubkey,
+      aesKey,
+      -1,
+    );
     logSuccess(`Account configured. Tx: ${txSigs.configureAccount}`);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

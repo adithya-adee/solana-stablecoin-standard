@@ -361,7 +361,17 @@ async function main() {
     (proof.presets as Record<string, unknown>)['sss-1'] = {
       mint: sss1.mintAddress.toBase58(),
       config: sss1.configPda.toBase58(),
-      transactions: { sig1, grantSig, mintSig, burnSig, freezeSig, thawSig, pauseSig, unpauseSig, seizeSig },
+      transactions: {
+        sig1,
+        grantSig,
+        mintSig,
+        burnSig,
+        freezeSig,
+        thawSig,
+        pauseSig,
+        unpauseSig,
+        seizeSig,
+      },
       finalSupply: info.currentSupply.toString(),
     };
     logSuccess('SSS-1 complete');
