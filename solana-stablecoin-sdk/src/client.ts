@@ -1,5 +1,11 @@
 import { Program, AnchorProvider, BN } from '@coral-xyz/anchor';
-import { PublicKey, Keypair, Transaction, TransactionInstruction } from '@solana/web3.js';
+import {
+  PublicKey,
+  Keypair,
+  TransactionInstruction,
+  Transaction,
+  SystemProgram,
+} from '@solana/web3.js';
 import {
   getAssociatedTokenAddressSync,
   createAssociatedTokenAccountInstruction,
@@ -517,7 +523,11 @@ export class StablecoinClient {
     return this.dispatchInstruction(tx.instructions);
   }
 
-  async composeSeize(fromWallet: PublicKey, toWallet: PublicKey, amount: bigint): Promise<Transaction> {
+  async composeSeize(
+    fromWallet: PublicKey,
+    toWallet: PublicKey,
+    amount: bigint,
+  ): Promise<Transaction> {
     const seizer = this.anchorProvider.publicKey;
     const tx = new Transaction();
 
@@ -785,17 +795,17 @@ export class StablecoinClient {
       blacklistAdd: (address: PublicKey, reason: string) => this.denyList.add(address, reason),
       blacklistRemove: (address: PublicKey) => this.denyList.remove(address),
       blacklistCheck: (address: PublicKey) => this.denyList.check(address),
-      seize: (fromWallet: PublicKey, toWallet: PublicKey, amount: bigint) => this.seize(fromWallet, toWallet, amount),
+      seize: (fromWallet: PublicKey, toWallet: PublicKey, amount: bigint) =>
+        this.seize(fromWallet, toWallet, amount),
     };
   }
 
-  get privacyOps() {
+  get confidential() {
     return {
       configureAccount: async (
         tokenAccount: PublicKey,
-        elGamalPubkey: Uint8Array,
+        elGamalSecretKey: Uint8Array,
         aeKey?: Uint8Array | { encrypt(amount: bigint): { toBytes(): Uint8Array } },
-        proofInstructionOffset: number = 0,
         contextStateAccount?: PublicKey,
       ): Promise<string> => {
         const ops = new PrivacyOpsBuilder(
@@ -803,32 +813,30 @@ export class StablecoinClient {
           this.mintAddress,
           this.anchorProvider.publicKey,
         );
-        const ix = ops.configureAccount(
+        const ixs = await ops.configureAccountInstructions(
           tokenAccount,
-          elGamalPubkey,
+          elGamalSecretKey,
           aeKey,
-          proofInstructionOffset,
           contextStateAccount,
         );
-        return this.dispatchInstruction(ix);
+        const tx = new Transaction().add(...ixs);
+        return this.anchorProvider.sendAndConfirm(tx);
       },
-      configureAccountIx: (
+      configureAccountIxs: async (
         tokenAccount: PublicKey,
-        elGamalPubkey: Uint8Array,
+        elGamalSecretKey: Uint8Array,
         aeKey?: Uint8Array | { encrypt(amount: bigint): { toBytes(): Uint8Array } },
-        proofInstructionOffset: number = 0,
         contextStateAccount?: PublicKey,
-      ): TransactionInstruction => {
+      ): Promise<TransactionInstruction[]> => {
         const ops = new PrivacyOpsBuilder(
           this.anchorProvider.connection,
           this.mintAddress,
           this.anchorProvider.publicKey,
         );
-        return ops.configureAccount(
+        return ops.configureAccountInstructions(
           tokenAccount,
-          elGamalPubkey,
+          elGamalSecretKey,
           aeKey,
-          proofInstructionOffset,
           contextStateAccount,
         );
       },
@@ -904,9 +912,6 @@ export class StablecoinClient {
   }
   get blacklist() {
     return this.denyList;
-  }
-  get confidential() {
-    return this.privacyOps;
   }
   mintTokens(to: PublicKey, amount: bigint): Promise<string> {
     return this.issueTokens(to, amount);
