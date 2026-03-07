@@ -13,23 +13,13 @@ export function useConfidential() {
 
   const loading = txLoading || localLoading;
 
-  const configureAccount = async (tokenAccountStr: string) => {
+  const configureAccount = async (tokenAccountStr: string, elGamalSecretKey: Uint8Array, aeKey?: Uint8Array) => {
     if (!client) throw new Error('Stablecoin client not loaded');
     setLocalLoading(true);
     reset();
-
     try {
       const tokenAccount = new PublicKey(tokenAccountStr);
-      const { publicKey: elGamalPubkey } = generateTestElGamalKeypair();
-      const aesKey = generateDummyAesKey();
-
-      // Get the raw instruction array
-      const ops = client.privacyOps;
-      // We must build the instruction manually to bypass the built-in sendAndConfirm
-      const ix = ops.configureAccountIx(tokenAccount, elGamalPubkey, aesKey);
-
-      const tx = new Transaction().add(ix);
-      return await execute(tx);
+      return await client.confidential.configureAccount(tokenAccount, elGamalSecretKey, aeKey);
     } catch (err) {
       console.error('Failed to configure account:', err);
       throw err;
@@ -42,13 +32,9 @@ export function useConfidential() {
     if (!client) throw new Error('Stablecoin client not loaded');
     setLocalLoading(true);
     reset();
-
     try {
       const tokenAccount = new PublicKey(tokenAccountStr);
-      const ix = client.privacyOps.depositIx(tokenAccount, amount, decimals);
-
-      const tx = new Transaction().add(ix);
-      return await execute(tx);
+      return await client.confidential.deposit(tokenAccount, amount, decimals);
     } catch (err) {
       console.error('Failed to deposit:', err);
       throw err;
@@ -61,15 +47,75 @@ export function useConfidential() {
     if (!client) throw new Error('Stablecoin client not loaded');
     setLocalLoading(true);
     reset();
-
     try {
       const tokenAccount = new PublicKey(tokenAccountStr);
-      const ix = client.privacyOps.applyPendingIx(tokenAccount);
-
-      const tx = new Transaction().add(ix);
-      return await execute(tx);
+      return await client.confidential.applyPending(tokenAccount);
     } catch (err) {
       console.error('Failed to apply pending balance:', err);
+      throw err;
+    } finally {
+      setLocalLoading(false);
+    }
+  };
+
+  const transfer = async (
+    sourceTokenAccountStr: string,
+    destinationTokenAccountStr: string,
+    amount: bigint,
+    sourceElGamalSecretKey: Uint8Array,
+    sourceAvailableBalanceCiphertext: Uint8Array,
+    sourceCurrentBalance: bigint,
+    destinationElGamalPubkey: Uint8Array,
+    auditorElGamalPubkey?: Uint8Array,
+    aeKey?: Uint8Array,
+  ) => {
+    if (!client) throw new Error('Stablecoin client not loaded');
+    setLocalLoading(true);
+    reset();
+    try {
+      return await client.confidential.transfer(
+        new PublicKey(sourceTokenAccountStr),
+        new PublicKey(destinationTokenAccountStr),
+        amount,
+        sourceElGamalSecretKey,
+        sourceAvailableBalanceCiphertext,
+        sourceCurrentBalance,
+        destinationElGamalPubkey,
+        auditorElGamalPubkey,
+        aeKey,
+      );
+    } catch (err) {
+      console.error('Failed to transfer:', err);
+      throw err;
+    } finally {
+      setLocalLoading(false);
+    }
+  };
+
+  const withdraw = async (
+    tokenAccountStr: string,
+    amount: bigint,
+    decimals: number,
+    sourceElGamalSecretKey: Uint8Array,
+    sourceAvailableBalanceCiphertext: Uint8Array,
+    sourceCurrentBalance: bigint,
+    aeKey?: Uint8Array,
+  ) => {
+    if (!client) throw new Error('Stablecoin client not loaded');
+    setLocalLoading(true);
+    reset();
+    try {
+      return await client.confidential.withdraw(
+        new PublicKey(tokenAccountStr),
+        amount,
+        decimals,
+        sourceElGamalSecretKey,
+        sourceAvailableBalanceCiphertext,
+        sourceCurrentBalance,
+        aeKey,
+      );
+    } catch (err) {
+      console.error('Failed to withdraw:', err);
       throw err;
     } finally {
       setLocalLoading(false);
@@ -80,6 +126,8 @@ export function useConfidential() {
     configureAccount,
     deposit,
     applyPending,
+    transfer,
+    withdraw,
     loading,
     error,
     signature,

@@ -800,6 +800,14 @@ export class StablecoinClient {
     };
   }
 
+  get privacyOps(): PrivacyOpsBuilder {
+    return new PrivacyOpsBuilder(
+      this.anchorProvider.connection,
+      this.mintAddress,
+      this.anchorProvider.publicKey,
+    );
+  }
+
   get confidential() {
     return {
       configureAccount: async (
@@ -808,12 +816,7 @@ export class StablecoinClient {
         aeKey?: Uint8Array | { encrypt(amount: bigint): { toBytes(): Uint8Array } },
         contextStateAccount?: PublicKey,
       ): Promise<string> => {
-        const ops = new PrivacyOpsBuilder(
-          this.anchorProvider.connection,
-          this.mintAddress,
-          this.anchorProvider.publicKey,
-        );
-        const ixs = await ops.configureAccountInstructions(
+        const ixs = await this.privacyOps.configureAccountInstructions(
           tokenAccount,
           elGamalSecretKey,
           aeKey,
@@ -828,12 +831,7 @@ export class StablecoinClient {
         aeKey?: Uint8Array | { encrypt(amount: bigint): { toBytes(): Uint8Array } },
         contextStateAccount?: PublicKey,
       ): Promise<TransactionInstruction[]> => {
-        const ops = new PrivacyOpsBuilder(
-          this.anchorProvider.connection,
-          this.mintAddress,
-          this.anchorProvider.publicKey,
-        );
-        return ops.configureAccountInstructions(
+        return this.privacyOps.configureAccountInstructions(
           tokenAccount,
           elGamalSecretKey,
           aeKey,
@@ -846,12 +844,7 @@ export class StablecoinClient {
         amount: bigint,
         decimals: number,
       ): Promise<string> => {
-        const ops = new PrivacyOpsBuilder(
-          this.anchorProvider.connection,
-          this.mintAddress,
-          this.anchorProvider.publicKey,
-        );
-        const ix = ops.createDepositInstruction(tokenAccount, amount, decimals);
+        const ix = this.privacyOps.createDepositInstruction(tokenAccount, amount, decimals);
         return this.dispatchInstruction(ix);
       },
       depositIx: (
@@ -859,46 +852,67 @@ export class StablecoinClient {
         amount: bigint,
         decimals: number,
       ): TransactionInstruction => {
-        const ops = new PrivacyOpsBuilder(
-          this.anchorProvider.connection,
-          this.mintAddress,
-          this.anchorProvider.publicKey,
-        );
-        return ops.createDepositInstruction(tokenAccount, amount, decimals);
+        return this.privacyOps.createDepositInstruction(tokenAccount, amount, decimals);
       },
 
       applyPending: async (tokenAccount: PublicKey): Promise<string> => {
-        const ops = new PrivacyOpsBuilder(
-          this.anchorProvider.connection,
-          this.mintAddress,
-          this.anchorProvider.publicKey,
-        );
-        const ix = ops.createSettlePendingInstruction(tokenAccount);
+        const ix = this.privacyOps.createSettlePendingInstruction(tokenAccount);
         return this.dispatchInstruction(ix);
       },
       applyPendingIx: (tokenAccount: PublicKey): TransactionInstruction => {
-        const ops = new PrivacyOpsBuilder(
-          this.anchorProvider.connection,
-          this.mintAddress,
-          this.anchorProvider.publicKey,
-        );
-        return ops.createSettlePendingInstruction(tokenAccount);
+        return this.privacyOps.createSettlePendingInstruction(tokenAccount);
       },
 
       transfer: async (
-        _senderAccount: PublicKey,
-        _recipientAccount: PublicKey,
-        _amount: bigint,
+        sourceTokenAccount: PublicKey,
+        destinationTokenAccount: PublicKey,
+        amount: bigint,
+        sourceElGamalSecretKey: Uint8Array,
+        sourceAvailableBalanceCiphertext: Uint8Array,
+        sourceCurrentBalance: bigint,
+        destinationElGamalPubkey: Uint8Array,
+        auditorElGamalPubkey?: Uint8Array,
+        aeKey?: Uint8Array | { encrypt(amount: bigint): { toBytes(): Uint8Array } },
+        contextStateAccount?: PublicKey,
       ): Promise<string> => {
-        throw new Error('Confidential transfer requires Rust proof service. See docs/SSS-3.md');
+        const ixs = await this.privacyOps.transferInstructions(
+          sourceTokenAccount,
+          destinationTokenAccount,
+          amount,
+          sourceElGamalSecretKey,
+          sourceAvailableBalanceCiphertext,
+          sourceCurrentBalance,
+          destinationElGamalPubkey,
+          auditorElGamalPubkey,
+          aeKey,
+          contextStateAccount,
+        );
+        const tx = new Transaction().add(...ixs);
+        return this.anchorProvider.sendAndConfirm(tx);
       },
 
       withdraw: async (
-        _tokenAccount: PublicKey,
-        _amount: bigint,
-        _decimals: number,
+        tokenAccount: PublicKey,
+        amount: bigint,
+        decimals: number,
+        sourceElGamalSecretKey: Uint8Array,
+        sourceAvailableBalanceCiphertext: Uint8Array,
+        sourceCurrentBalance: bigint,
+        aeKey?: Uint8Array | { encrypt(amount: bigint): { toBytes(): Uint8Array } },
+        contextStateAccount?: PublicKey,
       ): Promise<string> => {
-        throw new Error('Confidential withdraw requires Rust proof service. See docs/SSS-3.md');
+        const ixs = await this.privacyOps.withdrawInstructions(
+          tokenAccount,
+          amount,
+          decimals,
+          sourceElGamalSecretKey,
+          sourceAvailableBalanceCiphertext,
+          sourceCurrentBalance,
+          aeKey,
+          contextStateAccount,
+        );
+        const tx = new Transaction().add(...ixs);
+        return this.anchorProvider.sendAndConfirm(tx);
       },
     };
   }

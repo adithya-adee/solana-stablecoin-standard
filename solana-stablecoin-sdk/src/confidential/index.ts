@@ -2,7 +2,13 @@ import { PublicKey, TransactionInstruction, SYSVAR_INSTRUCTIONS_PUBKEY } from '@
 import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import { Buffer } from 'buffer';
 import { encryptDecryptableZero } from './keys';
-import { encryptDecryptableBalance, generatePubkeyValidityProof, generateTransferProofs, generateRandomConfidentialKeys, generateWithdrawProofs } from './zk-keys';
+import {
+  encryptDecryptableBalance,
+  generatePubkeyValidityProof,
+  generateTransferProofs,
+  generateRandomConfidentialKeys,
+  generateWithdrawProofs,
+} from './zk-keys';
 
 export {
   generateDummyElgamalKeys,
@@ -47,7 +53,9 @@ const TRANSFER = 7;
 const APPLY_PENDING_BALANCE = 8;
 
 // ZK Token Proof Program ID (Native)
-export const ZK_TOKEN_PROOF_PROGRAM_ID = new PublicKey('ZkTokenProof1111111111111111111111111111111');
+export const ZK_TOKEN_PROOF_PROGRAM_ID = new PublicKey(
+  'ZkTokenProof1111111111111111111111111111111',
+);
 
 // ZkTokenProofInstruction enum
 const VERIFY_PUBKEY_VALIDITY = 1;
@@ -183,7 +191,9 @@ export function createConfigureAccountInstruction(
   contextStateAccount?: PublicKey,
 ): TransactionInstruction {
   if (decryptableZeroBalance.length !== 36) {
-    throw new Error(`decryptableZeroBalance must be 36 bytes, got ${decryptableZeroBalance.length}`);
+    throw new Error(
+      `decryptableZeroBalance must be 36 bytes, got ${decryptableZeroBalance.length}`,
+    );
   }
 
   const data = Buffer.alloc(47);
@@ -295,7 +305,9 @@ export function createApplyPendingBalanceInstruction(
   newDecryptableAvailableBalance: Uint8Array,
 ): TransactionInstruction {
   if (newDecryptableAvailableBalance.length !== 36) {
-    throw new Error(`newDecryptableAvailableBalance must be 36 bytes, got ${newDecryptableAvailableBalance.length}`);
+    throw new Error(
+      `newDecryptableAvailableBalance must be 36 bytes, got ${newDecryptableAvailableBalance.length}`,
+    );
   }
 
   const data = Buffer.alloc(46);
@@ -347,9 +359,7 @@ export function createTransferInstruction(
   ];
 
   if (
-    (equalityProofOffset === 0 ||
-      ciphertextValidityProofOffset === 0 ||
-      rangeProofOffset === 0) &&
+    (equalityProofOffset === 0 || ciphertextValidityProofOffset === 0 || rangeProofOffset === 0) &&
     contextStateAccount
   ) {
     keys.push({ pubkey: contextStateAccount, isSigner: false, isWritable: false });
@@ -664,4 +674,3 @@ export class PrivacyOpsBuilder {
     );
   }
 }
-

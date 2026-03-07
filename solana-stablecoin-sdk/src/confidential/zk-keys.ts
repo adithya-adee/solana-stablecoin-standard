@@ -92,31 +92,69 @@ type ZkModule = {
     fromBytes(bytes: Uint8Array): { toBytes(): Uint8Array; free(): void };
   };
   ElGamalCiphertext: {
-    fromBytes(bytes: Uint8Array): { commitment(): { free(): void }; handle(): { free(): void }; toBytes(): Uint8Array; free(): void };
+    fromBytes(bytes: Uint8Array): {
+      commitment(): { free(): void };
+      handle(): { free(): void };
+      toBytes(): Uint8Array;
+      free(): void;
+    };
   };
 
   // Grouped Ciphertexts
   GroupedElGamalCiphertext3Handles: {
     encrypt(p1: unknown, p2: unknown, p3: unknown, amount: bigint): { toBytes(): Uint8Array };
-    encryptWith(p1: unknown, p2: unknown, p3: unknown, amount: bigint, opening: unknown): { toBytes(): Uint8Array };
+    encryptWith(
+      p1: unknown,
+      p2: unknown,
+      p3: unknown,
+      amount: bigint,
+      opening: unknown,
+    ): { toBytes(): Uint8Array };
     fromBytes(bytes: Uint8Array): { toBytes(): Uint8Array; free(): void };
   };
 
   // Proofs
   PubkeyValidityProofData: {
-    new (keypair: unknown): { context(): { toBytes(): Uint8Array; free(): void }; toBytes(): Uint8Array; free(): void };
+    new (keypair: unknown): {
+      context(): { toBytes(): Uint8Array; free(): void };
+      toBytes(): Uint8Array;
+      free(): void;
+    };
   };
   GroupedCiphertext3HandlesValidityProofData: {
-    new (p1: unknown, p2: unknown, p3: unknown, grouped: unknown, amount: bigint, opening: unknown): { context(): { toBytes(): Uint8Array; free(): void }; toBytes(): Uint8Array; free(): void };
+    new (
+      p1: unknown,
+      p2: unknown,
+      p3: unknown,
+      grouped: unknown,
+      amount: bigint,
+      opening: unknown,
+    ): { context(): { toBytes(): Uint8Array; free(): void }; toBytes(): Uint8Array; free(): void };
   };
   CiphertextCommitmentEqualityProofData: {
-    new (keypair: unknown, ciphertext: unknown, commitment: unknown, opening: unknown, amount: bigint): { context(): { toBytes(): Uint8Array; free(): void }; toBytes(): Uint8Array; free(): void };
+    new (
+      keypair: unknown,
+      ciphertext: unknown,
+      commitment: unknown,
+      opening: unknown,
+      amount: bigint,
+    ): { context(): { toBytes(): Uint8Array; free(): void }; toBytes(): Uint8Array; free(): void };
   };
   BatchedRangeProofU64Data: {
-    new (commitments: unknown[], amounts: BigUint64Array, bit_lengths: Uint8Array, openings: unknown[]): { context(): { toBytes(): Uint8Array; free(): void }; toBytes(): Uint8Array; free(): void };
+    new (
+      commitments: unknown[],
+      amounts: BigUint64Array,
+      bit_lengths: Uint8Array,
+      openings: unknown[],
+    ): { context(): { toBytes(): Uint8Array; free(): void }; toBytes(): Uint8Array; free(): void };
   };
   BatchedRangeProofU128Data: {
-    new (commitments: unknown[], amounts: BigUint64Array, bit_lengths: Uint8Array, openings: unknown[]): { context(): { toBytes(): Uint8Array; free(): void }; toBytes(): Uint8Array; free(): void };
+    new (
+      commitments: unknown[],
+      amounts: BigUint64Array,
+      bit_lengths: Uint8Array,
+      openings: unknown[],
+    ): { context(): { toBytes(): Uint8Array; free(): void }; toBytes(): Uint8Array; free(): void };
   };
 };
 
