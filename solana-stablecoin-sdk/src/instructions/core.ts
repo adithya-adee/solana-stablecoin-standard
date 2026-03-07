@@ -2,7 +2,12 @@ import { Program, BN } from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import type { SssCore } from '../idl/sss_core';
-import { deriveConfigPda, deriveRolePda, deriveBlacklistPda, deriveExtraAccountMetasPda } from '../pda';
+import {
+  deriveConfigPda,
+  deriveRolePda,
+  deriveBlacklistPda,
+  deriveExtraAccountMetasPda,
+} from '../pda';
 import type { AccessRole, TokenMintKey, ConfigAccountKey, RoleAccountKey } from '../types';
 import { ROLE_ID_MAP, asRole } from '../types';
 
@@ -207,9 +212,8 @@ export function createSeizeInstruction(
   const [configPda] = deriveConfigPda(mint, program.programId);
   const [seizerRolePda] = deriveRolePda(configPda, seizer, asRole('seizer'), program.programId);
 
-  return (program.methods
-    .seize(amount)
-    .accounts({
+  return (
+    program.methods.seize(amount).accounts({
       seizer,
       mint,
       config: configPda,
@@ -217,8 +221,8 @@ export function createSeizeInstruction(
       from: fromAta,
       to: toAta,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
-    } as any) as any)
-    .instruction();
+    } as any) as any
+  ).instruction();
 }
 
 /**

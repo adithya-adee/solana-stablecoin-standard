@@ -13,7 +13,11 @@ export function useConfidential() {
 
   const loading = txLoading || localLoading;
 
-  const configureAccount = async (tokenAccountStr: string, elGamalSecretKey: Uint8Array, aeKey?: Uint8Array) => {
+  const configureAccount = async (
+    tokenAccountStr: string,
+    elGamalSecretKey: Uint8Array,
+    aeKey?: Uint8Array,
+  ) => {
     if (!client) throw new Error('Stablecoin client not loaded');
     setLocalLoading(true);
     reset();

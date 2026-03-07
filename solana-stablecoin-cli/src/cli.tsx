@@ -652,7 +652,9 @@ program
   });
 
 // ─── Confidential (SSS-3) ─────────────────────────────────────────────────────
-const confCmd = program.command('confidential').description('Confidential transfer management (SSS-3)');
+const confCmd = program
+  .command('confidential')
+  .description('Confidential transfer management (SSS-3)');
 
 confCmd
   .command('configure')
@@ -686,7 +688,11 @@ confCmd
       r(<Err message="Mint, Address, and Amount are required." />);
       return;
     }
-    r(<Confidential options={{ mint, action: 'deposit', address: finalAddress, amount: finalAmount }} />);
+    r(
+      <Confidential
+        options={{ mint, action: 'deposit', address: finalAddress, amount: finalAmount }}
+      />,
+    );
   });
 
 confCmd
@@ -702,21 +708,34 @@ confCmd
   .option('--pubkey <string>', 'Destination ElGamal Pubkey (base64)')
   .action((from, to, amount, opts) => {
     const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
-    if (!mint || !from || !to || !amount || !opts.sk || !opts.ciphertext || !opts.balance || !opts.pubkey) {
+    if (
+      !mint ||
+      !from ||
+      !to ||
+      !amount ||
+      !opts.sk ||
+      !opts.ciphertext ||
+      !opts.balance ||
+      !opts.pubkey
+    ) {
       r(<Err message="All parameters are required for transfer." />);
       return;
     }
-    r(<Confidential options={{
-      mint,
-      action: 'transfer',
-      address: from,
-      destination: to,
-      amount,
-      sk: opts.sk,
-      ciphertext: opts.ciphertext,
-      balance: String(opts.balance),
-      pubkey: opts.pubkey
-    }} />);
+    r(
+      <Confidential
+        options={{
+          mint,
+          action: 'transfer',
+          address: from,
+          destination: to,
+          amount,
+          sk: opts.sk,
+          ciphertext: opts.ciphertext,
+          balance: String(opts.balance),
+          pubkey: opts.pubkey,
+        }}
+      />,
+    );
   });
 
 confCmd
@@ -734,15 +753,19 @@ confCmd
       r(<Err message="All parameters are required for withdraw." />);
       return;
     }
-    r(<Confidential options={{
-      mint,
-      action: 'withdraw',
-      address,
-      amount,
-      sk: opts.sk,
-      ciphertext: opts.ciphertext,
-      balance: String(opts.balance)
-    }} />);
+    r(
+      <Confidential
+        options={{
+          mint,
+          action: 'withdraw',
+          address,
+          amount,
+          sk: opts.sk,
+          ciphertext: opts.ciphertext,
+          balance: String(opts.balance),
+        }}
+      />,
+    );
   });
 
 confCmd

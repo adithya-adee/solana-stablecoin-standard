@@ -53,8 +53,16 @@ export default function Confidential({ options }: { options: ConfidentialOptions
             break;
           }
           case 'transfer': {
-            if (!options.destination || !options.sk || !options.ciphertext || !options.balance || !options.pubkey) {
-              throw new Error('Transfer requires: --destination, --sk, --ciphertext, --balance, --pubkey');
+            if (
+              !options.destination ||
+              !options.sk ||
+              !options.ciphertext ||
+              !options.balance ||
+              !options.pubkey
+            ) {
+              throw new Error(
+                'Transfer requires: --destination, --sk, --ciphertext, --balance, --pubkey',
+              );
             }
             txSig = await sss.confidential.transfer(
               address,
@@ -63,7 +71,7 @@ export default function Confidential({ options }: { options: ConfidentialOptions
               Buffer.from(options.sk, 'base64'),
               Buffer.from(options.ciphertext, 'base64'),
               BigInt(options.balance),
-              Buffer.from(options.pubkey, 'base64')
+              Buffer.from(options.pubkey, 'base64'),
             );
             break;
           }
@@ -77,7 +85,7 @@ export default function Confidential({ options }: { options: ConfidentialOptions
               6,
               Buffer.from(options.sk, 'base64'),
               Buffer.from(options.ciphertext, 'base64'),
-              BigInt(options.balance)
+              BigInt(options.balance),
             );
             break;
           }
@@ -107,7 +115,9 @@ export default function Confidential({ options }: { options: ConfidentialOptions
     <Box flexDirection="column">
       <Header />
       {phase === 'running' && (
-        <Spinner label={`Performing confidential ${options.action} on ${options.address.slice(0, 8)}...`} />
+        <Spinner
+          label={`Performing confidential ${options.action} on ${options.address.slice(0, 8)}...`}
+        />
       )}
       {phase === 'confirming' && <Spinner label="Confirming transaction..." />}
       {phase === 'done' && (
@@ -115,7 +125,12 @@ export default function Confidential({ options }: { options: ConfidentialOptions
           <Success label={options.action.toUpperCase()} value={sig} />
           {extraInfo && (
             <Card title="Extra Credentials (SAVE THESE)">
-              <Table rows={Object.entries(extraInfo).map(([key, value]) => ({ key, value: String(value) }))} />
+              <Table
+                rows={Object.entries(extraInfo).map(([key, value]) => ({
+                  key,
+                  value: String(value),
+                }))}
+              />
             </Card>
           )}
         </Box>
