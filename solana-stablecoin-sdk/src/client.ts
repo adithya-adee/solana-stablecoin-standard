@@ -763,6 +763,32 @@ export class StablecoinClient {
 
   get privacyOps() {
     return {
+      configureAccount: async (
+        tokenAccount: PublicKey,
+        elGamalPubkey: Uint8Array,
+        aesKey?: Uint8Array,
+      ): Promise<string> => {
+        const ops = new PrivacyOpsBuilder(
+          this.anchorProvider.connection,
+          this.mintAddress,
+          this.anchorProvider.publicKey,
+        );
+        const ix = ops.configureAccount(tokenAccount, elGamalPubkey, aesKey);
+        return this.dispatchInstruction(ix);
+      },
+      configureAccountIx: (
+        tokenAccount: PublicKey,
+        elGamalPubkey: Uint8Array,
+        aesKey?: Uint8Array,
+      ): TransactionInstruction => {
+        const ops = new PrivacyOpsBuilder(
+          this.anchorProvider.connection,
+          this.mintAddress,
+          this.anchorProvider.publicKey,
+        );
+        return ops.configureAccount(tokenAccount, elGamalPubkey, aesKey);
+      },
+
       deposit: async (
         tokenAccount: PublicKey,
         amount: bigint,
@@ -776,6 +802,18 @@ export class StablecoinClient {
         const ix = ops.createDepositInstruction(tokenAccount, amount, decimals);
         return this.dispatchInstruction(ix);
       },
+      depositIx: (
+        tokenAccount: PublicKey,
+        amount: bigint,
+        decimals: number,
+      ): TransactionInstruction => {
+        const ops = new PrivacyOpsBuilder(
+          this.anchorProvider.connection,
+          this.mintAddress,
+          this.anchorProvider.publicKey,
+        );
+        return ops.createDepositInstruction(tokenAccount, amount, decimals);
+      },
 
       applyPending: async (tokenAccount: PublicKey): Promise<string> => {
         const ops = new PrivacyOpsBuilder(
@@ -785,6 +823,14 @@ export class StablecoinClient {
         );
         const ix = ops.createSettlePendingInstruction(tokenAccount);
         return this.dispatchInstruction(ix);
+      },
+      applyPendingIx: (tokenAccount: PublicKey): TransactionInstruction => {
+        const ops = new PrivacyOpsBuilder(
+          this.anchorProvider.connection,
+          this.mintAddress,
+          this.anchorProvider.publicKey,
+        );
+        return ops.createSettlePendingInstruction(tokenAccount);
       },
 
       transfer: async (
