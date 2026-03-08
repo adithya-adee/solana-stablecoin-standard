@@ -10,4 +10,6 @@ pub enum TransferHookError {
     ReasonTooLong,
     #[msg("Unauthorized: not an admin")]
     Unauthorized,
+    #[msg("Protocol is paused")]
+    ProtocolPaused,
 }

@@ -4071,6 +4071,7 @@ dependencies = [
  "anchor-spl",
  "spl-tlv-account-resolution 0.9.0",
  "spl-transfer-hook-interface 0.9.0",
+ "sss-core",
 ]
 
 [[package]]

@@ -38,9 +38,10 @@ pub fn handler_initialize(ctx: Context<InitializeExtraAccountMetas>) -> Result<(
     //   3 = source authority (owner/delegate)
     //   4 = extra_account_metas PDA (validation state)
     //
-    // We need two additional accounts (resolved by Token-2022):
+    // We need three additional accounts (resolved by Token-2022):
     //   5 = sender blacklist PDA  (seeds: [b"blacklist", mint, source_owner])
     //   6 = receiver blacklist PDA (seeds: [b"blacklist", mint, dest_owner])
+    //   7 = protocol config PDA (seeds: [b"sss-config", mint])
     //
     // SECURITY — both PDAs use the token account's stored `owner` field
     // (at byte offset 32), NOT the transfer authority (index 3). This prevents
@@ -82,6 +83,16 @@ pub fn handler_initialize(ctx: Context<InitializeExtraAccountMetas>) -> Result<(
             ],
             false,
             false,
+        )?,
+        // Protocol config: Pre-calculated PDA owned by sss-core.
+        // This allows the hook to check the protocol's "paused" state.
+        ExtraAccountMeta::new_with_pubkey(
+            &Pubkey::find_program_address(
+                &[b"sss-config", mint.key.as_ref()],
+                &sss_core::ID,
+            ).0,
+            false, // is_signer
+            false, // is_writable
         )?,
     ];
 
