@@ -21,21 +21,21 @@ export function StablecoinProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored && stored !== 'null' && stored !== 'undefined') {
-      setActiveMintState(stored);
+      Promise.resolve().then(() => setActiveMintState(stored));
     } else {
       const history = localStorage.getItem(HISTORY_KEY);
       if (history) {
         try {
           const parsed = JSON.parse(history);
           if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].address) {
-            setActiveMintState(parsed[0].address);
+            Promise.resolve().then(() => setActiveMintState(parsed[0].address));
           }
         } catch (e) {
           console.error('Failed to parse mint history for default', e);
         }
       }
     }
-  }, []);
+  }, []); // Empty dependency array means this runs once on mount
 
   const setActiveMint = useCallback((address: string | null) => {
     setActiveMintState(address);

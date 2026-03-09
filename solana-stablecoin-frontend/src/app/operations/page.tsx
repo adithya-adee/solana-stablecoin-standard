@@ -2,17 +2,13 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { PublicKey } from '@solana/web3.js';
-import { BN } from '@coral-xyz/anchor';
-import { TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Coins, Zap, Flame, ShieldAlert, Play, ShieldBan } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { PageHeader } from '@/components/page-header';
 import { TxFeedback } from '@/components/tx-feedback';
@@ -20,6 +16,7 @@ import { useStablecoin } from '@/hooks/use-stablecoin';
 import { useTransaction } from '@/hooks/use-transaction';
 import { useActiveMint } from '@/hooks/use-active-mint';
 import { useTokenState } from '@/hooks/use-token-state';
+import { type AccessRole } from '@stbr/sss-token';
 import { isValidPubkey } from '@/lib/validation';
 import { cn } from '@/lib/utils';
 
@@ -132,7 +129,7 @@ export default function OperationsPage() {
                 ? 'freezer'
                 : 'pauser';
 
-        const ok = await client.accessControl.check(publicKey, role as any);
+        const ok = await client.accessControl.check(publicKey, role as AccessRole);
         setHasPermission(ok);
       } catch (err) {
         console.error('Failed to check permission:', err);
@@ -197,7 +194,18 @@ export default function OperationsPage() {
     } catch (err) {
       console.error(err);
     }
-  }, [canOperate, client, operation, addressInput, amountInput, execute, reset]);
+  }, [
+    canOperate,
+    client,
+    operation,
+    addressInput,
+    amountInput,
+    execute,
+    reset,
+    requiresAddress,
+    requiresAmount,
+    tokenState?.decimals,
+  ]);
 
   const activeOp = OPERATIONS[operation];
   const ActiveIcon = activeOp.icon;
@@ -208,9 +216,9 @@ export default function OperationsPage() {
       <div className="p-6 space-y-6 max-w-4xl mx-auto w-full">
         {!activeMint && (
           <Card className="p-12 text-center border-dashed">
-            <CardDescription>
+            <p className="text-muted-foreground">
               Select a mint address above to perform token operations.
-            </CardDescription>
+            </p>
           </Card>
         )}
 
