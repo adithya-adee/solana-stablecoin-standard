@@ -28,7 +28,6 @@ describe('Security', () => {
 
   let mintResult: CreateSss1MintResult;
   let recipientAta: PublicKey;
-  let treasuryAta: PublicKey;
   let minterRolePda: PublicKey;
 
   const minter = Keypair.generate();
@@ -64,11 +63,6 @@ describe('Security', () => {
       provider,
       mintResult.mint.publicKey,
       recipient.publicKey,
-    );
-    treasuryAta = await createTokenAccount(
-      provider,
-      mintResult.mint.publicKey,
-      provider.wallet.publicKey,
     );
 
     // Mint some tokens so burn/seize operations can be attempted

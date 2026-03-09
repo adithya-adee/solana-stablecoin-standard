@@ -24,7 +24,6 @@ import {
   fetchConfig,
   getTokenBalance,
   airdropSol,
-  ROLE_ADMIN,
   ROLE_MINTER,
   ROLE_FREEZER,
   ROLE_BLACKLISTER,
