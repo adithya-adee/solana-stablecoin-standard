@@ -203,6 +203,13 @@ export type SssTransferHook = {
             'program), the receiver is blacklisted and the transfer is rejected.',
           ];
         },
+        {
+          name: 'config';
+          docs: [
+            'Protocol configuration account. Resolved by Token-2022 from',
+            'ExtraAccountMetaList. Used to check the "paused" state.',
+          ];
+        },
       ];
       args: [
         {
@@ -216,6 +223,10 @@ export type SssTransferHook = {
     {
       name: 'blacklistEntry';
       discriminator: [218, 179, 231, 40, 141, 25, 168, 189];
+    },
+    {
+      name: 'stablecoinConfig';
+      discriminator: [127, 25, 244, 213, 1, 192, 101, 6];
     },
   ];
   events: [
@@ -248,6 +259,11 @@ export type SssTransferHook = {
       code: 6003;
       name: 'unauthorized';
       msg: 'Unauthorized: not an admin';
+    },
+    {
+      code: 6004;
+      name: 'protocolPaused';
+      msg: 'Protocol is paused';
     },
   ];
   types: [
@@ -350,6 +366,102 @@ export type SssTransferHook = {
             name: 'removedBy';
             docs: ['The blacklister who removed this entry.'];
             type: 'pubkey';
+          },
+        ];
+      };
+    },
+    {
+      name: 'stablecoinConfig';
+      type: {
+        kind: 'struct';
+        fields: [
+          {
+            name: 'authority';
+            type: 'pubkey';
+          },
+          {
+            name: 'mint';
+            type: 'pubkey';
+          },
+          {
+            name: 'preset';
+            type: 'u8';
+          },
+          {
+            name: 'paused';
+            type: 'bool';
+          },
+          {
+            name: 'supplyCap';
+            type: {
+              option: 'u64';
+            };
+          },
+          {
+            name: 'totalMinted';
+            type: 'u64';
+          },
+          {
+            name: 'totalBurned';
+            type: 'u64';
+          },
+          {
+            name: 'bump';
+            type: 'u8';
+          },
+          {
+            name: 'name';
+            docs: ['Stablecoin name (max 32 bytes).'];
+            type: 'string';
+          },
+          {
+            name: 'symbol';
+            docs: ['Stablecoin ticker symbol (max 10 bytes).'];
+            type: 'string';
+          },
+          {
+            name: 'uri';
+            docs: ['Metadata URI (max 200 bytes, may be empty).'];
+            type: 'string';
+          },
+          {
+            name: 'decimals';
+            docs: ['Token decimals (e.g. 6 for USDC-style).'];
+            type: 'u8';
+          },
+          {
+            name: 'enablePermanentDelegate';
+            docs: ['Whether the config PDA is set as permanent delegate on token accounts.'];
+            type: 'bool';
+          },
+          {
+            name: 'enableTransferHook';
+            docs: ['Whether a transfer hook program is attached to the mint.'];
+            type: 'bool';
+          },
+          {
+            name: 'defaultAccountFrozen';
+            docs: ['Whether new token accounts are frozen by default (requires explicit thaw).'];
+            type: 'bool';
+          },
+          {
+            name: 'adminCount';
+            docs: ['Number of active admins. Used to prevent revoking the last admin.'];
+            type: 'u32';
+          },
+          {
+            name: 'oracleFeedId';
+            docs: [
+              'Pyth price feed ID (32-byte hex) that oracle-gated minting must match.',
+              '`None` means oracle-adjusted minting is disabled for this stablecoin.',
+              'Must be set via `update_oracle_feed` before passing a `price_update` account',
+              'to `mint_tokens`. Using a wildcard (all-zeros) is explicitly rejected.',
+            ];
+            type: {
+              option: {
+                array: ['u8', 32];
+              };
+            };
           },
         ];
       };

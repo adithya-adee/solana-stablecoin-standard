@@ -1,14 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { PublicKey, Transaction } from '@solana/web3.js';
-import { generateTestElGamalKeypair, generateDummyAesKey } from '@stbr/sss-token';
+import { PublicKey } from '@solana/web3.js';
 import { useStablecoin } from './use-stablecoin';
 import { useTransaction } from './use-transaction';
 
 export function useConfidential() {
   const { client } = useStablecoin();
-  const { execute, signature, error, loading: txLoading, reset } = useTransaction();
+  const { execute: _execute, signature, error, loading: txLoading, reset } = useTransaction();
   const [localLoading, setLocalLoading] = useState(false);
 
   const loading = txLoading || localLoading;

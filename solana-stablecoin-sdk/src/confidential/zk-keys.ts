@@ -323,7 +323,7 @@ export async function generateTransferProofs(
 
   // 2. Range Proof for remaining balance
   // Remaining = Current - Amount
-  const remainingAmount = params.sourceCurrentBalance - params.amount;
+  // const remainingAmount = params.sourceCurrentBalance - params.amount;
   const sourceCt = zk.ElGamalCiphertext.fromBytes(params.sourceAvailableBalanceCiphertext);
   if (!sourceCt) throw new Error('Invalid sourceAvailableBalanceCiphertext');
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import fs from 'fs';
-import { Box, Text, useApp, useInput } from 'ink';
+import { useApp, useInput } from 'ink';
 import { Layout } from './components/Layout.js';
 import { TabName } from './components/TabBar.js';
 import { NotificationProvider } from './hooks/useNotifications.js';
@@ -59,7 +59,9 @@ function TuiApp() {
       try {
         const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
         if (config.mint) setMint(config.mint);
-      } catch {}
+      } catch {
+        // Ignore JSON parse errors for config
+      }
     }
   }, []);
 

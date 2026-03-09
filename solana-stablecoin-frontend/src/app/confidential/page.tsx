@@ -12,43 +12,9 @@ import { PageHeader } from '@/components/page-header';
 import { useActiveMint } from '@/hooks/use-active-mint';
 import { useTokenState } from '@/hooks/use-token-state';
 import { cn } from '@/lib/utils';
-import { SSS, generateTestElGamalKeypair } from '@stbr/sss-token';
+import { generateTestElGamalKeypair } from '@stbr/sss-token';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useConfidential } from '@/hooks/use-confidential';
-
-function StatusBadge({ label, active }: { label: string; active: boolean }) {
-  return (
-    <div
-      className={cn(
-        'inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold shadow-sm',
-        active
-          ? 'bg-success/10 text-success border border-success/20'
-          : 'bg-muted text-muted-foreground border border-muted',
-      )}
-    >
-      <div
-        className={cn(
-          'h-1.5 w-1.5 rounded-full',
-          active ? 'bg-success shadow-success/50' : 'bg-muted-foreground',
-        )}
-      />
-      {label}
-    </div>
-  );
-}
-
-function InfoRow({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className="flex items-center justify-between py-3 border-b border-border/50 last:border-0 hover:bg-muted/10 transition-colors px-2 rounded-lg">
-      <span className="text-sm font-medium text-muted-foreground">{label}</span>
-      <span
-        className={cn('text-sm text-foreground', mono && 'font-mono font-medium tracking-tight')}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
 
 type OperationType = 'config' | 'deposit' | 'withdraw' | 'transfer' | 'info' | 'apply';
 

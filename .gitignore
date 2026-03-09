@@ -20,3 +20,6 @@ dist/
 .env
 .env.*
 !.env.example
+
+# Turbo
+.turbo

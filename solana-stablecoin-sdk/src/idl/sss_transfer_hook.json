@@ -9,7 +9,16 @@
   "instructions": [
     {
       "name": "add_to_blacklist",
-      "discriminator": [90, 115, 98, 231, 173, 119, 117, 176],
+      "discriminator": [
+        90,
+        115,
+        98,
+        231,
+        173,
+        119,
+        117,
+        176
+      ],
       "accounts": [
         {
           "name": "blacklister",
@@ -36,7 +45,17 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [98, 108, 97, 99, 107, 108, 105, 115, 116]
+                "value": [
+                  98,
+                  108,
+                  97,
+                  99,
+                  107,
+                  108,
+                  105,
+                  115,
+                  116
+                ]
               },
               {
                 "kind": "account",
@@ -63,7 +82,16 @@
     },
     {
       "name": "initialize_extra_account_metas",
-      "discriminator": [22, 213, 130, 114, 1, 174, 121, 36],
+      "discriminator": [
+        22,
+        213,
+        130,
+        114,
+        1,
+        174,
+        121,
+        36
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -72,14 +100,33 @@
         },
         {
           "name": "extra_account_metas",
-          "docs": ["for this mint. Created and initialized in this instruction."],
+          "docs": [
+            "for this mint. Created and initialized in this instruction."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  101, 120, 116, 114, 97, 45, 97, 99, 99, 111, 117, 110, 116, 45, 109, 101, 116, 97,
+                  101,
+                  120,
+                  116,
+                  114,
+                  97,
+                  45,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116,
+                  45,
+                  109,
+                  101,
+                  116,
+                  97,
                   115
                 ]
               },
@@ -102,7 +149,16 @@
     },
     {
       "name": "remove_from_blacklist",
-      "discriminator": [47, 105, 20, 10, 165, 168, 203, 219],
+      "discriminator": [
+        47,
+        105,
+        20,
+        10,
+        165,
+        168,
+        203,
+        219
+      ],
       "accounts": [
         {
           "name": "blacklister",
@@ -126,7 +182,17 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [98, 108, 97, 99, 107, 108, 105, 115, 116]
+                "value": [
+                  98,
+                  108,
+                  97,
+                  99,
+                  107,
+                  108,
+                  105,
+                  115,
+                  116
+                ]
               },
               {
                 "kind": "account",
@@ -145,7 +211,16 @@
     },
     {
       "name": "transfer_hook",
-      "discriminator": [220, 57, 220, 152, 126, 125, 97, 168],
+      "discriminator": [
+        220,
+        57,
+        220,
+        152,
+        126,
+        125,
+        97,
+        168
+      ],
       "accounts": [
         {
           "name": "source"
@@ -179,6 +254,13 @@
             "ExtraAccountMetaList. If this account exists (has data, owned by this",
             "program), the receiver is blacklisted and the transfer is rejected."
           ]
+        },
+        {
+          "name": "config",
+          "docs": [
+            "Protocol configuration account. Resolved by Token-2022 from",
+            "ExtraAccountMetaList. Used to check the \"paused\" state."
+          ]
         }
       ],
       "args": [
@@ -192,17 +274,57 @@
   "accounts": [
     {
       "name": "BlacklistEntry",
-      "discriminator": [218, 179, 231, 40, 141, 25, 168, 189]
+      "discriminator": [
+        218,
+        179,
+        231,
+        40,
+        141,
+        25,
+        168,
+        189
+      ]
+    },
+    {
+      "name": "StablecoinConfig",
+      "discriminator": [
+        127,
+        25,
+        244,
+        213,
+        1,
+        192,
+        101,
+        6
+      ]
     }
   ],
   "events": [
     {
       "name": "BlacklistAdded",
-      "discriminator": [214, 13, 214, 145, 233, 250, 4, 236]
+      "discriminator": [
+        214,
+        13,
+        214,
+        145,
+        233,
+        250,
+        4,
+        236
+      ]
     },
     {
       "name": "BlacklistRemoved",
-      "discriminator": [56, 84, 216, 61, 23, 245, 29, 236]
+      "discriminator": [
+        56,
+        84,
+        216,
+        61,
+        23,
+        245,
+        29,
+        236
+      ]
     }
   ],
   "errors": [
@@ -225,6 +347,11 @@
       "code": 6003,
       "name": "Unauthorized",
       "msg": "Unauthorized: not an admin"
+    },
+    {
+      "code": 6004,
+      "name": "ProtocolPaused",
+      "msg": "Protocol is paused"
     }
   ],
   "types": [
@@ -243,27 +370,37 @@
         "fields": [
           {
             "name": "mint",
-            "docs": ["The stablecoin mint this entry applies to."],
+            "docs": [
+              "The stablecoin mint this entry applies to."
+            ],
             "type": "pubkey"
           },
           {
             "name": "address",
-            "docs": ["The wallet address that was blacklisted."],
+            "docs": [
+              "The wallet address that was blacklisted."
+            ],
             "type": "pubkey"
           },
           {
             "name": "added_by",
-            "docs": ["The blacklister who added this entry."],
+            "docs": [
+              "The blacklister who added this entry."
+            ],
             "type": "pubkey"
           },
           {
             "name": "added_at",
-            "docs": ["Unix timestamp when the entry was created."],
+            "docs": [
+              "Unix timestamp when the entry was created."
+            ],
             "type": "i64"
           },
           {
             "name": "reason",
-            "docs": ["Compliance reason (reference code, not PII)."],
+            "docs": [
+              "Compliance reason (reference code, not PII)."
+            ],
             "type": "string"
           }
         ]
@@ -276,32 +413,44 @@
         "fields": [
           {
             "name": "mint",
-            "docs": ["The stablecoin mint this entry applies to."],
+            "docs": [
+              "The stablecoin mint this entry applies to."
+            ],
             "type": "pubkey"
           },
           {
             "name": "address",
-            "docs": ["The wallet address that is blacklisted."],
+            "docs": [
+              "The wallet address that is blacklisted."
+            ],
             "type": "pubkey"
           },
           {
             "name": "added_by",
-            "docs": ["The admin who added this entry."],
+            "docs": [
+              "The admin who added this entry."
+            ],
             "type": "pubkey"
           },
           {
             "name": "added_at",
-            "docs": ["Unix timestamp when the entry was created."],
+            "docs": [
+              "Unix timestamp when the entry was created."
+            ],
             "type": "i64"
           },
           {
             "name": "reason",
-            "docs": ["Compliance reason for blacklisting (max 512 chars)."],
+            "docs": [
+              "Compliance reason for blacklisting (max 512 chars)."
+            ],
             "type": "string"
           },
           {
             "name": "bump",
-            "docs": ["PDA bump seed."],
+            "docs": [
+              "PDA bump seed."
+            ],
             "type": "u8"
           }
         ]
@@ -309,24 +458,147 @@
     },
     {
       "name": "BlacklistRemoved",
-      "docs": ["Emitted when an address is removed from the blacklist."],
+      "docs": [
+        "Emitted when an address is removed from the blacklist."
+      ],
       "type": {
         "kind": "struct",
         "fields": [
           {
             "name": "mint",
-            "docs": ["The stablecoin mint this entry applied to."],
+            "docs": [
+              "The stablecoin mint this entry applied to."
+            ],
             "type": "pubkey"
           },
           {
             "name": "address",
-            "docs": ["The wallet address that was removed from the blacklist."],
+            "docs": [
+              "The wallet address that was removed from the blacklist."
+            ],
             "type": "pubkey"
           },
           {
             "name": "removed_by",
-            "docs": ["The blacklister who removed this entry."],
+            "docs": [
+              "The blacklister who removed this entry."
+            ],
             "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StablecoinConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "preset",
+            "type": "u8"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "supply_cap",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "total_minted",
+            "type": "u64"
+          },
+          {
+            "name": "total_burned",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "name",
+            "docs": [
+              "Stablecoin name (max 32 bytes)."
+            ],
+            "type": "string"
+          },
+          {
+            "name": "symbol",
+            "docs": [
+              "Stablecoin ticker symbol (max 10 bytes)."
+            ],
+            "type": "string"
+          },
+          {
+            "name": "uri",
+            "docs": [
+              "Metadata URI (max 200 bytes, may be empty)."
+            ],
+            "type": "string"
+          },
+          {
+            "name": "decimals",
+            "docs": [
+              "Token decimals (e.g. 6 for USDC-style)."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "enable_permanent_delegate",
+            "docs": [
+              "Whether the config PDA is set as permanent delegate on token accounts."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "enable_transfer_hook",
+            "docs": [
+              "Whether a transfer hook program is attached to the mint."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "default_account_frozen",
+            "docs": [
+              "Whether new token accounts are frozen by default (requires explicit thaw)."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "admin_count",
+            "docs": [
+              "Number of active admins. Used to prevent revoking the last admin."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "oracle_feed_id",
+            "docs": [
+              "Pyth price feed ID (32-byte hex) that oracle-gated minting must match.",
+              "`None` means oracle-adjusted minting is disabled for this stablecoin.",
+              "Must be set via `update_oracle_feed` before passing a `price_update` account",
+              "to `mint_tokens`. Using a wildcard (all-zeros) is explicitly rejected."
+            ],
+            "type": {
+              "option": {
+                "array": [
+                  "u8",
+                  32
+                ]
+              }
+            }
           }
         ]
       }

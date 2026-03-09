@@ -358,7 +358,7 @@ describe('Confidential Transfer – parseConfidentialTransferAccountState', () =
 describe('Confidential Transfer – zk-keys (AeKey encrypt/decrypt)', () => {
   it('encryptDecryptableBalance returns 36 bytes when given amount and aeKey-like', () => {
     const fakeAeKey = {
-      encrypt(amount: bigint) {
+      encrypt(_amount: bigint) {
         return { toBytes: () => new Uint8Array(36).fill(0) };
       },
     };
@@ -376,6 +376,7 @@ describe('Confidential Transfer – zk-keys (AeKey encrypt/decrypt)', () => {
     try {
       keys = await deriveConfidentialKeysFromSignatures(sig1, sig2);
     } catch (e) {
+      console.error(e);
       // WASM may not load in test env
       return;
     }

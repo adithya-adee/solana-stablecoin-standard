@@ -2,12 +2,7 @@ import { Program, BN } from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import type { SssCore } from '../idl/sss_core';
-import {
-  deriveConfigPda,
-  deriveRolePda,
-  deriveBlacklistPda,
-  deriveExtraAccountMetasPda,
-} from '../pda';
+import { deriveConfigPda, deriveRolePda } from '../pda';
 import type { AccessRole, TokenMintKey, ConfigAccountKey, RoleAccountKey } from '../types';
 import { ROLE_ID_MAP, asRole } from '../types';
 

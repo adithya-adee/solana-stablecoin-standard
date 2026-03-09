@@ -14,7 +14,6 @@ import {
   airdropSol,
   ROLE_ADMIN,
   ROLE_MINTER,
-  ROLE_FREEZER,
   ROLE_PAUSER,
   ROLE_BURNER,
   ROLE_SEIZER,
@@ -33,7 +32,6 @@ describe('Edge Cases', () => {
   let treasuryAta: PublicKey;
   let minterRolePda: PublicKey;
   let burnerRolePda: PublicKey;
-  let freezerRolePda: PublicKey;
   let pauserRolePda: PublicKey;
   let seizerRolePda: PublicKey;
 
@@ -69,13 +67,6 @@ describe('Edge Cases', () => {
       mintResult.adminRolePda,
       minter.publicKey,
       ROLE_BURNER,
-    );
-    freezerRolePda = await grantRole(
-      coreProgram,
-      mintResult.configPda,
-      mintResult.adminRolePda,
-      freezer.publicKey,
-      ROLE_FREEZER,
     );
     pauserRolePda = await grantRole(
       coreProgram,

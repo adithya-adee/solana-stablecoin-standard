@@ -20,7 +20,8 @@ export function useMintHistory() {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
-        setHistory(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        Promise.resolve().then(() => setHistory(parsed));
       } catch (e) {
         console.error('Failed to parse mint history', e);
       }

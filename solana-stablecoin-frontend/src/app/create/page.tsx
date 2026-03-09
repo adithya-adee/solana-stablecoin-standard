@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { Keypair } from '@solana/web3.js';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -20,10 +20,9 @@ import { cn } from '@/lib/utils';
 type PresetChoice = 'sss-1' | 'sss-2' | 'sss-3';
 
 export default function CreateStablecoinPage() {
-  const { connection } = useConnection();
   const { publicKey } = useWallet();
   const provider = useAnchorProvider();
-  const { loading, error, signature, execute, reset } = useTransaction();
+  const { loading, error, signature, execute: _execute, reset } = useTransaction();
   const { addMint } = useMintHistory();
   const { setActiveMint } = useActiveMint();
 

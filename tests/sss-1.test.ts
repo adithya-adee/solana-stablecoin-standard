@@ -4,17 +4,14 @@ import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import { expect } from 'chai';
 import { SssCore } from '../target/types/sss_core';
-import { SssTransferHook } from '../target/types/sss_transfer_hook';
 import {
   createSss1Mint,
   createTokenAccount,
-  deriveConfigPda,
   deriveRolePda,
   grantRole,
   fetchConfig,
   getTokenBalance,
   airdropSol,
-  ROLE_ADMIN,
   ROLE_MINTER,
   ROLE_FREEZER,
   ROLE_PAUSER,

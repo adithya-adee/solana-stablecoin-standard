@@ -2,13 +2,7 @@ import { Program } from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
 import type { SssTransferHook } from '../idl/sss_transfer_hook';
 import type { TokenMintKey } from '../types';
-import {
-  deriveBlacklistPda,
-  deriveConfigPda,
-  deriveExtraAccountMetasPda,
-  deriveRolePda,
-  STBL_CORE_PROGRAM_ID,
-} from '../pda';
+import { deriveBlacklistPda, deriveConfigPda, deriveRolePda, STBL_CORE_PROGRAM_ID } from '../pda';
 import { asRole } from '../types';
 
 /**
@@ -46,14 +40,16 @@ export function createDenyListAddInstruction(
     asRole('blacklister'),
     coreProgramId,
   );
+  const [blacklistEntryPda] = deriveBlacklistPda(mint, address, program.programId);
 
   return program.methods
     .addToBlacklist(reason)
-    .accounts({
+    .accountsPartial({
       blacklister,
       blacklisterRole: blacklisterRolePda,
       mint,
       address,
+      blacklistEntry: blacklistEntryPda,
     })
     .instruction();
 }

@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { PublicKey } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useLedgerProgram } from '@/hooks/use-ledger-program';
 import { useActiveMint } from '@/hooks/use-active-mint';
@@ -10,7 +11,6 @@ import { PageHeader } from '@/components/page-header';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Search, RefreshCw, Wallet, Coins, CheckCircle2, PauseCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -34,7 +34,6 @@ interface TokenAccount {
   preset: number;
   authority: string;
   paused: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   raw: any;
 }
 
@@ -62,10 +61,21 @@ export default function TokensPage() {
 
     try {
       // Fetch all stablecoin configs in one RPC call
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const accounts = await (program.account as any).stablecoinConfig.all();
+      interface RawAccount {
+        account: {
+          mint: PublicKey;
+          name: string;
+          symbol: string;
+          preset: number;
+          authority: PublicKey;
+          paused: boolean;
+        };
+      }
+      const accounts = await (
+        program.account as unknown as { stablecoinConfig: { all(): Promise<RawAccount[]> } }
+      ).stablecoinConfig.all();
 
-      const mapped: TokenAccount[] = accounts.map((acc: any) => ({
+      const mapped: TokenAccount[] = accounts.map((acc: RawAccount) => ({
         mint: acc.account.mint.toBase58(),
         name: acc.account.name.replace(/\0/g, '').trim(),
         symbol: acc.account.symbol.replace(/\0/g, '').trim(),
