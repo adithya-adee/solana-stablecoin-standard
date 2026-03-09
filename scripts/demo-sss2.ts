@@ -26,7 +26,7 @@ import {
   TOKEN_2022_PROGRAM_ID,
   getAccount,
 } from '@solana/spl-token';
-import { SSS, preset, roleType, type Preset } from '../solana-stablecoin-sdk/src';
+import { SSS, asTier, asRole, TierLabel } from '@stbr/sss-token';
 import {
   logHeader,
   logSection,
@@ -41,9 +41,12 @@ import {
 const DEVNET_RPC = process.env.DEVNET_RPC || clusterApiUrl('devnet');
 
 interface ProofResult {
-  preset: Preset;
+  preset: TierLabel;
   mint: string;
   config: string;
+  recipient: string;
+  payerAta: string;
+  recipientAta: string;
   transactions: Record<string, string>;
   timestamp: string;
   cluster: string;
@@ -83,7 +86,7 @@ async function main() {
   // 1. Create SSS-2 stablecoin
   logSection('1. Creating SSS-2 stablecoin...');
   const sss = await SSS.create(provider, {
-    preset: preset('sss-2'),
+    preset: asTier('sss-2'),
     name: 'SSS-2 Proof Token',
     symbol: 'S2PT',
     uri: 'https://sss.dev/metadata/sss2-proof.json',
@@ -95,8 +98,8 @@ async function main() {
 
   // 2. Grant roles
   logSection('2. Granting roles...');
-  txSigs.grantMinter = await sss.roles.grant(payer.publicKey, roleType('minter'));
-  txSigs.grantFreezer = await sss.roles.grant(payer.publicKey, roleType('freezer'));
+  txSigs.grantMinter = await sss.roles.grant(payer.publicKey, asRole('minter'));
+  txSigs.grantFreezer = await sss.roles.grant(payer.publicKey, asRole('freezer'));
   logSuccess('Minter + Freezer granted.');
 
   // 3. Create ATAs (will be frozen by default due to DefaultAccountState)
@@ -139,13 +142,13 @@ async function main() {
 
   // 4. Thaw accounts (required for SSS-2 KYC flow)
   logSection('4. Thawing accounts (KYC approved)...');
-  txSigs.thawPayer = await sss.thaw(payerAta);
-  txSigs.thawRecipient = await sss.thaw(recipientAta);
+  txSigs.thawPayer = await sss.thaw(payer.publicKey);
+  txSigs.thawRecipient = await sss.thaw(recipient.publicKey);
   logSuccess('Both accounts thawed.');
 
   // 5. Mint tokens
   logSection('5. Minting tokens...');
-  txSigs.mint = await sss.mintTokens(payerAta, BigInt(1_000_000_000)); // 1K
+  txSigs.mint = await sss.issueTokens(payerAta, BigInt(1_000_000_000)); // 1K
   logSuccess(`Minted 1K tokens. Tx: ${txSigs.mint}`);
 
   // 6. Transfer tokens (exercises transfer hook)
@@ -153,13 +156,13 @@ async function main() {
   // Note: For SSS-2, transfers go through the transfer hook which checks blacklist
   // We use createTransferCheckedInstruction with additional accounts
   // For simplicity in the proof, we use the SDK
-  txSigs.grantBurner = await sss.roles.grant(payer.publicKey, roleType('burner'));
-  txSigs.burn = await sss.burn(payerAta, BigInt(100_000_000)); // Burn 100 as proof
+  txSigs.grantBurner = await sss.roles.grant(payer.publicKey, asRole('burner'));
+  txSigs.burn = await sss.burnTokens(payerAta, BigInt(100_000_000)); // Burn 100 as proof
   logSuccess(`Burned 100 tokens as transfer proof. Tx: ${txSigs.burn}`);
 
   // 7. Blacklist an address
   logSection('7. Blacklisting recipient...');
-  txSigs.grantBlacklister = await sss.roles.grant(payer.publicKey, roleType('blacklister'));
+  txSigs.grantBlacklister = await sss.roles.grant(payer.publicKey, asRole('blacklister'));
   txSigs.blacklistAdd = await sss.blacklist.add(recipient.publicKey, 'Compliance review required');
   logSuccess(`Blacklisted. Tx: ${txSigs.blacklistAdd}`);
 
@@ -168,15 +171,14 @@ async function main() {
   const isBlacklisted = await sss.blacklist.check(recipient.publicKey);
   logEntry('Recipient blacklisted', String(isBlacklisted), icons.warning);
 
-  // 9. Remove from blacklist
-  logSection('9. Removing from blacklist...');
+  // 9. Removing from blacklist...
   txSigs.blacklistRemove = await sss.blacklist.remove(recipient.publicKey);
   logSuccess(`Removed. Tx: ${txSigs.blacklistRemove}`);
 
   // 10. Seize tokens
   logSection('10. Seizing tokens via permanent delegate...');
   // First mint some to recipient via their ATA
-  txSigs.mintToRecipient = await sss.mintTokens(recipientAta, BigInt(50_000_000)); // 50 tokens
+  txSigs.mintToRecipient = await sss.issueTokens(recipientAta, BigInt(50_000_000)); // 50 tokens
 
   // Verify ATAs exist before seizing
   try {
@@ -187,22 +189,22 @@ async function main() {
     logError('ATA verification failed: ' + err);
   }
 
-  txSigs.grantSeizer = await sss.roles.grant(payer.publicKey, roleType('seizer'));
+  txSigs.grantSeizer = await sss.roles.grant(payer.publicKey, asRole('seizer'));
 
   try {
-    txSigs.seize = await sss.seize(recipientAta, payerAta, BigInt(25_000_000)); // Seize 25
+    txSigs.seize = await sss.seize(recipient.publicKey, payer.publicKey, BigInt(25_000_000)); // Seize 25
     logSuccess(`Seized 25 tokens. Tx: ${txSigs.seize}`);
-  } catch (err: unknown) {
-    logWarning('Seize failed as expected for SSS-2.');
-    logInfo(
-      'Note: SSS-2 mints have a transfer hook. The sss-core seize instruction uses a standard TransferChecked CPI which does not forward the extra accounts required by the transfer hook. This is a known program limitation.',
-    );
-    txSigs.seize = 'skipped-known-limitation';
+  } catch (err: any) {
+    logError('Seize failed with error: ' + err.message);
+    if (err.logs) {
+      logError('Logs: ' + JSON.stringify(err.logs, null, 2));
+    }
+    txSigs.seize = 'failed';
   }
 
   // 11. Pause and unpause
   logSection('11. Pause/unpause cycle...');
-  txSigs.grantPauser = await sss.roles.grant(payer.publicKey, roleType('pauser'));
+  txSigs.grantPauser = await sss.roles.grant(payer.publicKey, asRole('pauser'));
   txSigs.pause = await sss.pause();
   txSigs.unpause = await sss.unpause();
   logSuccess('Pause/unpause complete.');
@@ -216,9 +218,12 @@ async function main() {
 
   // Save proof
   const proof: ProofResult = {
-    preset: preset('sss-2'),
+    preset: asTier('sss-2'),
     mint: sss.mintAddress.toBase58(),
     config: sss.configPda.toBase58(),
+    recipient: recipient.publicKey.toBase58(),
+    payerAta: payerAta.toBase58(),
+    recipientAta: recipientAta.toBase58(),
     transactions: txSigs,
     timestamp: new Date().toISOString(),
     cluster: 'devnet',

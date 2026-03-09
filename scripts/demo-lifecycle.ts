@@ -31,17 +31,24 @@ import {
 } from '@solana/spl-token';
 import {
   SSS,
-  SSS_CORE_PROGRAM_ID,
-  SSS_HOOK_PROGRAM_ID,
-  buildInitializeIx,
-  buildInitializeExtraAccountMetasIx,
+  STBL_CORE_PROGRAM_ID,
+  STBL_HOOK_PROGRAM_ID,
   deriveConfigPda,
-  createInitializeConfidentialTransferMintInstruction,
-  roleType,
-  type MintAddress,
-} from '../solana-stablecoin-sdk/dist/cjs';
-import type { SssCore, SssTransferHook } from '../solana-stablecoin-sdk/dist/cjs';
-import { SssCoreIdl, SssTransferHookIdl } from '../solana-stablecoin-sdk/dist/cjs/idl';
+  asRole,
+  createInitInstruction,
+  createHookMetaInitInstruction,
+  deriveConfidentialKeysFromSignatures,
+  CONFIDENTIAL_TRANSFER_ELGAMAL_SEED_MESSAGE,
+  CONFIDENTIAL_TRANSFER_AE_KEY_SEED_MESSAGE,
+  CONFIDENTIAL_TRANSFER_EMPTY_PUBLIC_SEED,
+  type TokenMintKey,
+  type SssCore,
+  type SssTransferHook,
+  SssCoreIdl,
+  SssTransferHookIdl,
+  createConfidentialMintInstruction,
+} from '@stbr/sss-token';
+import nacl from 'tweetnacl';
 import {
   logHeader,
   logSection,
@@ -163,7 +170,7 @@ async function buildSss2MintTx(
     createInitializeTransferHookInstruction(
       mintKp.publicKey,
       configPda,
-      SSS_HOOK_PROGRAM_ID,
+      STBL_HOOK_PROGRAM_ID,
       TOKEN_2022_PROGRAM_ID,
     ),
     createInitializeDefaultAccountStateInstruction(
@@ -218,12 +225,7 @@ async function buildSss3MintTx(
       configPda,
       TOKEN_2022_PROGRAM_ID,
     ),
-    createInitializeConfidentialTransferMintInstruction(
-      mintKp.publicKey,
-      configPda,
-      true,
-      new Uint8Array(32),
-    ),
+    createConfidentialMintInstruction(mintKp.publicKey, configPda, true, new Uint8Array(32)),
     createInitializeMint2Instruction(
       mintKp.publicKey,
       decimals,
@@ -240,7 +242,7 @@ async function main() {
   const keypairPath =
     process.env.ANCHOR_WALLET ||
     process.env.KEYPAIR_PATH ||
-    path.join(process.env.HOME!, 'Documents/secret/sss-devnet-keypair.json');
+    path.join(process.env.HOME!, '.config/solana/id.json');
   const rawKey = JSON.parse(fs.readFileSync(keypairPath, 'utf-8'));
   const payer = Keypair.fromSecretKey(Uint8Array.from(rawKey));
 
@@ -263,8 +265,8 @@ async function main() {
     cluster: 'devnet',
     timestamp: new Date().toISOString(),
     programs: {
-      sss_core: SSS_CORE_PROGRAM_ID.toBase58(),
-      sss_transfer_hook: SSS_HOOK_PROGRAM_ID.toBase58(),
+      sss_core: STBL_CORE_PROGRAM_ID.toBase58(),
+      sss_transfer_hook: STBL_HOOK_PROGRAM_ID.toBase58(),
     },
     presets: {} as Record<string, unknown>,
   };
@@ -273,14 +275,14 @@ async function main() {
   logSection('SSS-1: Minimal Stablecoin');
   try {
     const mintKp = Keypair.generate();
-    const [configPda] = deriveConfigPda(mintKp.publicKey as MintAddress, SSS_CORE_PROGRAM_ID);
+    const [configPda] = deriveConfigPda(mintKp.publicKey as TokenMintKey, STBL_CORE_PROGRAM_ID);
 
     const mintTx = await buildSss1MintTx(connection, payer.publicKey, mintKp, configPda, 6);
 
     // Add sss-core initialize instruction (handles adminRole PDA)
-    const initIx = await buildInitializeIx(
+    const initIx = await createInitInstruction(
       coreProgram,
-      mintKp.publicKey as MintAddress,
+      mintKp.publicKey as TokenMintKey,
       payer.publicKey,
       {
         preset: 1,
@@ -298,15 +300,15 @@ async function main() {
     logEntry('Init tx', `${sig1.slice(0, 20)}...`, icons.link);
 
     // Load SSS instance for remaining operations
-    const sss = await SSS.load(provider, mintKp.publicKey as MintAddress);
+    const sss1 = await SSS.load(provider, mintKp.publicKey as TokenMintKey);
 
     // Grant minter
-    const grantSig = await sss.roles.grant(payer.publicKey, roleType('minter'));
+    const grantSig = await sss1.roles.grant(payer.publicKey, asRole('minter'));
     logEntry('Grant minter', `${grantSig.slice(0, 20)}...`, icons.key);
 
     // Create ATA
     const ata = getAssociatedTokenAddressSync(
-      sss.mintAddress,
+      sss1.mintAddress,
       payer.publicKey,
       false,
       TOKEN_2022_PROGRAM_ID,
@@ -318,7 +320,7 @@ async function main() {
           payer.publicKey,
           ata,
           payer.publicKey,
-          sss.mintAddress,
+          sss1.mintAddress,
           TOKEN_2022_PROGRAM_ID,
         ),
       ),
@@ -326,34 +328,50 @@ async function main() {
     );
 
     // Mint
-    const mintSig = await sss.mintTokens(ata, BigInt(500_000_000));
+    const mintSig = await sss1.mintTokens(ata, BigInt(500_000_000));
     logEntry('Mint 500', `${mintSig.slice(0, 20)}...`, icons.rocket);
 
     // Burn
-    const burnSig = await sss.burn(ata, BigInt(100_000_000));
+    const _ = await sss1.roles.grant(payer.publicKey, asRole('burner'));
+    const burnSig = await sss1.burn(payer.publicKey, BigInt(100_000_000));
     logEntry('Burn 100', `${burnSig.slice(0, 20)}...`, icons.skull);
 
     // Freeze/thaw
-    await sss.roles.grant(payer.publicKey, roleType('freezer'));
-    const freezeSig = await sss.freeze(ata);
+    await sss1.roles.grant(payer.publicKey, asRole('freezer'));
+    const freezeSig = await sss1.freeze(payer.publicKey);
     logEntry('Freeze', `${freezeSig.slice(0, 20)}...`, icons.skull);
-    const thawSig = await sss.thaw(ata);
+    const thawSig = await sss1.thaw(payer.publicKey);
     logEntry('Thaw', `${thawSig.slice(0, 20)}...`, icons.rocket);
 
     // Pause/unpause
-    await sss.roles.grant(payer.publicKey, roleType('pauser'));
-    const pauseSig = await sss.pause();
+    await sss1.roles.grant(payer.publicKey, asRole('pauser'));
+    const pauseSig = await sss1.pause();
     logEntry('Pause', `${pauseSig.slice(0, 20)}...`, icons.info);
-    const unpauseSig = await sss.unpause();
+    const unpauseSig = await sss1.unpause();
     logEntry('Unpause', `${unpauseSig.slice(0, 20)}...`, icons.info);
 
-    const info = await sss.info();
+    // Seize
+    await sss1.roles.grant(payer.publicKey, asRole('seizer'));
+    const seizeSig = await sss1.seize(payer.publicKey, payer.publicKey, BigInt(1_000_000));
+    logEntry('Seize (self-test)', `${seizeSig.slice(0, 20)}...`, icons.skull);
+
+    const info = await sss1.info();
     logEntry('Supply', `${info.currentSupply} (cap: ${info.supplyCap})`, icons.info);
 
     (proof.presets as Record<string, unknown>)['sss-1'] = {
-      mint: sss.mintAddress.toBase58(),
-      config: sss.configPda.toBase58(),
-      transactions: { sig1, grantSig, mintSig, burnSig, freezeSig, thawSig, pauseSig, unpauseSig },
+      mint: sss1.mintAddress.toBase58(),
+      config: sss1.configPda.toBase58(),
+      transactions: {
+        sig1,
+        grantSig,
+        mintSig,
+        burnSig,
+        freezeSig,
+        thawSig,
+        pauseSig,
+        unpauseSig,
+        seizeSig,
+      },
       finalSupply: info.currentSupply.toString(),
     };
     logSuccess('SSS-1 complete');
@@ -366,15 +384,15 @@ async function main() {
   logSection('SSS-2: Compliant Stablecoin');
   try {
     const mintKp2 = Keypair.generate();
-    const [configPda2] = deriveConfigPda(mintKp2.publicKey as MintAddress, SSS_CORE_PROGRAM_ID);
+    const [configPda2] = deriveConfigPda(mintKp2.publicKey as TokenMintKey, STBL_CORE_PROGRAM_ID);
 
     // 1. Create mint with SSS-2 extensions (transfer hook + default frozen + permanent delegate + metadata pointer)
     const mintTx2 = await buildSss2MintTx(connection, payer.publicKey, mintKp2, configPda2, 6);
 
     // 2. Add sss-core initialize instruction
-    const initIx2 = await buildInitializeIx(
+    const initIx2 = await createInitInstruction(
       coreProgram,
-      mintKp2.publicKey as MintAddress,
+      mintKp2.publicKey as TokenMintKey,
       payer.publicKey,
       {
         preset: 2,
@@ -388,9 +406,9 @@ async function main() {
     mintTx2.add(initIx2);
 
     // 3. Initialize ExtraAccountMetas for the transfer hook
-    const hookInitIx = await buildInitializeExtraAccountMetasIx(
+    const hookInitIx = await createHookMetaInitInstruction(
       hookProgram,
-      mintKp2.publicKey as MintAddress,
+      mintKp2.publicKey as TokenMintKey,
       payer.publicKey,
     );
     mintTx2.add(hookInitIx);
@@ -400,12 +418,12 @@ async function main() {
     logEntry('Init tx', `${sig2.slice(0, 20)}...`, icons.link);
 
     // Load SSS instance for remaining operations
-    const sss2 = await SSS.load(provider, mintKp2.publicKey as MintAddress);
+    const sss2 = await SSS.load(provider, mintKp2.publicKey as TokenMintKey);
 
     // 4. Grant minter + freezer roles
-    const grantMinterSig2 = await sss2.roles.grant(payer.publicKey, roleType('minter'));
+    const grantMinterSig2 = await sss2.roles.grant(payer.publicKey, asRole('minter'));
     logEntry('Grant minter', `${grantMinterSig2.slice(0, 20)}...`, icons.key);
-    const grantFreezerSig2 = await sss2.roles.grant(payer.publicKey, roleType('freezer'));
+    const grantFreezerSig2 = await sss2.roles.grant(payer.publicKey, asRole('freezer'));
     logEntry('Grant freezer', `${grantFreezerSig2.slice(0, 20)}...`, icons.key);
 
     // 5. Create ATAs (will be default frozen due to DefaultAccountState)
@@ -446,17 +464,17 @@ async function main() {
     logInfo('Created ATAs (default frozen)');
 
     // 6. Thaw accounts (KYC approval)
-    const thawPayerSig2 = await sss2.thaw(payerAta2);
+    const thawPayerSig2 = await sss2.thaw(payer.publicKey);
     logEntry('Thaw payer', `${thawPayerSig2.slice(0, 20)}...`, icons.rocket);
-    const thawRecipientSig2 = await sss2.thaw(recipientAta2);
+    const thawRecipientSig2 = await sss2.thaw(recipient2.publicKey);
     logEntry('Thaw recipient', `${thawRecipientSig2.slice(0, 20)}...`, icons.rocket);
 
     // 7. Mint tokens
-    const mintSig2 = await sss2.mintTokens(payerAta2, BigInt(1_000_000_000));
+    const mintSig2 = await sss2.mintTokens(payer.publicKey, BigInt(1_000_000_000));
     logEntry('Mint 1K', `${mintSig2.slice(0, 20)}...`, icons.rocket);
 
     // 8. Burn tokens
-    const burnSig2 = await sss2.burn(payerAta2, BigInt(100_000_000));
+    const burnSig2 = await sss2.burn(payer.publicKey, BigInt(100_000_000));
     logEntry('Burn 100', `${burnSig2.slice(0, 20)}...`, icons.skull);
 
     // 9. Blacklist the recipient address
@@ -475,24 +493,14 @@ async function main() {
     logEntry('Blacklist check after remove', String(isStillBlacklisted), icons.info);
 
     // 11. Seize tokens via permanent delegate
-    const mintToRecipSig2 = await sss2.mintTokens(recipientAta2, BigInt(50_000_000));
+    const mintToRecipSig2 = await sss2.mintTokens(recipient2.publicKey, BigInt(50_000_000));
     logEntry('Mint 50 to recipient', `${mintToRecipSig2.slice(0, 20)}...`, icons.rocket);
-    let seizeSig2 = 'N/A — known limitation';
-    let seizeNote = '';
-    try {
-      seizeSig2 = await sss2.seize(recipientAta2, payerAta2, BigInt(25_000_000));
-      logEntry('Seize 25 from recipient', `${seizeSig2.slice(0, 20)}...`, icons.skull);
-    } catch (seizeErr) {
-      seizeNote = 'Expected failure: seize CPI missing transfer hook extra accounts';
-      logEntry(
-        'Seize',
-        'expected failure (transfer hook accounts not forwarded in CPI)',
-        icons.warning,
-      );
-    }
+    await sss2.roles.grant(payer.publicKey, asRole('seizer'));
+    const seizeSig2 = await sss2.seize(recipient2.publicKey, payer.publicKey, BigInt(25_000_000));
+    logEntry('Seize 25 from recipient', `${seizeSig2.slice(0, 20)}...`, icons.skull);
 
     // 12. Pause/unpause cycle
-    await sss2.roles.grant(payer.publicKey, roleType('pauser'));
+    await sss2.roles.grant(payer.publicKey, asRole('pauser'));
     const pauseSig2 = await sss2.pause();
     logEntry('Pause', `${pauseSig2.slice(0, 20)}...`, icons.info);
     const unpauseSig2 = await sss2.unpause();
@@ -525,7 +533,6 @@ async function main() {
       blacklistVerified: { added: isBlacklisted, removed: !isStillBlacklisted },
       finalSupply: info2.currentSupply.toString(),
       note: 'TransferHook + DefaultAccountState(Frozen) + PermanentDelegate extensions',
-      ...(seizeNote ? { seizeLimitation: seizeNote } : {}),
     };
     logSuccess('SSS-2 complete');
   } catch (err) {
@@ -537,13 +544,13 @@ async function main() {
   logSection('SSS-3: Confidential Stablecoin');
   try {
     const mintKp3 = Keypair.generate();
-    const [configPda3] = deriveConfigPda(mintKp3.publicKey as MintAddress, SSS_CORE_PROGRAM_ID);
+    const [configPda3] = deriveConfigPda(mintKp3.publicKey as TokenMintKey, STBL_CORE_PROGRAM_ID);
 
     const mintTx3 = await buildSss3MintTx(connection, payer.publicKey, mintKp3, configPda3, 6);
 
-    const initIx3 = await buildInitializeIx(
+    const initIx3 = await createInitInstruction(
       coreProgram,
-      mintKp3.publicKey as MintAddress,
+      mintKp3.publicKey as TokenMintKey,
       payer.publicKey,
       {
         preset: 3,
@@ -560,8 +567,8 @@ async function main() {
     logEntry('Created mint', mintKp3.publicKey.toBase58(), icons.rocket);
     logEntry('Init tx', `${sig3.slice(0, 20)}...`, icons.link);
 
-    const sss3 = await SSS.load(provider, mintKp3.publicKey as MintAddress);
-    await sss3.roles.grant(payer.publicKey, roleType('minter'));
+    const sss3 = await SSS.load(provider, mintKp3.publicKey as TokenMintKey);
+    await sss3.roles.grant(payer.publicKey, asRole('minter'));
 
     const ata3 = getAssociatedTokenAddressSync(
       sss3.mintAddress,
@@ -583,10 +590,52 @@ async function main() {
       [payer],
     );
 
-    const mintSig3 = await sss3.mintTokens(ata3, BigInt(1_000_000_000));
+    const mintSig3 = await sss3.mintTokens(payer.publicKey, BigInt(1_000_000_000));
     logEntry('Mint 1K', `${mintSig3.slice(0, 20)}...`, icons.rocket);
 
-    const burnSig3 = await sss3.burn(ata3, BigInt(50_000_000));
+    let configSig3 = 'skipped';
+    let depositSig3 = 'skipped';
+    let applySig3 = 'skipped';
+    try {
+      // 1. Ask wallet to sign the two seed messages
+      const msg1 = new Uint8Array([
+        ...Buffer.from(CONFIDENTIAL_TRANSFER_ELGAMAL_SEED_MESSAGE),
+        ...CONFIDENTIAL_TRANSFER_EMPTY_PUBLIC_SEED,
+      ]);
+      const msg2 = new Uint8Array([
+        ...Buffer.from(CONFIDENTIAL_TRANSFER_AE_KEY_SEED_MESSAGE),
+        ...CONFIDENTIAL_TRANSFER_EMPTY_PUBLIC_SEED,
+      ]);
+      const sig1 = nacl.sign.detached(msg1, payer.secretKey);
+      const sig2 = nacl.sign.detached(msg2, payer.secretKey);
+
+      // 2. Derive authentic keys
+      const keys = await deriveConfidentialKeysFromSignatures(sig1, sig2);
+
+      // 3. To configure account properly, we actually need the ProofInstruction.
+      // For the demo, since we test locally matching `confidential.test.ts`,
+      // we'll pass an offset of -1 but we won't actually attach the ZK Proof ix because
+      // the rust zk-sdk is required for the VerifyPubkeyValidity ix.
+      // Note: This will still fail simulation without the ZKP program.
+      configSig3 = await sss3.confidential.configureAccount(
+        ata3,
+        keys.elGamalPublicKey,
+        keys.aesKey as any,
+        -1,
+      );
+      logEntry('Config account', `${configSig3.slice(0, 20)}...`, icons.link);
+
+      depositSig3 = await sss3.confidential.deposit(ata3, BigInt(100_000_000), 6);
+      logEntry('Deposit 100', `${depositSig3.slice(0, 20)}...`, icons.rocket);
+
+      applySig3 = await sss3.confidential.applyPending(ata3);
+      logEntry('Apply pending', `${applySig3.slice(0, 20)}...`, icons.rocket);
+    } catch (e: any) {
+      logEntry('Confidential ops', 'Skipped (missing Rust ZKP)', icons.warning);
+    }
+
+    const _3 = await sss3.roles.grant(payer.publicKey, asRole('burner'));
+    const burnSig3 = await sss3.burn(payer.publicKey, BigInt(50_000_000));
     logEntry('Burn 50', `${burnSig3.slice(0, 20)}...`, icons.skull);
 
     const info3 = await sss3.info();
@@ -596,7 +645,14 @@ async function main() {
     (proof.presets as Record<string, unknown>)['sss-3'] = {
       mint: sss3.mintAddress.toBase58(),
       config: sss3.configPda.toBase58(),
-      transactions: { sig3, mintSig3, burnSig3 },
+      transactions: {
+        init: sig3,
+        mint: mintSig3,
+        configureAccount: configSig3,
+        deposit: depositSig3,
+        applyPending: applySig3,
+        burn: burnSig3,
+      },
       finalSupply: info3.currentSupply.toString(),
       note: 'ConfidentialTransferMint extension enabled',
     };

@@ -33,3 +33,4 @@ mod pause_bypass;
 mod pause_roles;
 mod role_escalation;
 mod supply_cap;
+mod confidential_transfer;

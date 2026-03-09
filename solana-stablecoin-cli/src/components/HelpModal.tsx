@@ -1,5 +1,5 @@
-import React from 'react';
-import { Box, Text } from 'ink';
+import React, { useEffect, useState } from 'react';
+import { Box, Text, useStdout } from 'ink';
 import { Theme } from '../utils/theme.js';
 
 interface HelpModalProps {
@@ -7,8 +7,39 @@ interface HelpModalProps {
 }
 
 export function HelpModal({ onClose }: HelpModalProps) {
+  const { stdout } = useStdout();
+  const [dimensions, setDimensions] = useState({
+    width: stdout.columns || 80,
+    height: stdout.rows || 24,
+  });
+
+  useEffect(() => {
+    const onResize = () => {
+      setDimensions({
+        width: stdout.columns || 80,
+        height: stdout.rows || 24,
+      });
+    };
+    stdout.on('resize', onResize);
+    return () => {
+      stdout.off('resize', onResize);
+    };
+  }, [stdout]);
+
+  const bgLines = Array.from({ length: dimensions.height }).map((_, i) => (
+    <Text key={i} backgroundColor="black">
+      {' '.repeat(dimensions.width)}
+    </Text>
+  ));
+
   return (
     <Box position="absolute" width="100%" height="100%" alignItems="center" justifyContent="center">
+      {/* Opaque background layer (absolute relative to this wrapper, doesn't affect centering of siblings) */}
+      <Box position="absolute" flexDirection="column">
+        {bgLines}
+      </Box>
+
+      {/* Centered Modal Content */}
       <Box
         flexDirection="column"
         borderStyle="single"

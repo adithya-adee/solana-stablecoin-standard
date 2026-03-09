@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import React from 'react';
 import { render, Text } from 'ink';
 import fs from 'fs';
+import { Err } from './components/ui.js';
 
 import StatusView from './commands/status-view.js';
 import Supply from './commands/supply.js';
@@ -19,6 +20,7 @@ import BlacklistManager from './commands/blacklist-manager.js';
 import Minters from './commands/minters.js';
 import Holders from './commands/holders.js';
 import AuditLog from './commands/audit-log.js';
+import Confidential from './commands/confidential.js';
 
 // Wraps render() and waits for completion
 const r = async (el: React.ReactElement): Promise<void> => {
@@ -647,6 +649,138 @@ program
       return;
     }
     r(<AuditLog options={{ mint, limit: opts.limit }} />);
+  });
+
+// ─── Confidential (SSS-3) ─────────────────────────────────────────────────────
+const confCmd = program
+  .command('confidential')
+  .description('Confidential transfer management (SSS-3)');
+
+confCmd
+  .command('configure')
+  .description('Configure a token account for confidential transfers')
+  .argument('[address]', 'Wallet to configure')
+  .option('-m, --mint <address>', 'Mint address')
+  .option('-a, --address <address>', 'Wallet to configure')
+  .action((address, opts) => {
+    const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
+    const finalAddress = address || opts.address;
+    if (!mint || !finalAddress) {
+      r(<Err message="Mint and Address are required." />);
+      return;
+    }
+    r(<Confidential options={{ mint, action: 'configure', address: finalAddress }} />);
+  });
+
+confCmd
+  .command('deposit')
+  .description('Deposit tokens into confidential balance')
+  .argument('[address]', 'Wallet address')
+  .argument('[amount]', 'Amount to deposit')
+  .option('-m, --mint <address>', 'Mint address')
+  .option('-a, --address <address>', 'Wallet address')
+  .option('-v, --value <amount>', 'Amount to deposit')
+  .action((address, amount, opts) => {
+    const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
+    const finalAddress = address || opts.address;
+    const finalAmount = amount || opts.value;
+    if (!mint || !finalAddress || !finalAmount) {
+      r(<Err message="Mint, Address, and Amount are required." />);
+      return;
+    }
+    r(
+      <Confidential
+        options={{ mint, action: 'deposit', address: finalAddress, amount: finalAmount }}
+      />,
+    );
+  });
+
+confCmd
+  .command('transfer')
+  .description('Perform a confidential transfer')
+  .argument('[from]', 'Source wallet address')
+  .argument('[to]', 'Destination wallet address')
+  .argument('[amount]', 'Amount to transfer')
+  .option('-m, --mint <address>', 'Mint address')
+  .option('--sk <string>', 'Source ElGamal Secret Key (base64)')
+  .option('--ciphertext <string>', 'Source Available balance ciphertext (base64)')
+  .option('--balance <number>', 'Source Current balance (raw)')
+  .option('--pubkey <string>', 'Destination ElGamal Pubkey (base64)')
+  .action((from, to, amount, opts) => {
+    const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
+    if (
+      !mint ||
+      !from ||
+      !to ||
+      !amount ||
+      !opts.sk ||
+      !opts.ciphertext ||
+      !opts.balance ||
+      !opts.pubkey
+    ) {
+      r(<Err message="All parameters are required for transfer." />);
+      return;
+    }
+    r(
+      <Confidential
+        options={{
+          mint,
+          action: 'transfer',
+          address: from,
+          destination: to,
+          amount,
+          sk: opts.sk,
+          ciphertext: opts.ciphertext,
+          balance: String(opts.balance),
+          pubkey: opts.pubkey,
+        }}
+      />,
+    );
+  });
+
+confCmd
+  .command('withdraw')
+  .description('Withdraw tokens from confidential balance')
+  .argument('[address]', 'Wallet address')
+  .argument('[amount]', 'Amount to withdraw')
+  .option('-m, --mint <address>', 'Mint address')
+  .option('--sk <string>', 'Source ElGamal Secret Key (base64)')
+  .option('--ciphertext <string>', 'Source Available balance ciphertext (base64)')
+  .option('--balance <number>', 'Source Current balance (raw)')
+  .action((address, amount, opts) => {
+    const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
+    if (!mint || !address || !amount || !opts.sk || !opts.ciphertext || !opts.balance) {
+      r(<Err message="All parameters are required for withdraw." />);
+      return;
+    }
+    r(
+      <Confidential
+        options={{
+          mint,
+          action: 'withdraw',
+          address,
+          amount,
+          sk: opts.sk,
+          ciphertext: opts.ciphertext,
+          balance: String(opts.balance),
+        }}
+      />,
+    );
+  });
+
+confCmd
+  .command('apply-pending')
+  .description('Apply pending confidential balance')
+  .argument('[address]', 'Wallet address')
+  .option('-m, --mint <address>', 'Mint address')
+  .action((address, opts) => {
+    const mint = opts.mint || getMintFromConfig() || process.env.SSS_MINT;
+    const finalAddress = address || opts.address;
+    if (!mint || !finalAddress) {
+      r(<Err message="Mint and Address are required." />);
+      return;
+    }
+    r(<Confidential options={{ mint, action: 'apply-pending', address: finalAddress }} />);
   });
 
 import Tui from './tui.js';

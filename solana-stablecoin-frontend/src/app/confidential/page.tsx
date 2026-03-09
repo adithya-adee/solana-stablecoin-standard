@@ -12,7 +12,9 @@ import { PageHeader } from '@/components/page-header';
 import { useActiveMint } from '@/hooks/use-active-mint';
 import { useTokenState } from '@/hooks/use-token-state';
 import { cn } from '@/lib/utils';
-import { AlertCircle } from 'lucide-react';
+import { SSS, generateTestElGamalKeypair } from '@stbr/sss-token';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useConfidential } from '@/hooks/use-confidential';
 
 function StatusBadge({ label, active }: { label: string; active: boolean }) {
   return (
@@ -48,7 +50,7 @@ function InfoRow({ label, value, mono = false }: { label: string; value: string;
   );
 }
 
-type OperationType = 'config' | 'deposit' | 'withdraw' | 'transfer' | 'info';
+type OperationType = 'config' | 'deposit' | 'withdraw' | 'transfer' | 'info' | 'apply';
 
 const OPERATIONS: Record<
   OperationType,
@@ -59,6 +61,8 @@ const OPERATIONS: Record<
     icon: React.ElementType;
     color: string;
     buttonVariant: 'primary' | 'destructive' | 'warning';
+    disabled?: boolean;
+    requiresRust?: boolean;
   }
 > = {
   config: {
@@ -84,6 +88,8 @@ const OPERATIONS: Record<
     icon: LogOut,
     color: 'text-orange-500 bg-orange-500/10 border-orange-500/20',
     buttonVariant: 'warning',
+    disabled: true,
+    requiresRust: true,
   },
   transfer: {
     id: 'transfer',
@@ -92,6 +98,16 @@ const OPERATIONS: Record<
       'Transfer tokens purely confidentially. Neither sender nor recipient balances are revealed.',
     icon: SendToBack,
     color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+    buttonVariant: 'primary',
+    disabled: true,
+    requiresRust: true,
+  },
+  apply: {
+    id: 'apply',
+    title: 'Apply Pending Balance',
+    description: 'Credits any pending confidential inward transfers to your available balance.',
+    icon: CheckCircle2,
+    color: 'text-green-500 bg-green-500/10 border-green-500/20',
     buttonVariant: 'primary',
   },
   info: {
@@ -107,6 +123,14 @@ const OPERATIONS: Record<
 export default function ConfidentialPage() {
   const { activeMint } = useActiveMint();
   const { data: tokenState, loading: tokenLoading } = useTokenState(activeMint);
+  const {
+    configureAccount,
+    deposit,
+    applyPending,
+    loading: confLoading,
+    error: confError,
+    signature,
+  } = useConfidential();
   const [operation, setOperation] = useState<OperationType>('config');
   const [isOpen, setIsOpen] = useState(false);
 
@@ -115,6 +139,22 @@ export default function ConfidentialPage() {
 
   const activeOp = OPERATIONS[operation];
   const ActiveIcon = activeOp.icon;
+
+  const handleExecute = async () => {
+    try {
+      if (operation === 'config') {
+        const { secretKey } = generateTestElGamalKeypair();
+        // In a real app, we would store this secretKey securely or let the user download it.
+        // For the demo, we just pass it to the configureAccount hook.
+        await configureAccount(addressInput, secretKey);
+      }
+      if (operation === 'deposit')
+        await deposit(addressInput, BigInt(amountInput), tokenState?.decimals || 9);
+      if (operation === 'apply') await applyPending(addressInput);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -186,7 +226,7 @@ export default function ConfidentialPage() {
           </CardContent>
         </Card>
 
-        {/* Coming Soon Warning */}
+        {/* ZKP Warning / Status Banner */}
         <Card className="border-warning/30 bg-warning/5 p-5 shadow-sm">
           <div className="flex items-start gap-3">
             <Info className="h-5 w-5 text-warning shrink-0 mt-0.5" />
@@ -196,7 +236,9 @@ export default function ConfidentialPage() {
               </p>
               <p className="text-xs font-medium text-warning/80 mt-1">
                 Zero-knowledge proof generation via WASM requires external hardware acceleration for
-                reasonable UX. Use the local native SSS CLI/SDK for live generation.
+                reasonable UX. <b>Configure, Deposit, and Apply</b> are enabled (free of proofs),
+                while
+                <b> Withdraw and Transfer</b> require the Rust proof service.
               </p>
             </div>
           </div>
@@ -320,8 +362,15 @@ export default function ConfidentialPage() {
                                 <div className={cn('p-1.5 rounded border', op.color)}>
                                   <op.icon size={16} />
                                 </div>
-                                <div className="flex flex-col">
-                                  <span className="text-sm font-medium">{op.title}</span>
+                                <div className="flex flex-col flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium">{op.title}</span>
+                                    {op.requiresRust && (
+                                      <span className="text-[9px] uppercase tracking-wider font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                                        Rust Only
+                                      </span>
+                                    )}
+                                  </div>
                                   <span className="text-[10px] text-muted-foreground line-clamp-1">
                                     {op.description}
                                   </span>
@@ -355,12 +404,16 @@ export default function ConfidentialPage() {
 
                     {operation !== 'info' ? (
                       <div className="space-y-5">
-                        {(operation === 'config' || operation === 'transfer') && (
+                        {(operation === 'config' ||
+                          operation === 'transfer' ||
+                          operation === 'deposit' ||
+                          operation === 'withdraw' ||
+                          operation === 'apply') && (
                           <div className="space-y-2">
                             <Label htmlFor="address">
-                              {operation === 'transfer'
-                                ? 'Recipient Destination Address'
-                                : 'Target Token Account'}
+                              {operation === 'transfer' || operation === 'deposit'
+                                ? 'Target Destination Address'
+                                : 'Token Account Address'}
                             </Label>
                             <Input
                               id="address"
@@ -369,6 +422,7 @@ export default function ConfidentialPage() {
                               onChange={(e) => setAddressInput(e.target.value)}
                               placeholder="Enter Solana wallet address..."
                               className="bg-background/50 h-11 font-mono"
+                              disabled={activeOp.disabled || confLoading}
                             />
                           </div>
                         )}
@@ -383,23 +437,51 @@ export default function ConfidentialPage() {
                               type="number"
                               value={amountInput}
                               onChange={(e) => setAmountInput(e.target.value)}
-                              placeholder="e.g. 1000000"
+                              placeholder={`e.g. ${tokenState?.decimals ? Math.pow(10, tokenState.decimals) : 1000000}`}
                               className="bg-background/50 h-11 font-mono"
+                              disabled={activeOp.disabled || confLoading}
                             />
                           </div>
                         )}
 
                         <div className="pt-4 mt-4 border-t border-border/50">
+                          {confError && (
+                            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md text-sm text-destructive">
+                              {confError}
+                            </div>
+                          )}
+                          {signature && (
+                            <div className="mb-4 p-3 bg-success/10 border border-success/20 rounded-md text-sm text-success flex flex-col gap-1">
+                              <strong>Success!</strong>
+                              <a
+                                href={`https://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="underline hover:text-success/80 font-mono text-xs break-all"
+                              >
+                                View on Explorer
+                              </a>
+                            </div>
+                          )}
+
                           <Button
                             className="w-full h-12 text-base font-semibold"
-                            variant="secondary"
-                            disabled
+                            variant={activeOp.disabled ? 'secondary' : 'default'}
+                            disabled={activeOp.disabled || confLoading || !addressInput}
+                            onClick={handleExecute}
                           >
-                            Execute {activeOp.title} (WASM Only)
+                            {confLoading
+                              ? 'Executing...'
+                              : activeOp.disabled
+                                ? `Execute (WASM Only)`
+                                : `Execute ${activeOp.title}`}
                           </Button>
-                          <p className="text-[10px] text-center text-muted-foreground mt-3 italic">
-                            Requires local WASM ZKP client bindings (currently disabled in browser)
-                          </p>
+                          {activeOp.requiresRust && (
+                            <p className="text-[10px] text-center text-muted-foreground mt-3 italic">
+                              Requires local WASM ZKP client bindings (currently disabled in
+                              browser)
+                            </p>
+                          )}
                         </div>
                       </div>
                     ) : (

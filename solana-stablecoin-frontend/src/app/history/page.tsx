@@ -4,6 +4,14 @@ import { useState, useEffect } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { PageHeader } from '@/components/page-header';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useActiveMint } from '@/hooks/use-active-mint';
 import { deriveConfigPda } from '@/lib/pda';
 
@@ -42,6 +50,18 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [hasMore, setHasMore] = useState(false);
+  const [cursors, setCursors] = useState<(string | undefined)[]>([undefined]);
+
+  // Reset pagination when mint or page size changes
+  useEffect(() => {
+    setCurrentPage(1);
+    setCursors([undefined]);
+    setHasMore(false);
+  }, [activeMint, pageSize]);
+
   useEffect(() => {
     if (!activeMint) {
       setEntries([]);
@@ -59,8 +79,10 @@ export default function HistoryPage() {
         const mintPubkey = new PublicKey(activeMint!);
         const [configPda] = deriveConfigPda(mintPubkey);
 
+        const beforeCursor = cursors[currentPage - 1];
         const sigs = await connection.getSignaturesForAddress(configPda, {
-          limit: 50,
+          limit: pageSize,
+          before: beforeCursor,
         });
 
         if (cancelled) return;
@@ -72,6 +94,17 @@ export default function HistoryPage() {
           memo: sig.memo,
           success: sig.err === null,
         }));
+
+        if (sigs.length === pageSize) {
+          setHasMore(true);
+          setCursors((prev) => {
+            const next = [...prev];
+            next[currentPage] = sigs[sigs.length - 1].signature;
+            return next;
+          });
+        } else {
+          setHasMore(false);
+        }
 
         setEntries(results);
       } catch (err) {
@@ -89,7 +122,7 @@ export default function HistoryPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeMint, connection]);
+  }, [activeMint, connection, currentPage, pageSize, cursors]);
 
   const successCount = entries.filter((e) => e.success).length;
   const failCount = entries.filter((e) => !e.success).length;
@@ -242,6 +275,45 @@ export default function HistoryPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-muted-foreground mr-2">Rows per page</p>
+                <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                  <SelectTrigger className="w-[80px]">
+                    <SelectValue placeholder="10" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <p className="text-sm text-muted-foreground">Page {currentPage}</p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1 || loading}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                    disabled={!hasMore || loading}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
             </div>
           </>

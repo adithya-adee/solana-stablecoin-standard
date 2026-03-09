@@ -99,6 +99,15 @@ describe('SDK barrel exports', () => {
     it('exports generateDummyAesKey', () => {
       expect(typeof SDK.generateDummyAesKey).toBe('function');
     });
+    it('exports Token-2022 key derivation constants and helpers', () => {
+      expect(SDK.CONFIDENTIAL_TRANSFER_ELGAMAL_SEED_MESSAGE).toBe('ElGamalSecretKey');
+      expect(SDK.CONFIDENTIAL_TRANSFER_AE_KEY_SEED_MESSAGE).toBe('AeKey');
+      expect(typeof SDK.deriveConfidentialKeysFromSignatures).toBe('function');
+      expect(typeof SDK.encryptDecryptableBalance).toBe('function');
+      expect(typeof SDK.decryptDecryptableBalance).toBe('function');
+      expect(typeof SDK.parseConfidentialTransferAccountState).toBe('function');
+      expect(SDK.ZK_ELGAMAL_PROGRAM_DISABLED_NOTICE).toBeDefined();
+    });
   });
 
   describe('error classes', () => {

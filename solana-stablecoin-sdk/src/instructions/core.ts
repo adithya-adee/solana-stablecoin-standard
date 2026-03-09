@@ -2,7 +2,12 @@ import { Program, BN } from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import type { SssCore } from '../idl/sss_core';
-import { deriveConfigPda, deriveRolePda } from '../pda';
+import {
+  deriveConfigPda,
+  deriveRolePda,
+  deriveBlacklistPda,
+  deriveExtraAccountMetasPda,
+} from '../pda';
 import type { AccessRole, TokenMintKey, ConfigAccountKey, RoleAccountKey } from '../types';
 import { ROLE_ID_MAP, asRole } from '../types';
 
@@ -70,11 +75,12 @@ export function createIssuanceInstruction(
     .accounts({
       minter,
       mint,
+      config: configPda,
       minterRole: minterRolePda,
       to,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
       priceUpdate: priceUpdate ?? null,
-    })
+    } as any)
     .instruction();
 }
 
@@ -96,10 +102,11 @@ export function createRedemptionInstruction(
     .accounts({
       burner,
       mint,
+      config: configPda,
       burnerRole: burnerRolePda,
       from,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
-    })
+    } as any)
     .instruction();
 }
 
@@ -198,24 +205,24 @@ export function createSeizeInstruction(
   program: Program<SssCore>,
   mint: TokenMintKey,
   seizer: PublicKey,
-  from: PublicKey,
-  to: PublicKey,
+  fromAta: PublicKey,
+  toAta: PublicKey,
   amount: BN,
 ) {
   const [configPda] = deriveConfigPda(mint, program.programId);
   const [seizerRolePda] = deriveRolePda(configPda, seizer, asRole('seizer'), program.programId);
 
-  return program.methods
-    .seize(amount)
-    .accounts({
+  return (
+    program.methods.seize(amount).accounts({
       seizer,
       mint,
+      config: configPda,
       seizerRole: seizerRolePda,
-      from,
-      to,
+      from: fromAta,
+      to: toAta,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
-    })
-    .instruction();
+    } as any) as any
+  ).instruction();
 }
 
 /**

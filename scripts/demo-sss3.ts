@@ -27,12 +27,12 @@ import {
 } from '@solana/spl-token';
 import {
   SSS,
-  generateTestElGamalKeypair,
-  generateTestAesKey,
-  preset,
-  roleType,
-  type Preset,
-} from '../solana-stablecoin-sdk/src';
+  asTier,
+  asRole,
+  generateDummyAesKey,
+  generateRandomConfidentialKeys,
+  TierLabel,
+} from '@stbr/sss-token';
 import {
   logHeader,
   logSection,
@@ -47,7 +47,7 @@ import {
 const DEVNET_RPC = process.env.DEVNET_RPC || clusterApiUrl('devnet');
 
 interface ProofResult {
-  preset: Preset;
+  preset: TierLabel;
   mint: string;
   config: string;
   transactions: Record<string, string>;
@@ -87,14 +87,13 @@ async function main() {
 
   // 1. Create SSS-3 stablecoin with auditor key
   logSection('1. Creating SSS-3 stablecoin...');
-  // Generate test keys to demonstrate the API (not used in this proof)
-  generateTestElGamalKeypair();
-  generateTestAesKey();
+  const auditorPubkey = new Uint8Array(32); // Auditor public key placeholder
+  notes.push('Confidential transfers use twisted ElGamal encryption');
   notes.push('SSS-3 uses confidential transfers (twisted ElGamal encryption)');
   notes.push('Auditor key enables regulatory compliance without breaking privacy');
 
   const sss = await SSS.create(provider, {
-    preset: preset('sss-3'),
+    preset: asTier('sss-3'),
     name: 'SSS-3 Proof Token',
     symbol: 'S3PT',
     uri: 'https://sss.dev/metadata/sss3-proof.json',
@@ -107,7 +106,7 @@ async function main() {
 
   // 2. Grant minter role
   logSection('2. Granting minter role...');
-  txSigs.grantMinter = await sss.roles.grant(payer.publicKey, roleType('minter'));
+  txSigs.grantMinter = await sss.roles.grant(payer.publicKey, asRole('minter'));
   logEntry('Tx', txSigs.grantMinter, icons.link);
 
   // 3. Create ATA and mint tokens (public balance)
@@ -128,15 +127,39 @@ async function main() {
     ),
   );
   await provider.sendAndConfirm(createAtaTx);
-  txSigs.mint = await sss.mintTokens(ata, BigInt(1_000_000_000)); // 1K tokens
+  txSigs.mint = await sss.issueTokens(ata, BigInt(1_000_000_000)); // 1K tokens
   logSuccess(`Minted 1K tokens. Tx: ${txSigs.mint}`);
 
-  // 4. Deposit to confidential balance
-  logSection('4. Depositing to confidential balance...');
+  // 4. Configure account for confidential transfers
+  logSection('4. Configuring account for confidential transfers...');
+  notes.push(
+    'Accounts must be configured with an ElGamal keypair before they can receive confidential deposits',
+  );
+
+  const { elGamalSecretKey, aesKey } = await generateRandomConfidentialKeys();
+
+  try {
+    txSigs.configureAccount = await sss.confidential.configureAccount(
+      ata,
+      elGamalSecretKey,
+      aesKey as any,
+    );
+    logSuccess(`Account configured with ZK PubkeyValidity proof. Tx: ${txSigs.configureAccount}`);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logWarning(`ConfigureAccount failed or skipped: ${msg}`);
+    notes.push(`ConfigureAccount attempts ZK proof verification: ${msg}`);
+    txSigs.configureAccount = 'failed-or-skipped';
+  }
+  // 5. Deposit to confidential balance
+  logSection('5. Depositing to confidential balance...');
   notes.push(
     'Deposit moves tokens from public to pending confidential balance (no ZK proofs needed)',
   );
   try {
+    if (txSigs.configureAccount === 'failed-or-skipped') {
+      throw new Error('Account not configured for confidential transfers');
+    }
     txSigs.deposit = await sss.confidential.deposit(
       ata,
       BigInt(100_000_000), // 100 tokens
@@ -145,35 +168,48 @@ async function main() {
     logSuccess(`Deposited 100 tokens. Tx: ${txSigs.deposit}`);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    logWarning(`Deposit requires configured confidential account: ${msg}`);
+    logWarning(`Deposit requires configured confidential account: ${msg.split('\n')[0]}`);
     notes.push(
       'Confidential deposit requires account to be configured for confidential transfers first',
     );
     txSigs.deposit = 'skipped-needs-account-config';
   }
 
-  // 5. Apply pending balance
-  logSection('5. Applying pending balance...');
+  // 6. Apply pending balance
+  logSection('6. Applying pending balance...');
   notes.push(
     'ApplyPendingBalance credits pending into available confidential balance (no ZK proofs needed)',
   );
   try {
+    if (
+      txSigs.deposit === 'skipped-needs-account-config' ||
+      txSigs.configureAccount === 'failed-or-skipped'
+    ) {
+      throw new Error('Skipped due to prior step failure');
+    }
     txSigs.applyPending = await sss.confidential.applyPending(ata);
     logSuccess(`Applied. Tx: ${txSigs.applyPending}`);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    logWarning(`Apply pending skipped: ${msg}`);
+    logWarning(`Apply pending skipped: ${msg.split('\n')[0]}`);
     txSigs.applyPending = 'skipped-depends-on-deposit';
   }
 
-  // 6. Burn some tokens
-  logSection('6. Burning tokens...');
-  txSigs.grantBurner = await sss.roles.grant(payer.publicKey, roleType('burner'));
-  txSigs.burn = await sss.burn(ata, BigInt(50_000_000)); // 50 tokens
+  // 7. Seize tokens via permanent delegate
+  logSection('7. Seizing tokens via permanent delegate...');
+  await sss.roles.grant(payer.publicKey, asRole('seizer'));
+  // Seize from ourselves back to treasury (self-test)
+  txSigs.seize = await sss.seize(payer.publicKey, payer.publicKey, BigInt(10_000_000));
+  logSuccess(`Seized 10 tokens. Tx: ${txSigs.seize}`);
+
+  // 8. Burn some tokens
+  logSection('8. Burning tokens...');
+  txSigs.grantBurner = await sss.roles.grant(payer.publicKey, asRole('burner'));
+  txSigs.burn = await sss.burn(payer.publicKey, BigInt(50_000_000)); // 50 tokens
   logSuccess(`Burned 50 tokens. Tx: ${txSigs.burn}`);
 
-  // 7. Verify state
-  logSection('7. Final state:');
+  // 9. Verify state
+  logSection('9. Final state:');
   const info = await sss.info();
   logEntry('Preset', info.preset.toString());
   logEntry(
@@ -189,7 +225,7 @@ async function main() {
 
   // Save proof
   const proof: ProofResult = {
-    preset: preset('sss-3'),
+    preset: asTier('sss-3'),
     mint: sss.mintAddress.toBase58(),
     config: sss.configPda.toBase58(),
     transactions: txSigs,

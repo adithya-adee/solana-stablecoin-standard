@@ -53,11 +53,13 @@ fn sim_thaw(config: &StablecoinConfig) -> bool {
 }
 
 /// Simulate seize — must succeed even when paused (Seize works during emergencies).
-fn sim_seize(_config: &StablecoinConfig, amount: u64) -> bool {
-    if amount == 0 {
-        return false;
-    }
+fn sim_seize(_config: &StablecoinConfig, _amount: u64) -> bool {
     true
+}
+
+/// Simulate transfer — must fail when paused (enforced by transfer hook).
+fn sim_transfer(config: &StablecoinConfig, _amount: u64) -> bool {
+    !config.paused
 }
 
 #[derive(Debug, Clone)]
@@ -69,6 +71,7 @@ enum PauseOp {
     Freeze,
     Thaw,
     Seize(u64),
+    Transfer(u64),
 }
 
 fn pause_op_strategy() -> impl Strategy<Value = PauseOp> {
@@ -80,6 +83,7 @@ fn pause_op_strategy() -> impl Strategy<Value = PauseOp> {
         Just(PauseOp::Freeze),
         Just(PauseOp::Thaw),
         (1u64..=100_000u64).prop_map(PauseOp::Seize),
+        (1u64..=100_000u64).prop_map(PauseOp::Transfer),
     ]
 }
 
@@ -140,6 +144,14 @@ proptest! {
                     if config.paused {
                         prop_assert!(result,
                             "Seize failed while paused (amount={})", amount
+                        );
+                    }
+                }
+                PauseOp::Transfer(amount) => {
+                    let result = sim_transfer(&config, amount);
+                    if config.paused {
+                        prop_assert!(!result,
+                            "Transfer succeeded while paused (amount={})", amount
                         );
                     }
                 }

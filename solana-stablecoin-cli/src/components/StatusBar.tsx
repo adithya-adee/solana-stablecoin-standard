@@ -51,8 +51,10 @@ export function StatusBar({ refreshRateMs, lastRefresh }: StatusBarProps) {
         )}
       </Box>
 
-      <Box>
-        <Text color={Theme.dim as any}>[?] Help [q] Quit</Text>
+      <Box gap={1}>
+        <Text color={Theme.dim as any}>[n/p] Page</Text>
+        <Text color={Theme.dim as any}>[?] Help</Text>
+        <Text color={Theme.dim as any}>[q] Quit</Text>
       </Box>
     </Box>
   );

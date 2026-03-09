@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked};
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 use crate::error::SssError;
 use crate::events::TokensSeized;
@@ -49,8 +49,7 @@ pub struct Seize<'info> {
 }
 
 pub fn handler_seize<'info>(
-    ctx: Context<'_, '_, '_, 'info, Seize<'info>>,
-    amount: u64,
+    ctx: Context<'_, '_, '_, 'info, Seize<'info>>,    amount: u64,
 ) -> Result<()> {
     require!(amount > 0, SssError::ZeroAmount);
 
@@ -62,28 +61,44 @@ pub fn handler_seize<'info>(
         &[ctx.accounts.config.bump],
     ]];
 
-    let cpi_accounts = TransferChecked {
-        from: ctx.accounts.from.to_account_info(),
-        mint: ctx.accounts.mint.to_account_info(),
-        to: ctx.accounts.to.to_account_info(),
-        authority: ctx.accounts.config.to_account_info(),
-    };
+    // Manually build the TransferChecked instruction to ensure exact account forwarding
+    // for Token-2022 transfer hooks.
+    let mut account_metas = vec![
+        AccountMeta::new(ctx.accounts.from.key(), false),
+        AccountMeta::new_readonly(ctx.accounts.mint.key(), false),
+        AccountMeta::new(ctx.accounts.to.key(), false),
+        AccountMeta::new_readonly(ctx.accounts.config.key(), true), // Authority (is_signer = true for invoke_signed)
+    ];
 
-    // SSS-2 mints have a transfer hook that requires additional accounts
-    // (extra_account_metas PDA, sender/receiver blacklist PDAs, hook program).
-    // The caller must supply these as remaining_accounts so that Token-2022
-    // can CPI into the hook during the transfer.
-    //
-    // SSS-1 / SSS-3: no hook — remaining_accounts will be empty.
-    let remaining: Vec<AccountInfo<'info>> = ctx.remaining_accounts.to_vec();
-    let mut cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts)
-        .with_signer(signer_seeds);
-
-    if !remaining.is_empty() {
-        cpi_ctx = cpi_ctx.with_remaining_accounts(remaining);
+    // Append extra hook accounts
+    for acc in ctx.remaining_accounts.iter() {
+        account_metas.push(AccountMeta {
+            pubkey: acc.key(),
+            is_signer: acc.is_signer,
+            is_writable: acc.is_writable,
+        });
     }
 
-    token_interface::transfer_checked(cpi_ctx, amount, decimals)?;
+    let mut data = Vec::with_capacity(13);
+    data.push(12); // TransferChecked discriminator for Token-2022
+    data.extend_from_slice(&amount.to_le_bytes());
+    data.push(decimals);
+
+    let ix = anchor_lang::solana_program::instruction::Instruction {
+        program_id: ctx.accounts.token_program.key(),
+        accounts: account_metas,
+        data,
+    };
+
+    let mut invoke_accounts = vec![
+        ctx.accounts.from.to_account_info(),
+        ctx.accounts.mint.to_account_info(),
+        ctx.accounts.to.to_account_info(),
+        ctx.accounts.config.to_account_info(),
+    ];
+    invoke_accounts.extend_from_slice(&ctx.remaining_accounts);
+
+    anchor_lang::solana_program::program::invoke_signed(&ix, &invoke_accounts, signer_seeds)?;
 
     emit!(TokensSeized {
         mint: ctx.accounts.mint.key(),

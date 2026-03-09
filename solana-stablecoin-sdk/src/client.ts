@@ -1,5 +1,11 @@
 import { Program, AnchorProvider, BN } from '@coral-xyz/anchor';
-import { PublicKey, Keypair, Transaction, TransactionInstruction } from '@solana/web3.js';
+import {
+  PublicKey,
+  Keypair,
+  TransactionInstruction,
+  Transaction,
+  SystemProgram,
+} from '@solana/web3.js';
 import {
   getAssociatedTokenAddressSync,
   createAssociatedTokenAccountInstruction,
@@ -376,9 +382,6 @@ export class StablecoinClient {
     return tx;
   }
 
-  /** @deprecated Use mint() */
-  // issueTokens restored above
-
   async burn(from: PublicKey, amount: bigint): Promise<string> {
     const tx = await this.composeBurnTokens(from, amount);
     return this.dispatchInstruction(tx.instructions);
@@ -515,19 +518,36 @@ export class StablecoinClient {
     return new Transaction().add(ix);
   }
 
-  async seize(from: PublicKey, to: PublicKey, amount: bigint): Promise<string> {
-    const tx = await this.composeSeize(from, to, amount);
+  async seize(fromWallet: PublicKey, toWallet: PublicKey, amount: bigint): Promise<string> {
+    const tx = await this.composeSeize(fromWallet, toWallet, amount);
     return this.dispatchInstruction(tx.instructions);
   }
 
-  async composeSeize(from: PublicKey, to: PublicKey, amount: bigint): Promise<Transaction> {
+  async composeSeize(
+    fromWallet: PublicKey,
+    toWallet: PublicKey,
+    amount: bigint,
+  ): Promise<Transaction> {
     const seizer = this.anchorProvider.publicKey;
     const tx = new Transaction();
+
+    // Check if preset needs a hook
+    let hookProgramId: PublicKey | undefined;
+    try {
+      const config = await this.ledgerProgram.account.stablecoinConfig.fetch(this.configPda);
+      const preset = (config as any).preset ?? 1;
+      const enableTransferHook = (config as any).enableTransferHook;
+      if (enableTransferHook !== false && (preset === 2 || enableTransferHook === true)) {
+        hookProgramId = STBL_HOOK_PROGRAM_ID;
+      }
+    } catch (e) {
+      // Fallback or ignore
+    }
 
     // Destination ATA check/create
     const toAta = getAssociatedTokenAddressSync(
       this.mintAddress,
-      to,
+      toWallet,
       true,
       TOKEN_2022_PROGRAM_ID,
       ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -538,7 +558,7 @@ export class StablecoinClient {
         createAssociatedTokenAccountInstruction(
           this.anchorProvider.publicKey,
           toAta,
-          to,
+          toWallet,
           this.mintAddress,
           TOKEN_2022_PROGRAM_ID,
           ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -549,7 +569,7 @@ export class StablecoinClient {
     // Source ATA (must exist)
     const fromAta = getAssociatedTokenAddressSync(
       this.mintAddress,
-      from,
+      fromWallet,
       true,
       TOKEN_2022_PROGRAM_ID,
       ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -563,6 +583,24 @@ export class StablecoinClient {
       toAta,
       new BN(amount.toString()),
     );
+
+    // Resolve extra hook accounts using canonical spl-token logic if needed
+    if (hookProgramId) {
+      const { addExtraAccountMetasForExecute } = await import('@solana/spl-token');
+      // Authority for the internal transfer is the config PDA
+      await addExtraAccountMetasForExecute(
+        this.anchorProvider.connection,
+        seizeIx,
+        hookProgramId,
+        fromAta,
+        this.mintAddress,
+        toAta,
+        this.configPda,
+        amount,
+        'confirmed',
+      );
+    }
+
     tx.add(seizeIx);
 
     return tx;
@@ -757,50 +795,124 @@ export class StablecoinClient {
       blacklistAdd: (address: PublicKey, reason: string) => this.denyList.add(address, reason),
       blacklistRemove: (address: PublicKey) => this.denyList.remove(address),
       blacklistCheck: (address: PublicKey) => this.denyList.check(address),
-      seize: (from: PublicKey, to: PublicKey, amount: bigint) => this.seize(from, to, amount),
+      seize: (fromWallet: PublicKey, toWallet: PublicKey, amount: bigint) =>
+        this.seize(fromWallet, toWallet, amount),
     };
   }
 
-  get privacyOps() {
+  get privacyOps(): PrivacyOpsBuilder {
+    return new PrivacyOpsBuilder(
+      this.anchorProvider.connection,
+      this.mintAddress,
+      this.anchorProvider.publicKey,
+    );
+  }
+
+  get confidential() {
     return {
+      configureAccount: async (
+        tokenAccount: PublicKey,
+        elGamalSecretKey: Uint8Array,
+        aeKey?: Uint8Array | { encrypt(amount: bigint): { toBytes(): Uint8Array } },
+        contextStateAccount?: PublicKey,
+      ): Promise<string> => {
+        const ixs = await this.privacyOps.configureAccountInstructions(
+          tokenAccount,
+          elGamalSecretKey,
+          aeKey,
+          contextStateAccount,
+        );
+        const tx = new Transaction().add(...ixs);
+        return this.anchorProvider.sendAndConfirm(tx);
+      },
+      configureAccountIxs: async (
+        tokenAccount: PublicKey,
+        elGamalSecretKey: Uint8Array,
+        aeKey?: Uint8Array | { encrypt(amount: bigint): { toBytes(): Uint8Array } },
+        contextStateAccount?: PublicKey,
+      ): Promise<TransactionInstruction[]> => {
+        return this.privacyOps.configureAccountInstructions(
+          tokenAccount,
+          elGamalSecretKey,
+          aeKey,
+          contextStateAccount,
+        );
+      },
+
       deposit: async (
         tokenAccount: PublicKey,
         amount: bigint,
         decimals: number,
       ): Promise<string> => {
-        const ops = new PrivacyOpsBuilder(
-          this.anchorProvider.connection,
-          this.mintAddress,
-          this.anchorProvider.publicKey,
-        );
-        const ix = ops.createDepositInstruction(tokenAccount, amount, decimals);
+        const ix = this.privacyOps.createDepositInstruction(tokenAccount, amount, decimals);
         return this.dispatchInstruction(ix);
+      },
+      depositIx: (
+        tokenAccount: PublicKey,
+        amount: bigint,
+        decimals: number,
+      ): TransactionInstruction => {
+        return this.privacyOps.createDepositInstruction(tokenAccount, amount, decimals);
       },
 
       applyPending: async (tokenAccount: PublicKey): Promise<string> => {
-        const ops = new PrivacyOpsBuilder(
-          this.anchorProvider.connection,
-          this.mintAddress,
-          this.anchorProvider.publicKey,
-        );
-        const ix = ops.createSettlePendingInstruction(tokenAccount);
+        const ix = this.privacyOps.createSettlePendingInstruction(tokenAccount);
         return this.dispatchInstruction(ix);
+      },
+      applyPendingIx: (tokenAccount: PublicKey): TransactionInstruction => {
+        return this.privacyOps.createSettlePendingInstruction(tokenAccount);
       },
 
       transfer: async (
-        _senderAccount: PublicKey,
-        _recipientAccount: PublicKey,
-        _amount: bigint,
+        sourceTokenAccount: PublicKey,
+        destinationTokenAccount: PublicKey,
+        amount: bigint,
+        sourceElGamalSecretKey: Uint8Array,
+        sourceAvailableBalanceCiphertext: Uint8Array,
+        sourceCurrentBalance: bigint,
+        destinationElGamalPubkey: Uint8Array,
+        auditorElGamalPubkey?: Uint8Array,
+        aeKey?: Uint8Array | { encrypt(amount: bigint): { toBytes(): Uint8Array } },
+        contextStateAccount?: PublicKey,
       ): Promise<string> => {
-        throw new Error('Confidential transfer requires Rust proof service. See docs/SSS-3.md');
+        const ixs = await this.privacyOps.transferInstructions(
+          sourceTokenAccount,
+          destinationTokenAccount,
+          amount,
+          sourceElGamalSecretKey,
+          sourceAvailableBalanceCiphertext,
+          sourceCurrentBalance,
+          destinationElGamalPubkey,
+          auditorElGamalPubkey,
+          aeKey,
+          contextStateAccount,
+        );
+        const tx = new Transaction().add(...ixs);
+        return this.anchorProvider.sendAndConfirm(tx);
       },
 
       withdraw: async (
-        _tokenAccount: PublicKey,
-        _amount: bigint,
-        _decimals: number,
+        tokenAccount: PublicKey,
+        amount: bigint,
+        decimals: number,
+        sourceElGamalSecretKey: Uint8Array,
+        sourceAvailableBalanceCiphertext: Uint8Array,
+        sourceCurrentBalance: bigint,
+        aeKey?: Uint8Array | { encrypt(amount: bigint): { toBytes(): Uint8Array } },
+        contextStateAccount?: PublicKey,
       ): Promise<string> => {
-        throw new Error('Confidential withdraw requires Rust proof service. See docs/SSS-3.md');
+        const ixs = await this.privacyOps.withdrawInstructions(
+          tokenAccount,
+          amount,
+          decimals,
+          sourceElGamalSecretKey,
+          sourceAvailableBalanceCiphertext,
+          sourceCurrentBalance,
+          aeKey,
+          contextStateAccount,
+        );
+        const tx = new Transaction().add(...ixs);
+        return this.anchorProvider.sendAndConfirm(tx);
       },
     };
   }
@@ -814,9 +926,6 @@ export class StablecoinClient {
   }
   get blacklist() {
     return this.denyList;
-  }
-  get confidential() {
-    return this.privacyOps;
   }
   mintTokens(to: PublicKey, amount: bigint): Promise<string> {
     return this.issueTokens(to, amount);

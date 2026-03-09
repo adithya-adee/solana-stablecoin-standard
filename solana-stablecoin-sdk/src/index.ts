@@ -149,10 +149,49 @@ export { createSss3MintTx };
 export { createConfidentialMintInstruction };
 export type { Tier3MintParams };
 
-import { PrivacyOpsBuilder, generateDummyElgamalKeys, generateDummyAesKey } from './confidential';
+import {
+  PrivacyOpsBuilder,
+  generateDummyElgamalKeys,
+  generateTestElGamalKeypair,
+  generateDummyAesKey,
+  encryptDecryptableZero,
+  deriveElGamalKeypair,
+  createConfigureAccountInstruction,
+  CONFIDENTIAL_TRANSFER_ELGAMAL_SEED_MESSAGE,
+  CONFIDENTIAL_TRANSFER_AE_KEY_SEED_MESSAGE,
+  CONFIDENTIAL_TRANSFER_EMPTY_PUBLIC_SEED,
+  loadZkSdk,
+  deriveConfidentialKeysFromSignatures,
+  encryptDecryptableBalance,
+  decryptDecryptableBalance,
+  generateTransferProofs,
+  generateRandomConfidentialKeys,
+  parseConfidentialTransferAccountState,
+  CONFIDENTIAL_TRANSFER_ACCOUNT_EXTENSION_LENGTH,
+  ZK_ELGAMAL_PROGRAM_DISABLED_NOTICE,
+} from './confidential';
 export { PrivacyOpsBuilder };
 export { generateDummyElgamalKeys };
+export { generateTestElGamalKeypair };
 export { generateDummyAesKey };
+export { encryptDecryptableZero };
+export { deriveElGamalKeypair };
+export { createConfigureAccountInstruction };
+export {
+  CONFIDENTIAL_TRANSFER_ELGAMAL_SEED_MESSAGE,
+  CONFIDENTIAL_TRANSFER_AE_KEY_SEED_MESSAGE,
+  CONFIDENTIAL_TRANSFER_EMPTY_PUBLIC_SEED,
+  loadZkSdk,
+  deriveConfidentialKeysFromSignatures,
+  encryptDecryptableBalance,
+  decryptDecryptableBalance,
+  generateTransferProofs,
+  generateRandomConfidentialKeys,
+  parseConfidentialTransferAccountState,
+  CONFIDENTIAL_TRANSFER_ACCOUNT_EXTENSION_LENGTH,
+  ZK_ELGAMAL_PROGRAM_DISABLED_NOTICE,
+};
+export type { DerivedConfidentialKeys, ParsedConfidentialTransferAccount } from './confidential';
 
 import {
   createInitInstruction,
