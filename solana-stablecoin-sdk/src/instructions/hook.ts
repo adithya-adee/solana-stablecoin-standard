@@ -40,14 +40,16 @@ export function createDenyListAddInstruction(
     asRole('blacklister'),
     coreProgramId,
   );
+  const [blacklistEntryPda] = deriveBlacklistPda(mint, address, program.programId);
 
   return program.methods
     .addToBlacklist(reason)
-    .accounts({
+    .accountsPartial({
       blacklister,
       blacklisterRole: blacklisterRolePda,
       mint,
       address,
+      blacklistEntry: blacklistEntryPda,
     })
     .instruction();
 }
