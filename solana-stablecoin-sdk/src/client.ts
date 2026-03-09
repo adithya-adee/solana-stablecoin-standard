@@ -1,11 +1,5 @@
 import { Program, AnchorProvider, BN } from '@coral-xyz/anchor';
-import {
-  PublicKey,
-  Keypair,
-  TransactionInstruction,
-  Transaction,
-  SystemProgram,
-} from '@solana/web3.js';
+import { PublicKey, Keypair, TransactionInstruction, Transaction } from '@solana/web3.js';
 import {
   getAssociatedTokenAddressSync,
   createAssociatedTokenAccountInstruction,
@@ -19,7 +13,6 @@ import {
   deriveConfigPda,
   deriveRolePda,
   deriveBlacklistPda,
-  deriveExtraAccountMetasPda,
   STBL_CORE_PROGRAM_ID,
   STBL_HOOK_PROGRAM_ID,
 } from './pda';
@@ -32,7 +25,7 @@ import type {
   TokenMintKey,
   ConfigAccountKey,
 } from './types';
-import { TIER_ORDINAL_MAP, ORDINAL_TO_TIER_MAP, ROLE_ID_MAP, asTier, asRole } from './types';
+import { TIER_ORDINAL_MAP, ORDINAL_TO_TIER_MAP, asTier, asRole } from './types';
 import { translateAnchorError } from './errors';
 import * as coreix from './instructions/core';
 import * as hookix from './instructions/hook';
@@ -90,8 +83,8 @@ export class StablecoinClient {
 
   private static buildProgramPair(
     provider: AnchorProvider,
-    coreProgramId: PublicKey = STBL_CORE_PROGRAM_ID,
-    hookProgramId: PublicKey = STBL_HOOK_PROGRAM_ID,
+    _coreProgramId: PublicKey = STBL_CORE_PROGRAM_ID,
+    _hookProgramId: PublicKey = STBL_HOOK_PROGRAM_ID,
   ): { ledgerProgram: Program<SssCore>; guardProgram: Program<SssTransferHook> } {
     const ledgerProgram = new Program<SssCore>(SssCoreIdl as SssCore, provider);
     const guardProgram = new Program<SssTransferHook>(
@@ -354,6 +347,7 @@ export class StablecoinClient {
         priceUpdate = null;
       }
     } catch (e) {
+      console.error(e);
       // ignore — fall back to defaults
     }
 
@@ -541,6 +535,7 @@ export class StablecoinClient {
         hookProgramId = STBL_HOOK_PROGRAM_ID;
       }
     } catch (e) {
+      console.error(e);
       // Fallback or ignore
     }
 

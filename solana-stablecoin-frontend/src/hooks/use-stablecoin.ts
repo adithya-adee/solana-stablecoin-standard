@@ -1,14 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { StablecoinClient, type TokenMintKey } from '@stbr/sss-token';
 import { useActiveMint } from './use-active-mint';
 import { useAnchorProvider } from './use-anchor-provider';
 
 export function useStablecoin() {
-  const { connection } = useConnection();
   const provider = useAnchorProvider();
   const { activeMint } = useActiveMint();
   const [client, setClient] = useState<StablecoinClient | null>(null);

@@ -6,7 +6,6 @@ import {
   encryptDecryptableBalance,
   generatePubkeyValidityProof,
   generateTransferProofs,
-  generateRandomConfidentialKeys,
   generateWithdrawProofs,
 } from './zk-keys';
 
@@ -527,7 +526,7 @@ export class PrivacyOpsBuilder {
     aeKey?: Uint8Array | { encrypt(amount: bigint): { toBytes(): Uint8Array } },
     contextStateAccount?: PublicKey,
   ): Promise<TransactionInstruction[]> {
-    const { validityProof, groupedCiphertext } = await generateTransferProofs({
+    const { validityProof, groupedCiphertext: _groupedCiphertext } = await generateTransferProofs({
       sourceKeypair: {
         pubkey: new Uint8Array(32),
         secret: sourceElGamalSecretKey,
@@ -601,15 +600,17 @@ export class PrivacyOpsBuilder {
     aeKey?: Uint8Array | { encrypt(amount: bigint): { toBytes(): Uint8Array } },
     contextStateAccount?: PublicKey,
   ): Promise<TransactionInstruction[]> {
-    const { equalityProof, withdrawCiphertext } = await generateWithdrawProofs({
-      sourceKeypair: {
-        pubkey: new Uint8Array(32),
-        secret: sourceElGamalSecretKey,
+    const { equalityProof, withdrawCiphertext: _withdrawCiphertext } = await generateWithdrawProofs(
+      {
+        sourceKeypair: {
+          pubkey: new Uint8Array(32),
+          secret: sourceElGamalSecretKey,
+        },
+        sourceAvailableBalanceCiphertext,
+        amount,
+        sourceCurrentBalance,
       },
-      sourceAvailableBalanceCiphertext,
-      amount,
-      sourceCurrentBalance,
-    });
+    );
 
     const proofInstructionOffset = contextStateAccount ? 0 : -1;
 

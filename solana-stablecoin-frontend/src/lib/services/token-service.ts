@@ -38,9 +38,17 @@ export class TokenService {
     // Use the provided provider or construct a read-only one for data fetching.
     const effectiveProvider =
       provider ||
-      new AnchorProvider(connection, { publicKey: PublicKey.default } as any, {
-        commitment: 'confirmed',
-      });
+      new AnchorProvider(
+        connection,
+        {
+          publicKey: PublicKey.default,
+          signTransaction: async (tx) => tx,
+          signAllTransactions: async (txs) => txs,
+        },
+        {
+          commitment: 'confirmed',
+        },
+      );
 
     // Load the client for the specific mint.
     const client = await StablecoinClient.load(effectiveProvider, mint as TokenMintKey);
@@ -52,9 +60,19 @@ export class TokenService {
      * Fetch the raw account data for metadata fields (name, symbol, etc.)
      * which are not currently included in the standard SDK snapshot.
      */
-    const rawConfig = await (client.ledgerProgram.account as any).stablecoinConfig.fetch(
-      client.configPda,
-    );
+    interface RawStablecoinConfig {
+      preset: number;
+      decimals: number;
+      name: string;
+      symbol: string;
+      uri: string;
+    }
+
+    const rawConfig = await (
+      client.ledgerProgram.account as unknown as {
+        stablecoinConfig: { fetch(p: PublicKey): Promise<RawStablecoinConfig> };
+      }
+    ).stablecoinConfig.fetch(client.configPda);
 
     return {
       ...config,

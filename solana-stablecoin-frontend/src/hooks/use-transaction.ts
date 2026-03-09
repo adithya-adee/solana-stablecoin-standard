@@ -60,8 +60,8 @@ export function useTransaction() {
             });
             return null;
           }
-        } catch (simErr: any) {
-          console.error('Simulation threw:', simErr);
+        } catch (_simErr: unknown) {
+          console.error('Simulation threw:', _simErr);
           // Don't block — let sendTransaction try anyway
         }
 
@@ -73,15 +73,19 @@ export function useTransaction() {
         await connection.confirmTransaction(signature, 'confirmed');
         setResult({ signature, error: null, loading: false });
         return signature;
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Transaction execution failed:', err);
-        if (err.logs) {
-          console.error('Simulation logs:', err.logs);
+        const error = err as Error & {
+          logs?: string[];
+          error?: { message?: string };
+        };
+        if (error.logs) {
+          console.error('Simulation logs:', error.logs);
         }
         // Try to extract a meaningful message
-        let message = err.message || String(err);
-        if (message.includes('WalletSendTransactionError') && err.error) {
-          message = err.error.message || message;
+        let message = error.message || String(error);
+        if (message.includes('WalletSendTransactionError') && error.error) {
+          message = error.error.message || message;
         }
         setResult({ signature: null, error: message, loading: false });
         return null;

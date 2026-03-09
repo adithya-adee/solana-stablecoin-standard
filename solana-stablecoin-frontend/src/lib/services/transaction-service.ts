@@ -35,7 +35,7 @@ export class TransactionService {
     const { preset, name, symbol, uri, decimals, supplyCap, initialRoles } = params;
 
     const options = {
-      preset: asTier(preset as any),
+      preset: asTier(preset as 'sss-1' | 'sss-2' | 'sss-3'),
       name,
       symbol,
       uri: uri || '',

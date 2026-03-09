@@ -2,13 +2,7 @@ import { Program } from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
 import type { SssTransferHook } from '../idl/sss_transfer_hook';
 import type { TokenMintKey } from '../types';
-import {
-  deriveBlacklistPda,
-  deriveConfigPda,
-  deriveExtraAccountMetasPda,
-  deriveRolePda,
-  STBL_CORE_PROGRAM_ID,
-} from '../pda';
+import { deriveBlacklistPda, deriveConfigPda, deriveRolePda, STBL_CORE_PROGRAM_ID } from '../pda';
 import { asRole } from '../types';
 
 /**
