@@ -90,7 +90,7 @@ const OPERATIONS: Record<
     title: 'Role Descriptions',
     description: 'View details on the capabilities of each role type.',
     icon: ScrollText,
-    color: 'text-accent bg-accent/10 border-accent/20',
+    color: 'text-purple-400 bg-purple-400/10 border-purple-400/20',
     buttonVariant: 'primary',
   },
   check: {
@@ -98,7 +98,7 @@ const OPERATIONS: Record<
     title: 'Check Role Status',
     description: 'Verify all roles held by an address. Scans all recursive permission levels.',
     icon: ScrollText,
-    color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+    color: 'text-sky-500 bg-sky-500/10 border-sky-500/20',
     buttonVariant: 'primary',
   },
 };
@@ -221,18 +221,20 @@ export default function RolesPage() {
                     </Label>
                     <Button
                       variant="outline"
-                      className="w-full justify-between h-14 px-4 bg-background/50 hover:bg-background/80"
+                      className="w-full justify-between h-14 px-4 bg-background/50 hover:bg-background/80 border-border/40 hover:border-border/80 transition-all duration-200 shadow-sm"
                       onClick={() => setIsOpen(!isOpen)}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={cn('p-2 rounded-md border', activeOp.color)}>
+                        <div className={cn('p-2 rounded-md border shadow-sm', activeOp.color)}>
                           <ActiveIcon size={18} />
                         </div>
-                        <span className="font-semibold">{activeOp.title}</span>
+                        <span className="font-semibold text-sm tracking-tight">
+                          {activeOp.title}
+                        </span>
                       </div>
                       <ChevronDown
                         className={cn(
-                          'ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-200',
+                          'ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-300',
                           isOpen && 'rotate-180',
                         )}
                       />
