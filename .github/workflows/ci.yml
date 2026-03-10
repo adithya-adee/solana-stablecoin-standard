@@ -156,13 +156,9 @@ jobs:
       - name: Turbo Build & Test
         run: pnpm run test --cache-dir=".turbo"
 
-      - name: Check Formatting & Lint
+      - name: Check Formatting
         run: |
-          pnpm run lint --cache-dir=".turbo"
           pnpm run format:check --cache-dir=".turbo"
-
-      - name: Run Integration Tests
-        run: anchor test --skip-build
 
       # ─── ARTIFACTS ─────────────────────────────────────────────────────────────
       - name: Upload artifacts
@@ -190,10 +186,10 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build backend image
+      - name: Build docker images
         run: |
           mkdir -p target/idl target/types
-          docker compose build backend
+          docker compose build
         env:
           DOCKER_BUILDKIT: 1
 

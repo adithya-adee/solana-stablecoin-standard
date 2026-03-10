@@ -11,6 +11,12 @@
     "demo:sss1": "ts-node demo-sss1.ts",
     "demo:sss2": "ts-node demo-sss2.ts",
     "demo:sss3": "ts-node demo-sss3.ts",
+    "backend:health": "ts-node backend/health-check.ts",
+    "backend:gateway": "ts-node backend/test-gateway.ts",
+    "backend:mint": "ts-node backend/test-mint.ts",
+    "backend:compliance": "ts-node backend/test-compliance.ts",
+    "backend:webhooks": "ts-node backend/test-webhooks.ts",
+    "backend:all": "pnpm run backend:health && pnpm run backend:gateway && pnpm run backend:mint && pnpm run backend:compliance && pnpm run backend:webhooks",
     "demo:all": "pnpm run demo:lifecycle && pnpm run demo:sss1 && pnpm run demo:sss2 && pnpm run demo:sss3"
   },
   "keywords": [],
@@ -26,7 +32,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@stbr/sss-token": "link:../solana-stablecoin-sdk",
+    "@stbr/sss-token": "workspace:*",
     "chalk": "^5.6.2"
   }
 }

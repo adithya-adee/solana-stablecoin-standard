@@ -1,16 +1,22 @@
 import pino from 'pino';
 
+const isProd = process.env.NODE_ENV === 'production';
+
 const pinoLogger = pino({
   level: process.env.LOG_LEVEL || 'info',
-  base: { service: 'sss-backend' },
-  transport: {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      translateTime: 'SYS:standard',
-      ignore: 'pid,hostname',
-    },
-  },
+  base: { service: 'compliance-service' },
+  ...(isProd
+    ? {}
+    : {
+        transport: {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'SYS:standard',
+            ignore: 'pid,hostname',
+          },
+        },
+      }),
 });
 
 export const appLogger = {

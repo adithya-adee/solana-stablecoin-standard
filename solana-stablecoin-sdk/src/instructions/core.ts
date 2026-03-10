@@ -40,7 +40,7 @@ export function createInitInstruction(
       enablePermanentDelegate: args.enablePermanentDelegate ?? null,
       enableTransferHook: args.enableTransferHook ?? null,
       defaultAccountFrozen: args.defaultAccountFrozen ?? null,
-      oracleFeedId: args.oracleFeedId ?? null,
+      oracleFeedId: args.oracleFeedId ? Array.from(args.oracleFeedId) : null,
     })
     .accounts({
       authority,

@@ -49,7 +49,8 @@ pub struct Seize<'info> {
 }
 
 pub fn handler_seize<'info>(
-    ctx: Context<'_, '_, '_, 'info, Seize<'info>>,    amount: u64,
+    ctx: Context<'_, '_, '_, 'info, Seize<'info>>,
+    amount: u64,
 ) -> Result<()> {
     require!(amount > 0, SssError::ZeroAmount);
 

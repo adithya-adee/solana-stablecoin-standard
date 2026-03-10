@@ -36,7 +36,7 @@ pub struct TransferHook<'info> {
     /// ExtraAccountMetaList. If this account exists (has data, owned by this
     /// program), the receiver is blacklisted and the transfer is rejected.
     pub receiver_blacklist: UncheckedAccount<'info>,
- 
+
     /// Protocol configuration account. Resolved by Token-2022 from
     /// ExtraAccountMetaList. Used to check the "paused" state.
     pub config: Account<'info, StablecoinConfig>,
@@ -56,11 +56,11 @@ pub fn handler_transfer_hook(ctx: Context<TransferHook>, _amount: u64) -> Result
     if !receiver_bl.data_is_empty() && receiver_bl.owner == ctx.program_id {
         return Err(TransferHookError::ReceiverBlacklisted.into());
     }
- 
+
     // Emergency pause check: transfers are blocked if the protocol is paused.
     if ctx.accounts.config.paused {
         return Err(TransferHookError::ProtocolPaused.into());
     }
- 
+
     Ok(())
 }
