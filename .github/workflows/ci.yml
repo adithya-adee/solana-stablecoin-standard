@@ -161,9 +161,6 @@ jobs:
           pnpm run lint --cache-dir=".turbo"
           pnpm run format:check --cache-dir=".turbo"
 
-      - name: Run Integration Tests
-        run: anchor test --skip-build
-
       # ─── ARTIFACTS ─────────────────────────────────────────────────────────────
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

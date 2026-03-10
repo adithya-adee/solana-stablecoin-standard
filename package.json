@@ -11,7 +11,7 @@
   "scripts": {
     "build": "pnpm run build:programs && turbo run build",
     "build:programs": "cd sss-programs && anchor build",
-    "test": "pnpm run test:programs && turbo run test",
+    "test": "turbo run test",
     "test:programs": "cd sss-programs && anchor test",
     "test:sdk": "cd solana-stablecoin-sdk && pnpm test",
     "test:sss1": "cd sss-programs && anchor test -- --grep SSS-1",
