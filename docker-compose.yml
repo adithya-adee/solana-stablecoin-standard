@@ -1,35 +1,171 @@
-name: sss-backend
+version: '3.8'
 
 services:
-  backend:
+  # Mint/Burn Service - Coordinates fiat-to-stablecoin lifecycle
+  mint-service:
     build:
       context: .
-      dockerfile: solana-stablecoin-backend/Dockerfile
-    ports:
-      - '${PORT:-3000}:3000'
+      dockerfile: solana-stablecoin-backend/mint-service/Dockerfile
+    container_name: sss-mint-service
     environment:
-      - PORT=3000
       - NODE_ENV=production
       - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.devnet.solana.com}
-      - SOLANA_WS_URL=${SOLANA_WS_URL:-wss://api.devnet.solana.com}
-      - KEYPAIR_PATH=/app/deployer.json
       - SSS_CORE_PROGRAM_ID=${SSS_CORE_PROGRAM_ID:-SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP}
       - SSS_HOOK_PROGRAM_ID=${SSS_HOOK_PROGRAM_ID:-HookFvKFaoF9KL8TUXUnQK5r2mJoMYdBENu549seRyXW}
-      - API_KEY=${API_KEY:-}
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3001}
-      - WEBHOOK_URLS=${WEBHOOK_URLS:-}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - KEYPAIR_PATH=/app/keys/id.json
+      - PORT=3001
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./.keys:/app/keys
     restart: unless-stopped
     healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000/health']
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
-      start_period: 15s
+
+  # Event Listener/Indexer - Monitors on-chain events
+  event-listener:
+    build:
+      context: .
+      dockerfile: solana-stablecoin-backend/event-listener/Dockerfile
+    container_name: sss-event-listener
+    environment:
+      - NODE_ENV=production
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      - SSS_CORE_PROGRAM_ID=${SSS_CORE_PROGRAM_ID:-SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP}
+      - SSS_HOOK_PROGRAM_ID=${SSS_HOOK_PROGRAM_ID:-HookFvKFaoF9KL8TUXUnQK5r2mJoMYdBENu549seRyXW}
+      - KEYPAIR_PATH=/app/keys/id.json
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/sss}
+    ports:
+      - "3002:3002"
+    depends_on:
+      - postgres
     volumes:
-      - ${KEYPAIR_PATH:-~/.config/solana/id.json}:/app/deployer.json:ro
-    logging:
-      driver: 'json-file'
-      options:
-        max-size: '10m'
-        max-file: '3'
+      - ./.keys:/app/keys
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Compliance Service (SSS-2) - Blacklist management and sanctions screening
+  compliance-service:
+    build:
+      context: .
+      dockerfile: solana-stablecoin-backend/compliance-service/Dockerfile
+    container_name: sss-compliance-service
+    environment:
+      - NODE_ENV=production
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      - SSS_CORE_PROGRAM_ID=${SSS_CORE_PROGRAM_ID:-SSSCFmmtaU1oToJ9eMqzTtPbK9EAyoXdivUG4irBHVP}
+      - SSS_HOOK_PROGRAM_ID=${SSS_HOOK_PROGRAM_ID:-HookFvKFaoF9KL8TUXUnQK5r2mJoMYdBENu549seRyXW}
+      - KEYPAIR_PATH=/app/keys/id.json
+      - PORT=3003
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/sss}
+    ports:
+      - "3003:3003"
+    depends_on:
+      - postgres
+    volumes:
+      - ./.keys:/app/keys
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Webhook Service - Configurable event notifications
+  webhook-service:
+    build:
+      context: .
+      dockerfile: solana-stablecoin-backend/webhook-service/Dockerfile
+    container_name: sss-webhook-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3004
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/sss}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+    ports:
+      - "3004:3004"
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: sss-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=sss
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./solana-stablecoin-backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for webhook queue and caching
+  redis:
+    image: redis:7-alpine
+    container_name: sss-redis
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Gateway (Optional) - Unified API endpoint
+  api-gateway:
+    build:
+      context: .
+      dockerfile: solana-stablecoin-backend/api-gateway/Dockerfile
+    container_name: sss-api-gateway
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MINT_SERVICE_URL=http://mint-service:3001
+      - COMPLIANCE_SERVICE_URL=http://compliance-service:3003
+      - WEBHOOK_SERVICE_URL=http://webhook-service:3004
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mint-service
+      - compliance-service
+      - webhook-service
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres-data:
+  redis-data:
+
+networks:
+  default:
+    name: sss-network

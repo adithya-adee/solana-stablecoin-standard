@@ -1,6 +1,6 @@
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { AnchorProvider, Wallet } from '@coral-xyz/anchor';
-import { StablecoinClient, TokenMintKey } from '@stbr/sss-token';
+import { SolanaStablecoin, StablecoinClient } from '@stbr/sss-token';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { appLogger } from './logger';
@@ -89,7 +89,7 @@ function createChainConnector(): ChainConnector {
       if (mintHandleCache.has(mintStr)) {
         return mintHandleCache.get(mintStr)!;
       }
-      const handle = await StablecoinClient.load(provider, mint as TokenMintKey);
+      const handle = await (SolanaStablecoin as any).load(provider, mint);
       mintHandleCache.set(mintStr, handle);
       return handle;
     },

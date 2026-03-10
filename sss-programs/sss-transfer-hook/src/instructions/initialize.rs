@@ -87,10 +87,7 @@ pub fn handler_initialize(ctx: Context<InitializeExtraAccountMetas>) -> Result<(
         // Protocol config: Pre-calculated PDA owned by sss-core.
         // This allows the hook to check the protocol's "paused" state.
         ExtraAccountMeta::new_with_pubkey(
-            &Pubkey::find_program_address(
-                &[b"sss-config", mint.key.as_ref()],
-                &sss_core::ID,
-            ).0,
+            &Pubkey::find_program_address(&[b"sss-config", mint.key.as_ref()], &sss_core::ID).0,
             false, // is_signer
             false, // is_writable
         )?,

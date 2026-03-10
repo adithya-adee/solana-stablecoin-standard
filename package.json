@@ -1,26 +1,57 @@
 {
-  "name": "solana-stablecoin-standard",
+  "name": "@stbr/solana-stablecoin-standard",
+  "version": "1.0.0",
+  "description": "Production-ready SDK for creating institutional-grade stablecoins on Solana",
   "private": true,
-  "packageManager": "pnpm@10.28.0",
+  "workspaces": [
+    "solana-stablecoin-sdk",
+    "solana-stablecoin-cli",
+    "solana-stablecoin-backend/*"
+  ],
   "scripts": {
-    "build": "turbo run build",
-    "build:programs": "anchor build",
-    "dev": "turbo run dev --parallel",
-    "test": "turbo run test",
-    "test:programs": "anchor test",
+    "build": "pnpm run build:programs && turbo run build",
+    "build:programs": "cd sss-programs && anchor build",
+    "test": "pnpm run test:programs && turbo run test",
+    "test:programs": "cd sss-programs && anchor test",
+    "test:sdk": "cd solana-stablecoin-sdk && pnpm test",
+    "test:sss1": "cd sss-programs && anchor test -- --grep SSS-1",
+    "test:sss2": "cd sss-programs && anchor test -- --grep SSS-2",
+    "test:integration": "cd tests && pnpm run test:integration",
+    "test:fuzz": "cd tests && pnpm run test:fuzz",
+    "deploy:devnet": "cd sss-programs && anchor deploy --provider.cluster devnet",
+    "deploy:mainnet": "cd sss-programs && anchor deploy --provider.cluster mainnet",
     "lint": "turbo run lint",
-    "typecheck": "tsc --noEmit",
     "format": "turbo run format",
-    "format:check": "turbo run format:check"
+    "format:check": "turbo run format:check",
+    "docs": "typedoc --out docs/api sdk/src"
+  },
+  "keywords": [
+    "solana",
+    "stablecoin",
+    "token-2022",
+    "defi",
+    "compliance",
+    "sdk"
+  ],
+  "author": "Superteam Brazil",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/solanabr/solana-stablecoin-standard.git"
   },
   "devDependencies": {
-    "@coral-xyz/anchor": "^0.32.0",
-    "@eslint/js": "^9.39.3",
-    "@types/node": "^20.19.33",
-    "eslint": "~9",
-    "prettier": "^3.5.1",
-    "turbo": "^2.8.14",
-    "typescript": "^5.7",
-    "typescript-eslint": "^8.57.0"
+    "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.4",
+    "turbo": "^2.8.15",
+    "typedoc": "^0.25.7",
+    "typescript": "^5.3.3"
+  },
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=10.0.0"
   }
 }

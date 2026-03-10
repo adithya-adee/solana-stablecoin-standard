@@ -27,10 +27,10 @@
 
 mod arithmetic;
 mod burn_audit;
+mod confidential_transfer;
 mod invariants;
 mod oracle_feed;
 mod pause_bypass;
 mod pause_roles;
 mod role_escalation;
 mod supply_cap;
-mod confidential_transfer;

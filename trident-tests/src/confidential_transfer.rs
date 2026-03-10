@@ -35,7 +35,8 @@ fn confidential_op_strategy() -> impl Strategy<Value = ConfidentialOp> {
         (0usize..2).prop_map(ConfidentialOp::Configure),
         (0usize..2, 1u64..=1_000_000u64).prop_map(|(i, a)| ConfidentialOp::Deposit(i, a)),
         (0usize..2).prop_map(ConfidentialOp::ApplyPending),
-        (0usize..2, 0usize..2, 1u64..=100_000u64).prop_map(|(f, t, a)| ConfidentialOp::Transfer(f, t, a)),
+        (0usize..2, 0usize..2, 1u64..=100_000u64)
+            .prop_map(|(f, t, a)| ConfidentialOp::Transfer(f, t, a)),
         (0usize..2, 1u64..=100_000u64).prop_map(|(i, a)| ConfidentialOp::Withdraw(i, a)),
     ]
 }
