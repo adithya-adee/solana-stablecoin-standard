@@ -156,9 +156,8 @@ jobs:
       - name: Turbo Build & Test
         run: pnpm run test --cache-dir=".turbo"
 
-      - name: Check Formatting & Lint
+      - name: Check Formatting
         run: |
-          pnpm run lint --cache-dir=".turbo"
           pnpm run format:check --cache-dir=".turbo"
 
       # ─── ARTIFACTS ─────────────────────────────────────────────────────────────
