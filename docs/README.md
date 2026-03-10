@@ -43,6 +43,12 @@ The Solana Stablecoin Standard (SSS) is a comprehensive, production-ready framew
 | Confidential Transfers     | No              | No                    | Yes                       |
 | Use Case                   | Simple payments | Regulated stablecoins | Institutional/Private txs |
 
+## Standard Specifications
+
+- [SSS-1 (Minimal)](SSS-1.md) - Baseline stablecoin configuration.
+- [SSS-2 (Compliant)](SSS-2.md) - On-chain compliance and administrative controls.
+- [SSS-3 (Private)](SSS-3.md) - Experimental Zero-Knowledge confidential transfers.
+
 ## Architecture Diagram
 
 ```mermaid
