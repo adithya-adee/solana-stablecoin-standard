@@ -68,14 +68,52 @@ export class StablecoinClient {
   private async dispatchInstruction(
     ixs: TransactionInstruction | TransactionInstruction[],
   ): Promise<string> {
-    try {
-      const tx = new Transaction();
-      if (Array.isArray(ixs)) {
-        ixs.forEach((ix) => tx.add(ix));
-      } else {
-        tx.add(ixs);
+    const instructions = Array.isArray(ixs) ? ixs : [ixs];
+    if (instructions.length === 0) return '';
+
+    const payer = this.anchorProvider.publicKey;
+    let lastSig = '';
+
+    // Simple chunking logic: group instructions into batches that fit in a transaction
+    let currentBatch: TransactionInstruction[] = [];
+    const batches: TransactionInstruction[][] = [];
+
+    for (const ix of instructions) {
+      const testTx = new Transaction();
+      [...currentBatch, ix].forEach((i) => testTx.add(i));
+      testTx.recentBlockhash = '1'.repeat(32); // mock
+      testTx.feePayer = payer;
+
+      try {
+        const size = testTx.serialize({
+          verifySignatures: false,
+          requireAllSignatures: false,
+        }).length;
+
+        if (size <= 1232) {
+          currentBatch.push(ix);
+        } else {
+          if (currentBatch.length > 0) batches.push(currentBatch);
+          currentBatch = [ix];
+        }
+      } catch (e) {
+        // If even a single instruction is too large, we can't do much but try
+        if (currentBatch.length > 0) batches.push(currentBatch);
+        currentBatch = [ix];
       }
-      return await this.anchorProvider.sendAndConfirm(tx);
+    }
+    if (currentBatch.length > 0) batches.push(currentBatch);
+
+    try {
+      for (let i = 0; i < batches.length; i++) {
+        const tx = new Transaction();
+        batches[i]!.forEach((ix) => tx.add(ix));
+        lastSig = await this.anchorProvider.sendAndConfirm(tx);
+
+        // If we have more batches, we might want to wait a bit or just proceed
+        // Usually sendAndConfirm handles the wait.
+      }
+      return lastSig;
     } catch (err) {
       throw translateAnchorError(err);
     }
