@@ -4,6 +4,7 @@ import { type ReactNode, useMemo } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 const RPC_ENDPOINT = process.env.NEXT_PUBLIC_RPC_URL ?? 'https://api.devnet.solana.com';
 
@@ -13,8 +14,9 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <ConnectionProvider endpoint={RPC_ENDPOINT}>
       <WalletProvider wallets={wallets} autoConnect>
-        {/* @ts-expect-error React 19 children type incompatible with @solana/wallet-adapter-react-ui (React 18 types) */}
-        <WalletModalProvider>{children}</WalletModalProvider>
+        <WalletModalProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+        </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
   );

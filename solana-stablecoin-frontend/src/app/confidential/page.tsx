@@ -12,7 +12,7 @@ import { PageHeader } from '@/components/page-header';
 import { useActiveMint } from '@/hooks/use-active-mint';
 import { useTokenState } from '@/hooks/use-token-state';
 import { cn } from '@/lib/utils';
-import { generateTestElGamalKeypair } from '@stbr/sss-token';
+import { generateRandomConfidentialKeys } from '@stbr/sss-token';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useConfidential } from '@/hooks/use-confidential';
 
@@ -109,10 +109,10 @@ export default function ConfidentialPage() {
   const handleExecute = async () => {
     try {
       if (operation === 'config') {
-        const { secretKey } = generateTestElGamalKeypair();
+        const { elGamalSecretKey } = await generateRandomConfidentialKeys();
         // In a real app, we would store this secretKey securely or let the user download it.
         // For the demo, we just pass it to the configureAccount hook.
-        await configureAccount(addressInput, secretKey);
+        await configureAccount(addressInput, elGamalSecretKey);
       }
       if (operation === 'deposit')
         await deposit(addressInput, BigInt(amountInput), tokenState?.decimals || 9);

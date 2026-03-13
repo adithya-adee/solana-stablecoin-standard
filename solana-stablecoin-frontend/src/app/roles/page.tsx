@@ -9,16 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { PageHeader } from '@/components/page-header';
 import { TxFeedback } from '@/components/tx-feedback';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Info } from 'lucide-react';
 import { useStablecoin } from '@/hooks/use-stablecoin';
 import { useTransaction } from '@/hooks/use-transaction';
 import { useActiveMint } from '@/hooks/use-active-mint';
@@ -47,13 +43,20 @@ const ROLE_DISPLAY_MAP: Record<RoleName, AccessRole> = {
 };
 
 const ROLE_DESCRIPTIONS: Record<RoleName, string> = {
-  Admin: 'Full authority. Can grant/revoke roles, update config, and manage supply cap.',
-  Minter: 'Can mint new tokens up to the supply cap.',
-  Freezer: 'Can freeze and thaw individual token accounts for compliance.',
-  Pauser: 'Can pause and unpause all stablecoin operations in emergencies.',
-  Burner: 'Can burn tokens from any token account for redemption or compliance.',
-  Blacklister: 'Can add and remove addresses from the transfer hook blacklist (SSS-2).',
-  Seizer: 'Can seize tokens via permanent delegate. Works even when paused.',
+  Admin:
+    'The ultimate authority over the stablecoin. Admins can grant and revoke any other role (including other admins), update global configuration parameters like the supply cap, and change the treasury account. This role should be held by a secure multisig or DAO.',
+  Minter:
+    "Authorized to issue new supply of the stablecoin. Minters can create tokens up to the global supply cap. Every minting event is tracked against the specific minter's quota for transparency and security.",
+  Freezer:
+    'Compliance-focused role. Freezers can lock (freeze) and unlock (thaw) individual token accounts. This is primarily used to satisfy legal requirements or to secure funds during investigations.',
+  Pauser:
+    'Emergency protocol role. Pausers can stop all transfers and minting operations across the entire stablecoin network simultaneously. Used during critical smart contract upgrades or major security incidents.',
+  Burner:
+    'Supply management role. Burners can permanently destroy tokens from any account, typically used for redemptions to fiat or clean up of unauthorized supply.',
+  Blacklister:
+    "Secondary compliance role specific to SSS-2. Blacklisters manage a list of addresses that are strictly prohibited from holding or transferring the stablecoin. Powered by Solana's Transfer Hook extension.",
+  Seizer:
+    'The most powerful compliance tool. Seizers can unilaterally move tokens from any account to a target destination using permanent delegate authority. This role functions even when the protocol is paused.',
 };
 
 type OperationType = 'grant' | 'revoke' | 'check' | 'info';
@@ -113,7 +116,7 @@ export default function RolesPage() {
   const [isOpen, setIsOpen] = useState(false);
 
   const [addressInput, setAddressInput] = useState('');
-  const [selectedRole, setSelectedRole] = useState<RoleName>('Minter');
+  const [selectedRoles, setSelectedRoles] = useState<RoleName[]>(['Minter']);
   const [foundRoles, setFoundRoles] = useState<CheckedRole[]>([]);
   const [isChecking, setIsChecking] = useState(false);
   const [lastCheckedAddress, setLastCheckedAddress] = useState<string | null>(null);
@@ -129,7 +132,6 @@ export default function RolesPage() {
     reset();
 
     const targetPubkey = new PublicKey(addressInput);
-    const roleValue = ROLE_DISPLAY_MAP[selectedRole];
 
     try {
       if (operation === 'check') {
@@ -164,24 +166,28 @@ export default function RolesPage() {
         return;
       }
 
+      if (selectedRoles.length === 0) return;
+      const roleValues = selectedRoles.map((r) => ROLE_DISPLAY_MAP[r]);
+
       let tx;
 
       if (operation === 'grant') {
-        tx = await client.composeGrantRole(targetPubkey, roleValue);
+        tx = await client.composeGrantRole(targetPubkey, roleValues);
       } else if (operation === 'revoke') {
-        tx = await client.composeRevokeRole(targetPubkey, roleValue);
+        tx = await client.composeRevokeRole(targetPubkey, roleValues);
       }
 
       if (tx) {
         const sig = await execute(tx);
         if (sig) {
           setAddressInput('');
+          setSelectedRoles([]);
         }
       }
     } catch (err) {
       console.error(err);
     }
-  }, [canOperate, client, operation, addressInput, selectedRole, execute, reset]);
+  }, [canOperate, client, operation, addressInput, selectedRoles, execute, reset]);
 
   const activeOp = OPERATIONS[operation];
   const ActiveIcon = activeOp.icon;
@@ -256,6 +262,7 @@ export default function RolesPage() {
                                   setOperation(op.id);
                                   setIsOpen(false);
                                   setAddressInput('');
+                                  setSelectedRoles([]);
                                 }}
                                 className={cn(
                                   'w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-sm transition-colors hover:bg-accent hover:text-accent-foreground',
@@ -312,26 +319,58 @@ export default function RolesPage() {
                         </div>
 
                         {operation !== 'check' && (
-                          <div className="space-y-2">
-                            <Label>Role Type</Label>
-                            <Select
-                              value={selectedRole}
-                              onValueChange={(v) => setSelectedRole(v as RoleName)}
-                            >
-                              <SelectTrigger className="bg-background/50 h-11">
-                                <SelectValue placeholder="Select a role" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {Object.keys(ROLE_DISPLAY_MAP).map((r) => (
-                                  <SelectItem key={r} value={r}>
-                                    {r}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <p className="text-xs text-muted-foreground">
-                              {ROLE_DESCRIPTIONS[selectedRole]}
-                            </p>
+                          <div className="space-y-4">
+                            <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">
+                              Select Roles to {operation === 'grant' ? 'Grant' : 'Revoke'}
+                            </Label>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                              {(Object.keys(ROLE_DISPLAY_MAP) as RoleName[]).map((role) => (
+                                <div
+                                  key={role}
+                                  className={cn(
+                                    'flex items-center space-x-2 border p-2.5 rounded-lg transition-all cursor-pointer relative group',
+                                    selectedRoles.includes(role)
+                                      ? 'bg-background/80 border-primary/50 ring-1 ring-primary/20'
+                                      : 'bg-background/20 border-border/50 hover:bg-background/40',
+                                  )}
+                                  onClick={() => {
+                                    if (selectedRoles.includes(role)) {
+                                      setSelectedRoles(selectedRoles.filter((r) => r !== role));
+                                    } else {
+                                      setSelectedRoles([...selectedRoles, role]);
+                                    }
+                                  }}
+                                >
+                                  <Checkbox
+                                    id={`role-${role}`}
+                                    checked={selectedRoles.includes(role)}
+                                    onCheckedChange={() => {}}
+                                  />
+                                  <div className="flex items-center justify-between flex-1 min-w-0">
+                                    <Label
+                                      htmlFor={`role-${role}`}
+                                      className="capitalize cursor-pointer font-bold text-sm truncate"
+                                    >
+                                      {role}
+                                    </Label>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          type="button"
+                                          className="text-muted-foreground hover:text-primary transition-colors p-0.5"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <Info size={14} />
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="max-w-[350px] text-xs">
+                                        <p>{ROLE_DESCRIPTIONS[role]}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
 
@@ -450,14 +489,18 @@ export default function RolesPage() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 gap-3">
+                      <div className="grid grid-cols-1 gap-4">
                         {Object.entries(ROLE_DESCRIPTIONS).map(([role, desc]) => (
                           <Card
                             key={role}
-                            className="p-4 border-border/30 hover:border-primary/30 transition-colors bg-background/30"
+                            className="p-5 border-border/30 hover:border-primary/40 transition-all bg-background/30 shadow-sm"
                           >
-                            <span className="text-sm font-bold block mb-1">{role}</span>
-                            <CardDescription className="text-xs">{desc}</CardDescription>
+                            <span className="text-lg font-bold block mb-2 text-primary">
+                              {role}
+                            </span>
+                            <p className="text-base text-muted-foreground leading-relaxed">
+                              {desc}
+                            </p>
                           </Card>
                         ))}
                       </div>
