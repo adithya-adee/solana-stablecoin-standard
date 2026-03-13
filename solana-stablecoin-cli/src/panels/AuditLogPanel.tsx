@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { Spinner, Card, Table, Err, PageInfo } from '../components/ui.js';
-import { loadProvider, formatAmount } from '../utils/config.js';
+import { loadProvider, formatAmount, formatExplorerUrl } from '../utils/config.js';
+import Link from 'ink-link';
 import { PublicKey } from '@solana/web3.js';
 import { BorshCoder, EventParser } from '@coral-xyz/anchor';
 import { SssCoreIdl, STBL_CORE_PROGRAM_ID } from '@stbr/sss-token';
@@ -112,7 +113,12 @@ export function AuditLogPanel({ mint, setRefreshRate }: AuditLogPanelProps) {
       <Card title="Recent Transactions">
         <Table
           rows={data.map((l) => ({
-            key: l.signature.slice(0, 24) + '...',
+            key: (
+              /* @ts-ignore ink-link types */
+              <Link url={formatExplorerUrl(l.signature)}>
+                <Text color="cyanBright">{l.signature.slice(0, 16) + '...'}</Text>
+              </Link>
+            ),
             value: l.event,
           }))}
         />

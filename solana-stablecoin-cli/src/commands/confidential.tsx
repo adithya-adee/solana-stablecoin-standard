@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Text } from 'ink';
-import { SSS, generateTestElGamalKeypair } from '@stbr/sss-token';
+import { SSS, generateRandomConfidentialKeys } from '@stbr/sss-token';
 import { PublicKey } from '@solana/web3.js';
 import { Header, Spinner, Success, Err, Card, Table } from '../components/ui.js';
 import { loadProvider, parseAmount } from '../utils/config.js';
@@ -35,11 +35,11 @@ export default function Confidential({ options }: { options: ConfidentialOptions
 
         switch (options.action) {
           case 'configure': {
-            const { publicKey, secretKey } = generateTestElGamalKeypair();
-            txSig = await sss.confidential.configureAccount(address, secretKey);
+            const { elGamalPublicKey, elGamalSecretKey } = await generateRandomConfidentialKeys();
+            txSig = await sss.confidential.configureAccount(address, elGamalSecretKey);
             setExtraInfo({
-              'ElGamal Pubkey': Buffer.from(publicKey).toString('base64'),
-              'ElGamal Secret': Buffer.from(secretKey).toString('base64'),
+              'ElGamal Pubkey': Buffer.from(elGamalPublicKey).toString('base64'),
+              'ElGamal Secret': Buffer.from(elGamalSecretKey).toString('base64'),
             });
             break;
           }

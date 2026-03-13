@@ -25,6 +25,16 @@ Solana Stablecoin Standard (SSS) follows a 3-layer architecture that separates b
 
 The foundation layer provides token creation, lifecycle management, and role-based access control.
 
+**Monorepo Structure (Turborepo)**
+
+The project is organized as a high-performance monorepo using **Turborepo** and **pnpm workspaces**:
+
+- `solana-stablecoin-sdk/`: Core TypeScript logic, transaction building, and cryptographic primitives.
+- `solana-stablecoin-cli/`: Rich Terminal UI (TUI) for interactive token management.
+- `solana-stablecoin-frontend/`: Next.js web application for end-user and admin dashboards.
+- `solana-stablecoin-backend/`: Microservices ecosystem for off-chain automation and compliance.
+- `sss-programs/`: Anchor-based Rust programs for on-chain logic.
+
 **Token Creation (Token-2022)**
 
 - Mint creation with configurable extensions (mint authority, freeze authority, metadata)
@@ -41,11 +51,16 @@ The foundation layer provides token creation, lifecycle management, and role-bas
 
 **Client Tooling**
 
-- **CLI** (`sss-token`): A unified TypeScript CLI that provides both direct command-line access and a rich, interactive Terminal User Interface (TUI).
+- **CLI** (`sss-token`): A unified TypeScript CLI that provides both direct command-line access and a rich, interactive Terminal User Interface (TUI). Includes advanced Regex Search and Pagination.
 - **TUI Dashboard**: Built with **React Ink**, providing a high-fidelity, component-based dashboard directly in the terminal for real-time monitoring and operations.
-- **TypeScript SDK** (`@stbr/sss-token`): Programmatic access to all SSS functionality, with automatic ATA handling, Pyth oracle integration, and tree-shakable architecture.
-- **Backend Service**: Express.js application providing REST APIs, WebSocket event listeners, and webhook notifications.
-- **Frontend Dashboard**: A premium Next.js (App Router) interface with a unified management console and fluid `framer-motion` transitions.
+- **TypeScript SDK** (`@stbr/sss-token`): Programmatic access to all SSS functionality, with automatic ATA handling, Pyth oracle integration, and **Automatic Transaction Splitting**.
+- **Backend Service (Microservices)**: A containerized ecosystem providing specialized services:
+    - **API Gateway**: Unified entry point for all frontend/SDK requests.
+    - **Mint Service**: Manages issuance workflows and fiat-to-stablecoin reconciliation.
+    - **Compliance Service**: Handles SSS-2 blacklist management and sanctions screening.
+    - **Event Listener**: High-performance indexer for real-time on-chain event tracking.
+    - **Webhook Service**: Dispatches configurable notifications to external systems.
+- **Frontend Dashboard**: A premium Next.js (App Router) interface with a unified management console and **Multi-select Role Filtering**.
 
 ### Layer 2 — Modules
 

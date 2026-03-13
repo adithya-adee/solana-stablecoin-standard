@@ -9,6 +9,8 @@ import { useNotifications } from '../hooks/useNotifications.js';
 import { PublicKey } from '@solana/web3.js';
 import { parseAmount } from '../utils/config.js';
 import { formatSssError } from '../utils/errors.js';
+import Link from 'ink-link';
+import { formatExplorerUrl } from '../utils/config.js';
 
 interface OperationsPanelProps {
   mint: string | undefined;
@@ -50,8 +52,9 @@ export function OperationsPanel({
   const [toAddress, setToAddress] = useState('');
 
   // Process State
-  const [phase, setPhase] = useState<'idle' | 'confirming' | 'executing'>('idle');
+  const [phase, setPhase] = useState<'idle' | 'confirming' | 'executing' | 'done'>('idle');
   const [error, setError] = useState('');
+  const [txSignature, setTxSignature] = useState('');
 
   const getFieldCount = (op: OpType | null): number => {
     switch (op) {
@@ -155,14 +158,13 @@ export function OperationsPanel({
         signature: txSig,
       });
 
+      setTxSignature(txSig);
+      setPhase('done');
       notify('success', `Operation ${activeForm} successful!`);
-      setActiveForm(null);
-      onInputEnd();
     } catch (e: any) {
       const formatted = formatSssError(e);
       setError(formatted);
       notify('error', `Operation failed: ${formatted}`);
-    } finally {
       setPhase('idle');
     }
   };
@@ -297,6 +299,32 @@ export function OperationsPanel({
                 isFocused={focusedField === 2}
               />
             </>
+          )}
+
+          {phase === 'done' && txSignature && (
+            <Box
+              marginTop={1}
+              padding={1}
+              flexDirection="column"
+              borderStyle="round"
+              borderColor="greenBright"
+            >
+              <Text color="greenBright">Operation Successful!</Text>
+              <Box>
+                <Text color="gray">Tx: </Text>
+                {/* @ts-ignore ink-link types */}
+                <Link url={formatExplorerUrl(txSignature)}>
+                  <Text color="white" underline>
+                    {txSignature}
+                  </Text>
+                </Link>
+              </Box>
+              <Box marginTop={1}>
+                <Text color="gray" dimColor>
+                  (Ctrl+Click to open in Solscan)
+                </Text>
+              </Box>
+            </Box>
           )}
 
           {error && <Err message={error} />}

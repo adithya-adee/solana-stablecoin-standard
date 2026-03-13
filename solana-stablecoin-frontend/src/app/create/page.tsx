@@ -171,30 +171,34 @@ export default function CreateStablecoinPage() {
                 Initial Admin Roles (Optional)
               </Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {['minter', 'freezer', 'pauser', 'burner', 'blacklister', 'seizer'].map((role) => (
-                  <div
-                    key={role}
-                    className="flex items-center space-x-3 border border-border/50 p-3 rounded-lg bg-background/30 hover:bg-background/50 transition-colors"
-                  >
-                    <Checkbox
-                      id={`role-${role}`}
-                      checked={selectedRoles.includes(role)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedRoles([...selectedRoles, role]);
-                        } else {
-                          setSelectedRoles(selectedRoles.filter((r) => r !== role));
-                        }
-                      }}
-                    />
-                    <Label
-                      htmlFor={`role-${role}`}
-                      className="capitalize cursor-pointer flex-1 font-medium text-sm"
+                {['minter', 'freezer', 'pauser', 'burner', 'blacklister', 'seizer']
+                  .filter(
+                    (role) => (preset !== 'sss-1' && preset !== 'sss-3') || role !== 'blacklister',
+                  )
+                  .map((role) => (
+                    <div
+                      key={role}
+                      className="flex items-center space-x-3 border border-border/50 p-3 rounded-lg bg-background/30 hover:bg-background/50 transition-colors"
                     >
-                      {role}
-                    </Label>
-                  </div>
-                ))}
+                      <Checkbox
+                        id={`role-${role}`}
+                        checked={selectedRoles.includes(role)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedRoles([...selectedRoles, role]);
+                          } else {
+                            setSelectedRoles(selectedRoles.filter((r) => r !== role));
+                          }
+                        }}
+                      />
+                      <Label
+                        htmlFor={`role-${role}`}
+                        className="capitalize cursor-pointer flex-1 font-medium text-sm"
+                      >
+                        {role}
+                      </Label>
+                    </div>
+                  ))}
               </div>
             </div>
 
@@ -228,7 +232,14 @@ export default function CreateStablecoinPage() {
                         ? 'border-foreground bg-foreground/5 ring-1 ring-foreground/30'
                         : 'border-border',
                     )}
-                    onClick={() => setPreset(p.id as PresetChoice)}
+                    onClick={() => {
+                      const nextPreset = p.id as PresetChoice;
+                      setPreset(nextPreset);
+                      // If moving to SSS-1 or SSS-3, remove blacklister from selected roles if present
+                      if (nextPreset === 'sss-1' || nextPreset === 'sss-3') {
+                        setSelectedRoles((prev) => prev.filter((r) => r !== 'blacklister'));
+                      }
+                    }}
                   >
                     <CardHeader className="p-4">
                       <div className="flex items-center gap-2 mb-1">

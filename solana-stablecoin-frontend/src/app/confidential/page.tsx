@@ -12,7 +12,7 @@ import { PageHeader } from '@/components/page-header';
 import { useActiveMint } from '@/hooks/use-active-mint';
 import { useTokenState } from '@/hooks/use-token-state';
 import { cn } from '@/lib/utils';
-import { generateTestElGamalKeypair } from '@stbr/sss-token';
+import { generateRandomConfidentialKeys } from '@stbr/sss-token';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useConfidential } from '@/hooks/use-confidential';
 
@@ -109,10 +109,10 @@ export default function ConfidentialPage() {
   const handleExecute = async () => {
     try {
       if (operation === 'config') {
-        const { secretKey } = generateTestElGamalKeypair();
+        const { elGamalSecretKey } = await generateRandomConfidentialKeys();
         // In a real app, we would store this secretKey securely or let the user download it.
         // For the demo, we just pass it to the configureAccount hook.
-        await configureAccount(addressInput, secretKey);
+        await configureAccount(addressInput, elGamalSecretKey);
       }
       if (operation === 'deposit')
         await deposit(addressInput, BigInt(amountInput), tokenState?.decimals || 9);
@@ -285,18 +285,20 @@ export default function ConfidentialPage() {
                     </Label>
                     <Button
                       variant="outline"
-                      className="w-full justify-between h-14 px-4 bg-background/50 hover:bg-background/80"
+                      className="w-full justify-between h-14 px-4 bg-background/50 hover:bg-background/80 border-border/40 hover:border-border/80 transition-all duration-200 shadow-sm"
                       onClick={() => setIsOpen(!isOpen)}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={cn('p-2 rounded-md border', activeOp.color)}>
+                        <div className={cn('p-2 rounded-md border shadow-sm', activeOp.color)}>
                           <ActiveIcon size={18} />
                         </div>
-                        <span className="font-semibold">{activeOp.title}</span>
+                        <span className="font-semibold text-sm tracking-tight">
+                          {activeOp.title}
+                        </span>
                       </div>
                       <ChevronDown
                         className={cn(
-                          'ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-200',
+                          'ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-300',
                           isOpen && 'rotate-180',
                         )}
                       />

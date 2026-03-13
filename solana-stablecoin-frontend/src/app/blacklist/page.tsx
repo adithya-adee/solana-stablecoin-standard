@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Search, ShieldOff, ShieldAlert, Info } from 'lucide-react';
+import { ChevronDown, Search, ShieldOff, ShieldAlert } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -15,8 +15,10 @@ import { TxFeedback } from '@/components/tx-feedback';
 import { useStablecoin } from '@/hooks/use-stablecoin';
 import { useTransaction } from '@/hooks/use-transaction';
 import { useActiveMint } from '@/hooks/use-active-mint';
+import { useTokenState } from '@/hooks/use-token-state';
 import { isValidPubkey } from '@/lib/validation';
 import { cn } from '@/lib/utils';
+import { AlertCircle } from 'lucide-react';
 
 type OperationType = 'check' | 'add' | 'remove';
 
@@ -36,7 +38,7 @@ const OPERATIONS: Record<
     title: 'Check Status',
     description: 'Verify whether an address is blacklisted by checking the on-chain PDA.',
     icon: Search,
-    color: 'text-accent bg-accent/10 border-accent/20',
+    color: 'text-sky-500 bg-sky-500/10 border-sky-500/20',
     buttonVariant: 'primary',
   },
   add: {
@@ -60,8 +62,9 @@ const OPERATIONS: Record<
 export default function BlacklistPage() {
   const { publicKey } = useWallet();
   const { client, loading: clientLoading } = useStablecoin();
-  const { loading: txLoading, error: txError, signature, execute, reset } = useTransaction();
+  const { execute, reset, loading: txLoading, error: txError, signature } = useTransaction();
   const { activeMint } = useActiveMint();
+  const { data: tokenState, loading: tokenLoading } = useTokenState(activeMint);
 
   const [operation, setOperation] = useState<OperationType>('check');
   const [isOpen, setIsOpen] = useState(false);
@@ -122,18 +125,6 @@ export default function BlacklistPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title="Blacklist Management" />
       <div className="p-6 space-y-6 max-w-4xl mx-auto w-full">
-        {/* SSS-2 notice */}
-        <Card className="border-accent/30 bg-accent/5 p-4 shadow-sm flex items-center gap-3">
-          <Info className="h-5 w-5 text-accent shrink-0" />
-          <div>
-            <p className="text-sm font-semibold">SSS-2 Feature</p>
-            <p className="text-xs text-muted-foreground">
-              Blacklist management is available for SSS-2 (Compliant) presets with the transfer hook
-              program enabled.
-            </p>
-          </div>
-        </Card>
-
         {!activeMint && (
           <Card className="p-12 text-center border-dashed">
             <CardDescription>
@@ -150,7 +141,30 @@ export default function BlacklistPage() {
           </Card>
         )}
 
-        {activeMint && (
+        {activeMint && !tokenLoading && tokenState && tokenState.preset === 'sss-1' && (
+          <Card className="border-destructive/30 bg-destructive/5 p-6 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-destructive/10 border border-destructive/20 shadow-inner">
+                <AlertCircle className="w-6 h-6 text-destructive" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-destructive">Blacklist Not Supported</h3>
+                <p className="mt-1 text-sm text-foreground/80 leading-relaxed">
+                  The selected token (
+                  <span className="font-mono font-bold">{tokenState.symbol}</span>) uses the{' '}
+                  <span className="font-bold">{tokenState.presetName}</span> preset.
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                  Blacklist management requires at least the <strong>SSS-2 (Compliant)</strong>{' '}
+                  preset, which includes the necessary Transfer Hook extensions for address
+                  filtering.
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {activeMint && (!tokenState || tokenState.preset !== 'sss-1') && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -170,18 +184,20 @@ export default function BlacklistPage() {
                     </Label>
                     <Button
                       variant="outline"
-                      className="w-full justify-between h-14 px-4 bg-background/50 hover:bg-background/80"
+                      className="w-full justify-between h-14 px-4 bg-background/50 hover:bg-background/80 border-border/40 hover:border-border/80 transition-all duration-200 shadow-sm"
                       onClick={() => setIsOpen(!isOpen)}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={cn('p-2 rounded-md border', activeOp.color)}>
+                        <div className={cn('p-2 rounded-md border shadow-sm', activeOp.color)}>
                           <ActiveIcon size={18} />
                         </div>
-                        <span className="font-semibold">{activeOp.title}</span>
+                        <span className="font-semibold text-sm tracking-tight">
+                          {activeOp.title}
+                        </span>
                       </div>
                       <ChevronDown
                         className={cn(
-                          'ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-200',
+                          'ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-300',
                           isOpen && 'rotate-180',
                         )}
                       />

@@ -48,7 +48,7 @@ const OPERATIONS: Record<
     description:
       'Burn tokens from a token account. Reduces circulating supply. Requires burner role.',
     icon: Flame,
-    color: 'text-orange-500 bg-orange-500/10 border-orange-500/20',
+    color: 'text-orange-400 bg-orange-400/10 border-orange-400/20',
     buttonVariant: 'destructive',
   },
   freeze: {
@@ -64,7 +64,7 @@ const OPERATIONS: Record<
     title: 'Thaw Account',
     description: 'Unfreeze a previously frozen token account to restore transfers.',
     icon: ShieldAlert,
-    color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+    color: 'text-sky-500 bg-sky-500/10 border-sky-500/20',
     buttonVariant: 'primary',
   },
   pause: {
@@ -256,18 +256,20 @@ export default function OperationsPage() {
                     </Label>
                     <Button
                       variant="outline"
-                      className="w-full justify-between h-14 px-4 bg-background/50 hover:bg-background/80"
+                      className="w-full justify-between h-14 px-4 bg-background/50 hover:bg-background/80 border-border/40 hover:border-border/80 transition-all duration-200 shadow-sm"
                       onClick={() => setIsOpen(!isOpen)}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={cn('p-2 rounded-md border', activeOp.color)}>
+                        <div className={cn('p-2 rounded-md border shadow-sm', activeOp.color)}>
                           <ActiveIcon size={18} />
                         </div>
-                        <span className="font-semibold">{activeOp.title}</span>
+                        <span className="font-semibold text-sm tracking-tight">
+                          {activeOp.title}
+                        </span>
                       </div>
                       <ChevronDown
                         className={cn(
-                          'ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-200',
+                          'ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-300',
                           isOpen && 'rotate-180',
                         )}
                       />

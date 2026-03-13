@@ -167,15 +167,38 @@ let zkModuleCache: ZkModule | null = null;
 export async function loadZkSdk(zkModule?: ZkModule): Promise<ZkModule> {
   if (zkModule) return zkModule;
   if (zkModuleCache) return zkModuleCache;
-  const base = '@solana/zk-sdk';
-  try {
-    const node = await import(/* webpackIgnore: true */ `${base}/node`);
-    zkModuleCache = node as unknown as ZkModule;
-    return zkModuleCache;
-  } catch {
-    const bundler = await import(/* webpackIgnore: true */ `${base}/bundler`);
-    zkModuleCache = bundler as unknown as ZkModule;
-    return zkModuleCache;
+
+  // Robust check for browser environment to avoid SSR issues in Next.js
+  const isBrowser = typeof globalThis !== 'undefined' && 'window' in globalThis;
+
+  if (isBrowser) {
+    // BROWSER/BUNDLER: Standard import for the bundler to process and include.
+    try {
+      // @ts-ignore
+      const bundler: any = await import('@solana/zk-sdk/bundler');
+      zkModuleCache = (bundler.default || bundler) as unknown as ZkModule;
+      return zkModuleCache;
+    } catch (e) {
+      try {
+        // @ts-ignore
+        const web: any = await import('@solana/zk-sdk/web');
+        zkModuleCache = (web.default || web) as unknown as ZkModule;
+        return zkModuleCache;
+      } catch (e2) {
+        throw new Error('Failed to load @solana/zk-sdk for browser: ' + (e2 as Error).message);
+      }
+    }
+  } else {
+    // NODE: Hide from bundlers but allow Node to load it at runtime.
+    try {
+      const nodePath = '@solana/zk-sdk/node';
+      // @ts-ignore
+      const node: any = await import(/* webpackIgnore: true */ nodePath);
+      zkModuleCache = (node.default || node) as unknown as ZkModule;
+      return zkModuleCache;
+    } catch (e) {
+      throw new Error('Failed to load @solana/zk-sdk for node: ' + (e as Error).message);
+    }
   }
 }
 

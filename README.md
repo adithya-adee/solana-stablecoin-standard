@@ -27,27 +27,62 @@ Whether you're building an internal DAO settlement token, a fully regulated USDC
 
 The project is structured in three composable layers to ensure maximum flexibility while enforcing secure defaults.
 
-```text
-+-------------------------------------------------------------+
-|                     Client Applications                     |
-|           (Web Dashboard / Next.js / Express API)           |
-+-----------------------------+-------------------------------+
-                              |
-+-----------------------------v-------------------------------+
-|                      Stablecoin SDK                         |
-|      (@stbr/sss-token - Highly optimized & Tree-shakable)   |
-+-----------+-----------------+-------------------+-----------+
-            |                 |                   |
-     +------v------+   +------v------+     +------v------+
-     |   Tier 1    |   |   Tier 2    |     |   Tier 3    |
-     |  (Utility)  |   | (Regulated) |     |  (Private)  |
-     +------+------+   +------+------+     +------+------+
-            |                 |                   |
-+-----------v-----------------v-------------------v-----------+
-|                      Core Smart Contracts                    |
-|   [sss-core] (Base Logic, Authorities, Mint/Burn Quotas)    |
-|   [sss-transfer-hook] (Strict Transfer Policy Enforcement)  |
-+-------------------------------------------------------------+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        Frontend["Next.js Dashboard"]
+        CLI["React Ink (TUI)"]
+        External["External Integrations"]
+    end
+
+    subgraph "SDK Layer (@stbr/sss-token)"
+        SDK["Stablecoin Client"]
+        Batcher["Tx Batcher / Splitter"]
+        Oracle["Pyth Oracle Client"]
+        ZK["ZK Proof Gen (WASM)"]
+    end
+
+    subgraph "Backend Tier (Microservices)"
+        Gateway["API Gateway"]
+        MintSvc["Mint Service"]
+        CompSvc["Compliance Service"]
+        EventIndexer["Event Indexer"]
+        Webhook["Webhook Dispatcher"]
+        Redis[("Redis (Pub/Sub)")]
+        Postgres[("PostgreSQL")]
+    end
+
+    subgraph "On-Chain Layer (Solana)"
+        Core["SSS Core Program"]
+        Hook["SSS Transfer Hook"]
+        T22["SPL Token-2022"]
+        Pyth["Pyth V2 Oracle"]
+    end
+
+    %% Interactions
+    Frontend & CLI & External --> SDK
+    
+    %% SDK interactions
+    SDK --> Gateway
+    SDK --> Batcher
+    SDK --> ZK
+    Batcher --> Core
+    Batcher --> T22
+    SDK --> Oracle
+    Oracle --> Pyth
+
+    %% Backend Flow
+    Gateway --> MintSvc & CompSvc & Webhook
+    MintSvc & CompSvc --> Redis
+    Webhook --> Redis
+    EventIndexer -- "Indexes" --> T22 & Hook
+    EventIndexer -- "Persists" --> Postgres
+    CompSvc -- "Queries" --> Postgres
+
+    %% On-Chain logic
+    Core -- "CPI (Mint/Burn/Freeze)" --> T22
+    T22 -- "CPI (Transfer-Hook)" --> Hook
+    Hook -- "PDA Checks" --> Core
 ```
 
 ---
@@ -87,86 +122,75 @@ git clone https://github.com/solanabr/solana-stablecoin-standard.git
 cd solana-stablecoin-standard
 pnpm install
 
-# Compile the Anchor programs
-anchor build
+# Build the entire workspace (Powered by Turbo)
+pnpm build
 
-# Run all test layers
-anchor test           # Integration coverage (97 tests)
-pnpm test:sdk         # Typescript SDK coverage (90 tests)
-cargo test            # Rust unit & property tests (16 tests)
+# Run targeted tests
+pnpm test:programs    # Integration coverage (sss-programs)
+pnpm test:sdk         # Typescript SDK coverage
 ```
 
 ---
 
 ## 💻 Working with the TypeScript SDK
 
-The `@stbr/sss-token` SDK is built with strong typing, tree-shakability, and an intuitive class-based client.
+The `@stbr/sss-token` SDK is built with strong typing, tree-shakability, and an intuitive client.
+
+- **Automatic Transaction Splitting**: Handles large instruction sets by splitting them into safe-sized transactions.
+- **Solscan Integration**: Returns transaction signatures with direct Solscan Devnet links.
 
 ```typescript
-import { StablecoinClient, StablecoinTiers } from '@stbr/sss-token';
+import { SSS, SSS_TIERS } from '@stbr/sss-token';
 import { AnchorProvider } from '@coral-xyz/anchor';
 
 const provider = AnchorProvider.env();
 
 // 1. Deploy a heavily-regulated Tier 2 token
-const stablecoin = await StablecoinClient.create(provider, {
-  preset: StablecoinTiers.SSS_2,
+const stablecoin = await SSS.create(provider, {
+  preset: SSS_TIERS.SSS_2,
   name: 'Global Euro Dollar',
   symbol: 'GEUR',
   decimals: 6,
-  supplyCap: 1_000_000_000_000n, // Optional hard cap
+  supplyCap: 1_000_000_000_000n,
 });
 
-// 2. Manage Roles
-await stablecoin.accessControl.grant(treasuryWallet.publicKey, 'minter');
+// 2. Manage Roles (Supports Multi-granting with auto-splitting)
+await stablecoin.roles.grant(treasuryWallet.publicKey, ['minter', 'freezer']);
 
 // 3. Issue and Burn
-await stablecoin.issueTokens(treasuryWallet.publicKey, 500_000_000n);
-const circulating = await stablecoin.fetchCirculatingSupply();
-
-// 4. Regulatory Enforcement (Tier 2 only)
-await stablecoin.denyList.add(maliciousAddress, 'OFAC Sanctions match');
-await stablecoin.enforcement.seize(frozenHackerAccount, treasuryWallet, amount);
+await stablecoin.mint({ recipient: targetWallet, amount: 500_000_000n });
 ```
 
 ---
 
 ## 🎛 CLI & Interactive Dashboard
 
-The terminal application is powered by React Ink, giving operators an advanced dashboard with tabs, active network configurations, and rapid-response actions.
+The terminal application is powered by React Ink, giving operators an advanced dashboard with tabs and real-time operations.
 
-![CLI Demo](docs/images/cli-demo.gif)
+- **`[f]` Relationship Cycle**: Filter by Managed, All, Authority, or Roles.
+- **`[/]` Regex Search**: Real-time regex matching for token names and symbols.
+- **`[n]/[p]` Pagination**: Efficiently browse large catalogs of tokens.
 
 ```bash
 # Launch the interactive terminal UI (TUI)
-cd solana-stablecoin-cli
-pnpm build
-sss-token tui
-
-# Or use direct commands for CI/CD integrations
-sss-token init --preset sss-2 --name "Regulated USD" --symbol "rUSD" --decimals 6
-sss-token mint --mint <MINT_ADDRESS> --recipient <TARGET_WALLET> --amount 1000
-sss-token supply --mint <MINT_ADDRESS>
-sss-token blacklist add --mint <MINT_ADDRESS> --address <TARGET_WALLET> --reason "Suspicious Activity"
+pnpm start --filter @stbr/sss-cli
 ```
 
 ---
 
 ## 🔌 Backend Integrations
 
-The backend service is an Express.js application designed to run in a Docker container alongside your infrastructure. It features:
+The backend is a modern microservices ecosystem designed for scale and modularity:
 
-- **Event Monitors:** WebSocket connections that parse raw log streams into clean webhook payloads.
-- **Webhooks:** Automated notifications with configurable backoff arrays.
-- **REST Endpoints:** Hardened endpoints with API-key middleware and built-in rate limiters.
-- **Docker-ready:** Non-root execution environments with native health checks.
+- **Mint Service**: Fiat-to-stablecoin lifecycle coordination.
+- **Compliance Service**: Blacklist and sanctions management.
+- **Event Listener**: Real-time on-chain indexing.
+- **Webhook Service**: Reliable notifications with queue management.
+- **API Gateway**: Unified REST/WebSocket entry point.
 
 ```bash
-cd solana-stablecoin-backend
-cp .env.example .env
-
-# Start up the entire backend stack
-docker compose up
+# Start the entire stack (Postgres + Redis + Microservices)
+docker compose up -d
 ```
 
 ---
@@ -184,11 +208,15 @@ The core programs are already deployed and rigorously verified on the Solana Dev
 
 ## 🧪 Test Coverage
 
-We maintain absolute strictness regarding correct execution. The repository houses **203 fully passing tests**:
+We maintain absolute strictness regarding correct execution. The repository houses **243 fully passing tests** across multiple verification layers:
 
-- **97 Integration Tests:** Full end-to-end flows asserting role escalations and hook boundaries.
-- **90 SDK Unit Tests:** Isolated checks for PDA math, strict type exports, and proper HTTP error transformations.
-- **16 Rust Fuzz/Unit Tests:** Edge cases covering supply mathematical overflows and access-control bypasses.
+- **96 Anchor Integration Tests**: End-to-end flows asserting role escalations, hook boundaries, and token lifecycle integrity.
+- **141 SDK Unit Tests**: Exhaustive coverage for PDA math, strict type safety, transaction building, and cryptographic primitives.
+- **6 Rust Unit Tests**: Critical low-level logic verification for supply caps and mathematical state transitions.
+- **Trident Fuzz Tests**: High-entropy property-based testing to stress-test program boundaries against malicious inputs.
+- **Verification Scripts**: Specialized node scripts for runtime health checks and deployment validation.
+
+All suites are currently **PASSING** in the CI pipeline.
 
 ---
 

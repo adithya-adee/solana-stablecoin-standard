@@ -10,6 +10,8 @@ import { PublicKey } from '@solana/web3.js';
 import { roleType } from '@stbr/sss-token';
 import { formatSssError } from '../utils/errors.js';
 import SelectInput from 'ink-select-input';
+import Link from 'ink-link';
+import { formatExplorerUrl } from '../utils/config.js';
 
 interface CompliancePanelProps {
   mint: string | undefined;
@@ -135,21 +137,23 @@ export function CompliancePanel({
         setPhase('done');
         return;
       } else if (op === 'rl-grant') {
-        const hasRole = await sss.roles.check(addr, roleType(roleInput as any));
+        const role = roleType(roleInput as any);
+        const hasRole = await sss.accessControl.check(addr, role as any);
         if (hasRole) {
           setError(`Address already has the '${roleInput}' role.`);
           setPhase('idle');
           return;
         }
-        txSig = await sss.roles.grant(addr, roleType(roleInput as any));
+        txSig = await sss.accessControl.grant(addr, role as any);
       } else if (op === 'rl-revoke') {
-        const hasRole = await sss.roles.check(addr, roleType(roleInput as any));
+        const role = roleType(roleInput as any);
+        const hasRole = await sss.accessControl.check(addr, role as any);
         if (!hasRole) {
           setError(`Address does not have the '${roleInput}' role.`);
           setPhase('idle');
           return;
         }
-        txSig = await sss.roles.revoke(addr, roleType(roleInput as any));
+        txSig = await sss.accessControl.revoke(addr, role as any);
       } else if (op === 'rl-chk') {
         const ALL_ROLES = [
           'admin',
@@ -162,7 +166,7 @@ export function CompliancePanel({
         ] as const;
         const results: { role: string; has: boolean }[] = [];
         for (const r of ALL_ROLES) {
-          const has = await sss.roles.check(addr, roleType(r));
+          const has = await sss.accessControl.check(addr, r as any);
           results.push({ role: r, has });
         }
         setRoleInfos(results);
@@ -179,15 +183,14 @@ export function CompliancePanel({
         signature: txSig,
       });
 
+      setResultMsg(`Success! Tx: ${txSig}`);
+      setPhase('done');
       notify('success', `Operation ${activeForm} successful!`);
-      setActiveForm(null);
-      onInputEnd();
     } catch (e: any) {
       const formatted = formatSssError(e);
       setError(formatted);
       notify('error', `Operation failed: ${formatted}`);
-    } finally {
-      setPhase((curr) => (curr === 'executing' ? 'idle' : curr));
+      setPhase('idle');
     }
   };
 
@@ -375,8 +378,28 @@ export function CompliancePanel({
           )}
 
           {phase === 'done' && resultMsg && (
-            <Box marginTop={1} padding={1} borderStyle="round">
-              <Text color="greenBright">{resultMsg}</Text>
+            <Box marginTop={1} padding={1} borderStyle="round" borderColor="greenBright">
+              {resultMsg.includes('Tx: ') ? (
+                <Box flexDirection="column">
+                  <Text color="greenBright">Operation Successful!</Text>
+                  <Box>
+                    <Text color="gray">Tx: </Text>
+                    {/* @ts-ignore ink-link types */}
+                    <Link url={formatExplorerUrl(resultMsg.split('Tx: ')[1]!)}>
+                      <Text color="white" underline>
+                        {resultMsg.split('Tx: ')[1]}
+                      </Text>
+                    </Link>
+                  </Box>
+                  <Box marginTop={1}>
+                    <Text color="gray" dimColor>
+                      (Ctrl+Click to open in Solscan)
+                    </Text>
+                  </Box>
+                </Box>
+              ) : (
+                <Text color="greenBright">{resultMsg}</Text>
+              )}
             </Box>
           )}
 
