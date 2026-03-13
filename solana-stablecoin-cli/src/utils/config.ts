@@ -61,7 +61,7 @@ export function formatAmount(raw: bigint, decimals = 6): string {
 
 export function formatExplorerUrl(signature: string): string {
   const cluster = process.env.SOLANA_CLUSTER ?? 'devnet';
-  let url = `https://explorer.solana.com/tx/${signature}`;
+  let url = `https://solscan.io/tx/${signature}`;
   if (cluster !== 'mainnet-beta') {
     url += `?cluster=${cluster}`;
   }

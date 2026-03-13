@@ -26,4 +26,5 @@ export const Icons = {
   info: '🛈',
   clock: '⏱',
   skull: '💀',
+  search: '🔍',
 };

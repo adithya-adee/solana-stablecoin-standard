@@ -46,7 +46,7 @@ export default function Roles({ options }: { options: RolesOptions }) {
           const addr = new PublicKey(options.address);
           const results: { address: string; role: string }[] = [];
           for (const r of ALL_ROLES) {
-            const has = await sss.roles.check(addr, roleType(r));
+            const has = await sss.accessControl.check(addr, r as any);
             if (has) results.push({ address: addr.toBase58(), role: r });
           }
           setRoleInfos(results);
@@ -56,9 +56,11 @@ export default function Roles({ options }: { options: RolesOptions }) {
             throw new Error('--address and --role are required');
           }
           const addr = new PublicKey(options.address);
-          const role = roleType(options.role as ValidRole);
+          const roleStrs = options.role.includes(',') ? options.role.split(',') : [options.role];
+          const roles = roleStrs.map((r) => roleType(r.trim() as ValidRole));
+
           if (options.action === 'grant') {
-            const txSig = await sss.roles.grant(addr, role);
+            const txSig = await sss.accessControl.grant(addr, roles as any);
             setSig(txSig);
             setPhase('confirming');
             const latestBlockHash = await provider.connection.getLatestBlockhash();
@@ -68,7 +70,7 @@ export default function Roles({ options }: { options: RolesOptions }) {
               signature: txSig,
             });
           } else if (options.action === 'revoke') {
-            const txSig = await sss.roles.revoke(addr, role);
+            const txSig = await sss.accessControl.revoke(addr, roles as any);
             setSig(txSig);
             setPhase('confirming');
             const latestBlockHash = await provider.connection.getLatestBlockhash();
@@ -78,8 +80,8 @@ export default function Roles({ options }: { options: RolesOptions }) {
               signature: txSig,
             });
           } else {
-            // check
-            const has = await sss.roles.check(addr, role);
+            // check (single role only for simplicity here)
+            const has = await sss.accessControl.check(addr, roles[0] as any);
             setSig(has ? 'Yes — role is active' : 'No — role not found');
           }
           setPhase('done');

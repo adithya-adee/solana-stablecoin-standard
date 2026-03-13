@@ -123,15 +123,18 @@ export function Card({ title, children }: CardProps) {
 // ─── Table ───────────────────────────────────────────────────────────────────
 
 interface TableProps {
-  rows: { key: string; value: React.ReactNode; highlight?: boolean }[];
+  rows: { key: React.ReactNode; value: React.ReactNode; highlight?: boolean }[];
 }
 export function Table({ rows }: TableProps) {
-  const maxKey = Math.max(...rows.map((r) => r.key.length));
+  // Rough estimation for padding if key is string, otherwise default
+  const maxKeyLen = Math.max(...rows.map((r) => (typeof r.key === 'string' ? r.key.length : 16)));
   return (
     <Box flexDirection="column">
       {rows.map((r, i) => (
         <Box key={i}>
-          <Text color={Theme.dim as any}>{r.key.padEnd(maxKey + 2, ' ')}</Text>
+          <Box width={maxKeyLen + 2}>
+            {typeof r.key === 'string' ? <Text color={Theme.dim as any}>{r.key}</Text> : r.key}
+          </Box>
           {typeof r.value === 'string' ? (
             <Text color={(r.highlight ? Theme.warning : Theme.text) as any}>{r.value}</Text>
           ) : (
