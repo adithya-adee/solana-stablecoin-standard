@@ -12,8 +12,27 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Search, RefreshCw, Wallet, Coins, CheckCircle2, PauseCircle } from 'lucide-react';
+import { Search, RefreshCw, Wallet, Coins, CheckCircle2, PauseCircle, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
+
+const FILTER_OPTIONS = [
+  { id: 'authority', label: 'Authority (Admin)' },
+  { id: 'Minter', label: 'Minter' },
+  { id: 'Freezer', label: 'Freezer' },
+  { id: 'Burner', label: 'Burner' },
+  { id: 'Pauser', label: 'Pauser' },
+  { id: 'Blacklister', label: 'Blacklister' },
+  { id: 'Seizer', label: 'Seizer' },
+];
 
 const PRESET_NAMES: Record<number, string> = {
   1: 'SSS-1',
@@ -34,6 +53,8 @@ interface TokenAccount {
   preset: number;
   authority: string;
   paused: boolean;
+  isAuthority: boolean;
+  roles: string[];
   raw: any;
 }
 
@@ -52,7 +73,7 @@ export default function TokensPage() {
   // Filters
   const [filterName, setFilterName] = useState('');
   const [filterMint, setFilterMint] = useState('');
-  const [filterAuthority, setFilterAuthority] = useState('');
+  const [filterRelationship, setFilterRelationship] = useState<string[]>(['authority']);
 
   const fetchTokens = useCallback(async () => {
     if (!program || isLoading) return;
@@ -71,19 +92,35 @@ export default function TokensPage() {
           paused: boolean;
         };
       }
-      const accounts = await (
-        program.account as unknown as { stablecoinConfig: { all(): Promise<RawAccount[]> } }
-      ).stablecoinConfig.all();
+      const [accounts, roleAccounts] = await Promise.all([
+        (program.account as any).stablecoinConfig.all(),
+        (program.account as any).roleAccount.all([
+          { memcmp: { offset: 40, bytes: program.provider.publicKey!.toBase58() } },
+        ]),
+      ]);
 
-      const mapped: TokenAccount[] = accounts.map((acc: RawAccount) => ({
-        mint: acc.account.mint.toBase58(),
-        name: acc.account.name.replace(/\0/g, '').trim(),
-        symbol: acc.account.symbol.replace(/\0/g, '').trim(),
-        preset: acc.account.preset,
-        authority: acc.account.authority.toBase58(),
-        paused: acc.account.paused,
-        raw: acc,
-      }));
+      const rolesByMint: Record<string, string[]> = {};
+      roleAccounts.forEach((r: any) => {
+        const mintStr = r.account.config.toBase58();
+        if (!rolesByMint[mintStr]) rolesByMint[mintStr] = [];
+        const roleName = Object.keys(r.account.role)[0]!;
+        rolesByMint[mintStr]!.push(roleName.charAt(0).toUpperCase() + roleName.slice(1));
+      });
+
+      const mapped: TokenAccount[] = accounts.map((acc: RawAccount) => {
+        const mintStr = acc.account.mint.toBase58();
+        return {
+          mint: mintStr,
+          name: acc.account.name.replace(/\0/g, '').trim(),
+          symbol: acc.account.symbol.replace(/\0/g, '').trim(),
+          preset: acc.account.preset,
+          authority: acc.account.authority.toBase58(),
+          paused: acc.account.paused,
+          isAuthority: acc.account.authority.equals(program.provider.publicKey!),
+          roles: rolesByMint[mintStr] || [],
+          raw: acc,
+        };
+      });
 
       setTokens(mapped);
       setHasFetched(true);
@@ -102,11 +139,27 @@ export default function TokensPage() {
         filterName === '' || t.name.toLowerCase().includes(filterName.toLowerCase());
       const mintMatch =
         filterMint === '' || t.mint.toLowerCase().includes(filterMint.toLowerCase());
-      const authorityMatch =
-        filterAuthority === '' || t.authority.toLowerCase().includes(filterAuthority.toLowerCase());
-      return nameMatch && mintMatch && authorityMatch;
+
+      if (filterRelationship.length === 0) return nameMatch && mintMatch;
+
+      const relMatch = filterRelationship.some((filter) => {
+        if (filter === 'authority') return t.isAuthority;
+        return t.roles.includes(filter);
+      });
+
+      return nameMatch && mintMatch && relMatch;
     });
-  }, [tokens, filterName, filterMint, filterAuthority]);
+  }, [tokens, filterName, filterMint, filterRelationship]);
+
+  const toggleFilter = (id: string) => {
+    setFilterRelationship((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((f) => f !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
 
   const handleSelect = (token: TokenAccount) => {
     setActiveMint(token.mint);
@@ -166,17 +219,56 @@ export default function TokensPage() {
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Admin / Authority</Label>
-            <div className="relative">
-              <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
-              <Input
-                id="filter-authority"
-                placeholder="Filter by authority wallet..."
-                value={filterAuthority}
-                onChange={(e) => setFilterAuthority(e.target.value)}
-                className="pl-9 bg-background/50 h-10 font-mono text-xs"
-              />
-            </div>
+            <Label className="text-xs text-muted-foreground">Relationship Filters</Label>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full justify-between h-10 bg-background/50">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <Filter className="w-4 h-4 text-muted-foreground/50 shrink-0" />
+                    <div className="flex gap-1 overflow-hidden">
+                      {filterRelationship.length === 0 ? (
+                        <span className="text-xs text-muted-foreground">All Tokens</span>
+                      ) : (
+                        filterRelationship.slice(0, 2).map((f) => (
+                          <Badge
+                            key={f}
+                            variant="secondary"
+                            className="text-[10px] h-5 px-1 bg-muted/50 border-none"
+                          >
+                            {FILTER_OPTIONS.find((opt) => opt.id === f)?.label || f}
+                          </Badge>
+                        ))
+                      )}
+                      {filterRelationship.length > 2 && (
+                        <span className="text-[10px] text-muted-foreground self-center">
+                          +{filterRelationship.length - 2}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuLabel>Filter by Role</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem
+                  checked={filterRelationship.length === 0}
+                  onCheckedChange={() => setFilterRelationship([])}
+                >
+                  All Tokens
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuSeparator />
+                {FILTER_OPTIONS.map((opt) => (
+                  <DropdownMenuCheckboxItem
+                    key={opt.id}
+                    checked={filterRelationship.includes(opt.id)}
+                    onCheckedChange={() => toggleFilter(opt.id)}
+                  >
+                    {opt.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -236,6 +328,30 @@ export default function TokensPage() {
                       <code className="text-[10px] font-mono text-foreground/70 break-all">
                         {token.mint}
                       </code>
+                    </div>
+
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                        Your Role
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {token.isAuthority && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                            Authority
+                          </span>
+                        )}
+                        {token.roles.map((r) => (
+                          <span
+                            key={r}
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                          >
+                            {r}
+                          </span>
+                        ))}
+                        {!token.isAuthority && token.roles.length === 0 && (
+                          <span className="text-[10px] text-muted-foreground italic">None</span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between">
