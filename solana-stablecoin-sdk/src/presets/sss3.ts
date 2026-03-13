@@ -82,7 +82,7 @@ export async function createSss3MintTx(
   const extensions = [
     ExtensionType.MetadataPointer,
     ExtensionType.PermanentDelegate,
-    ExtensionType.ConfidentialTransferMint,
+    (ExtensionType as any).ConfidentialTransferMint ?? 4,
   ];
   const mintLen = getMintLen(extensions);
 

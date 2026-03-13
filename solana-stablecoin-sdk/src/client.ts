@@ -183,7 +183,20 @@ export class StablecoinClient {
       ledgerProgram.programId,
     );
 
-    if (opts.initialRoles && Array.isArray(opts.initialRoles)) {
+    // configPda and configBump are already derived above at line 181
+
+    if (opts.preset === 'sss-2') {
+      const hookInitIx = await hookix.createHookMetaInitInstruction(
+        guardProgram,
+        mint.publicKey as TokenMintKey,
+        payer,
+      );
+      mintTx.add(hookInitIx);
+    }
+
+    // Prepare role-granting instructions if requested
+    const roleIxs: TransactionInstruction[] = [];
+    if (opts.initialRoles && Array.isArray(opts.initialRoles) && opts.initialRoles.length > 0) {
       for (const roleStr of opts.initialRoles) {
         let validRole: AccessRole | null = null;
         switch (roleStr.toLowerCase()) {
@@ -197,10 +210,7 @@ export class StablecoinClient {
             validRole = asRole(roleStr.toLowerCase() as any);
             break;
         }
-        if (validRole) {
-          // If the user requests 'admin', skip since it's already granted by the smart contract
-          if (validRole === asRole('admin')) continue;
-
+        if (validRole && validRole !== asRole('admin')) {
           const grantIx = await coreix.createGrantInstruction(
             ledgerProgram,
             configPda,
@@ -208,22 +218,55 @@ export class StablecoinClient {
             payer,
             validRole,
           );
-          mintTx.add(grantIx);
+          roleIxs.push(grantIx);
         }
       }
     }
 
-    if (opts.preset === 'sss-2') {
-      const hookInitIx = await hookix.createHookMetaInitInstruction(
-        guardProgram,
-        mint.publicKey as TokenMintKey,
-        payer,
-      );
-      mintTx.add(hookInitIx);
+    // Determine if we can fit everything in one transaction
+    const combinedTx = new Transaction();
+    mintTx.instructions.forEach((ix) => combinedTx.add(ix));
+    roleIxs.forEach((ix) => combinedTx.add(ix));
+
+    // To estimate size accurately, we need a blockhash and fee payer
+    combinedTx.recentBlockhash = '1'.repeat(32); // Dummy valid-length blockhash
+    combinedTx.feePayer = payer;
+
+    let useSingleTx = false;
+    try {
+      const serializedSize = combinedTx.serialize({
+        verifySignatures: false,
+        requireAllSignatures: false,
+      }).length;
+      // Solana limit is 1232 bytes for the serialized transaction
+      if (serializedSize <= 1232) {
+        useSingleTx = true;
+      }
+    } catch (e) {
+      // If serialization fails (e.g. too many keys for legacy tx), fall back to splitting
+      useSingleTx = false;
     }
 
     try {
-      await provider.sendAndConfirm(mintTx, [mint]);
+      if (useSingleTx) {
+        // Essential: use the real mintTx but add the role instructions to it
+        roleIxs.forEach((ix) => mintTx.add(ix));
+        await provider.sendAndConfirm(mintTx, [mint]);
+      } else {
+        // Phase 1: Deployment
+        await provider.sendAndConfirm(mintTx, [mint]);
+
+        // Phase 2: Role Granting (if any)
+        if (roleIxs.length > 0) {
+          const rolesTx = new Transaction();
+          roleIxs.forEach((ix) => rolesTx.add(ix));
+          try {
+            await provider.sendAndConfirm(rolesTx);
+          } catch (err) {
+            console.warn('Stablecoin deployed, but initial role granting failed:', err);
+          }
+        }
+      }
     } catch (err) {
       throw translateAnchorError(err);
     }
@@ -684,13 +727,13 @@ export class StablecoinClient {
 
   get accessControl() {
     return {
-      grant: async (address: PublicKey, role: AccessRole): Promise<string> => {
-        const tx = await this.composeGrantRole(address, role);
+      grant: async (address: PublicKey, roles: AccessRole | AccessRole[]): Promise<string> => {
+        const tx = await this.composeGrantRole(address, roles);
         return this.dispatchInstruction(tx.instructions);
       },
 
-      revoke: async (address: PublicKey, role: AccessRole): Promise<string> => {
-        const tx = await this.composeRevokeRole(address, role);
+      revoke: async (address: PublicKey, roles: AccessRole | AccessRole[]): Promise<string> => {
+        const tx = await this.composeRevokeRole(address, roles);
         return this.dispatchInstruction(tx.instructions);
       },
 
@@ -707,33 +750,51 @@ export class StablecoinClient {
     };
   }
 
-  async composeGrantRole(address: PublicKey, role: AccessRole): Promise<Transaction> {
+  async composeGrantRole(
+    address: PublicKey,
+    role: AccessRole | AccessRole[],
+  ): Promise<Transaction> {
     const admin = this.anchorProvider.publicKey;
-    const ix = await coreix.createGrantInstruction(
-      this.ledgerProgram,
-      this.configPda,
-      admin,
-      address,
-      role,
-    );
-    return new Transaction().add(ix);
+    const roles = Array.isArray(role) ? role : [role];
+    const tx = new Transaction();
+
+    for (const r of roles) {
+      const ix = await coreix.createGrantInstruction(
+        this.ledgerProgram,
+        this.configPda,
+        admin,
+        address,
+        r,
+      );
+      tx.add(ix);
+    }
+    return tx;
   }
 
-  async composeRevokeRole(address: PublicKey, role: AccessRole): Promise<Transaction> {
+  async composeRevokeRole(
+    address: PublicKey,
+    role: AccessRole | AccessRole[],
+  ): Promise<Transaction> {
     const admin = this.anchorProvider.publicKey;
-    const [roleAccountPda] = deriveRolePda(
-      this.configPda,
-      address,
-      role,
-      this.ledgerProgram.programId,
-    );
-    const ix = await coreix.createRevokeInstruction(
-      this.ledgerProgram,
-      this.configPda,
-      admin,
-      roleAccountPda,
-    );
-    return new Transaction().add(ix);
+    const roles = Array.isArray(role) ? role : [role];
+    const tx = new Transaction();
+
+    for (const r of roles) {
+      const [roleAccountPda] = deriveRolePda(
+        this.configPda,
+        address,
+        r,
+        this.ledgerProgram.programId,
+      );
+      const ix = await coreix.createRevokeInstruction(
+        this.ledgerProgram,
+        this.configPda,
+        admin,
+        roleAccountPda,
+      );
+      tx.add(ix);
+    }
+    return tx;
   }
 
   get denyList() {
