@@ -15,20 +15,21 @@ The Solana Stablecoin Standard (SSS) is a comprehensive, production-ready framew
    ```bash
    pnpm install
    ```
-3. **Build the SDK and frontend:**
+3. **Build the entire workspace (Powered by Turbo):**
    ```bash
-   pnpm --filter @stbr/sss-token build
-   pnpm --filter frontend build
+   pnpm build
    ```
 4. **Run the local frontend:**
    ```bash
-   pnpm --filter frontend dev
+   pnpm dev --filter frontend
    ```
-5. **Use the CLI to deploy a stablecoin:**
+5. **Run the backend services (Docker):**
    ```bash
-   cd solana-stablecoin-cli
-   pnpm build
-   sss-token init --preset sss-1 --name "My USD" --symbol MUSD --decimals 6
+   docker compose up -d
+   ```
+6. **Use the CLI to manage stablecoins:**
+   ```bash
+   pnpm start --filter @stbr/sss-cli
    ```
 
 ## Preset Comparison
@@ -52,10 +53,59 @@ The Solana Stablecoin Standard (SSS) is a comprehensive, production-ready framew
 ## Architecture Diagram
 
 ```mermaid
-graph TD
-    Client[Client Apps / CLI / Frontend] --> SDK[@stbr/sss-token SDK]
-    SDK --> Core[SSS Core Program]
-    SDK --> Token2022[Token-2022 Program]
-    Core --> Token2022
-    Token2022 --> TransferHook[SSS Transfer Hook Program]
+graph TB
+    subgraph "Client Layer"
+        Frontend["Next.js Dashboard"]
+        CLI["React Ink (TUI)"]
+        External["External Integrations"]
+    end
+
+    subgraph "SDK Layer (@stbr/sss-token)"
+        SDK["Stablecoin Client"]
+        Batcher["Tx Batcher / Splitter"]
+        Oracle["Pyth Oracle Client"]
+        ZK["ZK Proof Gen (WASM)"]
+    end
+
+    subgraph "Backend Tier (Microservices)"
+        Gateway["API Gateway"]
+        MintSvc["Mint Service"]
+        CompSvc["Compliance Service"]
+        EventIndexer["Event Indexer"]
+        Webhook["Webhook Dispatcher"]
+        Redis[("Redis (Pub/Sub)")]
+        Postgres[("PostgreSQL")]
+    end
+
+    subgraph "On-Chain Layer (Solana)"
+        Core["SSS Core Program"]
+        Hook["SSS Transfer Hook"]
+        T22["SPL Token-2022"]
+        Pyth["Pyth V2 Oracle"]
+    end
+
+    %% Interactions
+    Frontend & CLI & External --> SDK
+    
+    %% SDK interactions
+    SDK --> Gateway
+    SDK --> Batcher
+    SDK --> ZK
+    Batcher --> Core
+    Batcher --> T22
+    SDK --> Oracle
+    Oracle --> Pyth
+
+    %% Backend Flow
+    Gateway --> MintSvc & CompSvc & Webhook
+    MintSvc & CompSvc --> Redis
+    Webhook --> Redis
+    EventIndexer -- "Indexes" --> T22 & Hook
+    EventIndexer -- "Persists" --> Postgres
+    CompSvc -- "Queries" --> Postgres
+
+    %% On-Chain logic
+    Core -- "CPI (Mint/Burn/Freeze)" --> T22
+    T22 -- "CPI (Transfer-Hook)" --> Hook
+    Hook -- "PDA Checks" --> Core
 ```
