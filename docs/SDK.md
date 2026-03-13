@@ -16,6 +16,8 @@ npm install @stbr/sss-token
 
 - **Branded Types:** Employs strictly branded TypeScript configurations for keys (`MintAddress`, `ConfigPda`) to entirely eliminate accidentally passing the wrong `PublicKey` variable into instructions.
 - **Tree-Shakable:** All functions and instruction builders are exported individually without heavily-coupled class structures, ensuring your frontend bundles only ship the exact instructions you use for optimal performance.
+- **Automatic Transaction Splitting:** Large operations (like bulk role granting) are automatically split into multiple safe-sized transactions to avoid Solana's transaction size limits.
+- **Devnet Link Integration:** Transaction results include pre-formatted Solscan links for rapid debugging and verification.
 
 ## Quick Start
 

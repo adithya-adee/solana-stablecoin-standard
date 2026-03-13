@@ -41,6 +41,14 @@ sss-token tui
 - **Compliance Tab**: Manage roles and the transfer blacklist.
 - **Holders Tab**: View top token holders.
 - **Audit Tab**: Browse on-chain event history.
+- **My Tokens Tab**: A unified catalog of all stablecoins on the network.
+
+**TUI Shortcuts:**
+
+- **`[f]` Relationship Filter**: Cycle between `MY MANAGED` (tokens where you have roles), `ALL` (everything), `AUTHORITY` (owned tokens), and `ROLES` (delegated permissions).
+- **`[/]` Regex Search**: Activate real-time search. Supports JavaScript Regular Expressions (e.g., `^USDC` to match starts with USDC).
+- **`[n]/[p]` Pagination**: Navigate through long lists of tokens (10 per page).
+- **`[Enter]` Select Mint**: Quickly switch the global mint context to the selected token.
 
 ## Command Line Interface
 

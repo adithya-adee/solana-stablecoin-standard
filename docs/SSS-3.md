@@ -19,28 +19,36 @@ The SSS-1/2/3 SDK provides the `StablecoinClient.confidential` namespace to mana
 
 ### 1. Key Management
 
-Users must derive an ElGamal keypair (for ZK proofs) and an AES key (for local balance decryption).
+Users must derive an **ElGamal keypair** (for ZK proofs) and an **AeKey** (for local balance decryption/encryption). These are derived from wallet signatures using specific seed messages.
 
 ```typescript
-import { StablecoinClient } from '@solanabr/sss-sdk';
+import { 
+  loadZkSdk, 
+  deriveConfidentialKeysFromSignatures,
+  CONFIDENTIAL_TRANSFER_ELGAMAL_SEED_MESSAGE,
+  CONFIDENTIAL_TRANSFER_AE_KEY_SEED_MESSAGE 
+} from '@stbr/sss-token';
 
-// Derive keys from wallet signatures (standard convention)
-const elGamalSig = await wallet.signMessage(Buffer.from("ElGamalSecretKey"));
-const aesSig = await wallet.signMessage(Buffer.from("AeKey"));
+const zk = await loadZkSdk();
 
-const keys = await StablecoinClient.confidential.deriveKeys(elGamalSig, aesSig);
-// keys.elGamalPublicKey, keys.elGamalSecretKey, keys.aesKey
+// Request signatures from the wallet
+const elGamalSig = await wallet.signMessage(Buffer.from(CONFIDENTIAL_TRANSFER_ELGAMAL_SEED_MESSAGE));
+const aeSig = await wallet.signMessage(Buffer.from(CONFIDENTIAL_TRANSFER_AE_KEY_SEED_MESSAGE));
+
+// Derive the keys
+const keys = deriveConfidentialKeysFromSignatures(elGamalSig, aeSig, zk);
+// keys.elGamalPublicKey, keys.elGamalSecretKey, keys.aeKey (Handle)
 ```
 
 ### 2. Configure Token Account
 
-A standard Token-2022 account must be "opted-in" to confidential transfers. This generates a ZK proof of pubkey validity.
+A standard Token-2022 account must be "opted-in" to confidential transfers. This generates a ZK proof of pubkey validity on the client side.
 
 ```typescript
 await client.confidential.configureAccount(
   tokenAccount,
   keys.elGamalSecretKey,
-  keys.aesKey
+  keys.aeKey // Passing the AeKey handle for decryptable_zero_balance encryption
 );
 ```
 
